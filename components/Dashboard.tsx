@@ -23,6 +23,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
   const [favorites, setFavorites] = useState<string[]>([]);
   const [selectedCar, setSelectedCar] = useState<Car | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
@@ -55,6 +56,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
       }
     } catch (e) {
       console.error("Failed to load data", e);
+      setError((e as Error).message);
     } finally {
       setLoading(false);
     }
@@ -162,6 +164,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
             <span className="hidden sm:inline opacity-0 group-hover:opacity-100 transition-opacity">Añadir</span>
           </button>
         </div>
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+            <p className="font-medium">Error cargando datos:</p>
+            <p className="text-sm">{error}</p>
+            <button
+              onClick={fetchData}
+              className="mt-2 text-sm font-medium underline hover:text-red-800"
+            >
+              Reintentar
+            </button>
+          </div>
+        )}
 
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">

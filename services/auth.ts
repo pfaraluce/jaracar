@@ -12,15 +12,21 @@ export const authService = {
         if (!data.user) throw new Error('No user data returned');
 
         // Try to get profile data
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('full_name, role, status')
             .eq('id', data.user.id)
             .single();
 
+        if (profileError) {
+            console.error('Error fetching profile:', profileError);
+        }
+
+        const isAdminEmail = email.toLowerCase() === 'pfaraluce@gmail.com';
         const name = profile?.full_name || data.user.user_metadata.name || email.split('@')[0];
-        const role = profile?.role || (email.toLowerCase() === 'pfaraluce@gmail.com' ? UserRole.ADMIN : UserRole.USER);
-        const status = profile?.status || 'PENDING';
+        const role = profile?.role || (isAdminEmail ? UserRole.ADMIN : UserRole.USER);
+        // Force APPROVED for hardcoded admin email to prevent lockout
+        const status = isAdminEmail ? 'APPROVED' : (profile?.status || 'PENDING');
 
         return {
             id: data.user.id,
@@ -72,18 +78,24 @@ export const authService = {
         const role = email.toLowerCase() === 'pfaraluce@gmail.com' ? UserRole.ADMIN : UserRole.USER;
 
         // Try to get profile data
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('full_name, role, status')
             .eq('id', user.id)
             .single();
 
+        if (profileError) {
+            console.error('Error fetching profile:', profileError);
+        }
+
+        const isAdminEmail = email.toLowerCase() === 'pfaraluce@gmail.com';
+
         return {
             id: user.id,
             email: email,
             name: profile?.full_name || user.user_metadata.name || email.split('@')[0] || 'User',
-            role: profile?.role || (email.toLowerCase() === 'pfaraluce@gmail.com' ? UserRole.ADMIN : UserRole.USER),
-            status: profile?.status || 'PENDING'
+            role: profile?.role || (isAdminEmail ? UserRole.ADMIN : UserRole.USER),
+            status: isAdminEmail ? 'APPROVED' : (profile?.status || 'PENDING')
         };
     },
 

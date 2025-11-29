@@ -90,13 +90,6 @@ export const AuthLayout: React.FC<AuthProps> = ({ setViewState, setUser, current
             />
             {isLogin && (
               <div className="text-right mt-2">
-                <button
-                  type="button"
-                  onClick={() => setViewState('FORGOT_PASSWORD')}
-                  className="text-xs text-zinc-500 hover:text-zinc-900 transition-colors"
-                >
-                  ¿Olvidaste tu contraseña?
-                </button>
               </div>
             )}
           </div>
