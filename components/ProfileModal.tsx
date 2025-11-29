@@ -147,7 +147,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClos
                                             name={fullName}
                                             imageUrl={user.avatarUrl}
                                             size="lg"
-                                            className="w-24 h-24 text-2xl"
+                                            className="w-24 h-24 text-4xl"
                                         />
                                     )}
                                     <label
@@ -170,27 +170,27 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClos
                             {/* Form */}
                             <div className="space-y-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-zinc-700 mb-1">
+                                    <label className="block text-[10px] font-medium text-zinc-700 mb-1">
                                         Nombre completo
                                     </label>
                                     <input
                                         type="text"
                                         value={fullName}
                                         onChange={(e) => setFullName(e.target.value)}
-                                        className="w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-zinc-900/10 outline-none"
+                                        className="w-full px-2 py-1.5 text-xs border border-zinc-200 rounded-lg focus:ring-2 focus:ring-zinc-900/10 outline-none"
                                         placeholder="Tu nombre"
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-zinc-700 mb-1">
+                                    <label className="block text-[10px] font-medium text-zinc-700 mb-1">
                                         Email
                                     </label>
                                     <input
                                         type="email"
                                         value={user.email}
                                         disabled
-                                        className="w-full px-3 py-2 border border-zinc-200 rounded-lg bg-zinc-50 text-zinc-500 cursor-not-allowed"
+                                        className="w-full px-2 py-1.5 text-xs border border-zinc-200 rounded-lg bg-zinc-50 text-zinc-500 cursor-not-allowed outline-none"
                                     />
                                 </div>
 

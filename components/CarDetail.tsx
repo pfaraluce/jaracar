@@ -696,10 +696,10 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
             {currentView === 'EDIT' && (
               <div className="space-y-6">
                 <div>
-                  <label className="block text-xs font-medium text-zinc-500 mb-1">Nombre</label>
+                  <label className="block text-[10px] font-medium text-zinc-500 mb-1">Nombre</label>
                   <input
                     type="text"
-                    className="w-full text-sm p-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-zinc-900/10 outline-none"
+                    className="w-full text-xs py-1.5 px-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-zinc-900/10 outline-none"
                     value={editFormData.name}
                     onChange={e => setEditFormData({ ...editFormData, name: e.target.value })}
                   />
@@ -707,7 +707,7 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
 
                 {/* Image Upload in Edit */}
                 <div>
-                  <label className="block text-xs font-medium text-zinc-500 mb-1">Imagen</label>
+                  <label className="block text-[10px] font-medium text-zinc-500 mb-1">Imagen</label>
                   <div className="space-y-2">
                     <div className="flex gap-2">
                       <input
@@ -721,17 +721,17 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
                         disabled={uploading}
-                        className="flex-1 flex items-center justify-center gap-2 py-1.5 px-3 text-xs border border-zinc-200 rounded-lg hover:bg-zinc-50 transition-colors disabled:opacity-50"
+                        className="flex-1 flex items-center justify-center gap-2 py-1 px-2 text-[10px] border border-zinc-200 rounded-lg hover:bg-zinc-50 transition-colors disabled:opacity-50"
                       >
-                        <Upload size={14} />
+                        <Upload size={12} />
                         {uploading ? 'Subiendo...' : 'Subir imagen'}
                       </button>
                       <button
                         type="button"
                         onClick={() => setShowUrlInput(!showUrlInput)}
-                        className="flex-1 flex items-center justify-center gap-2 py-1.5 px-3 text-xs border border-zinc-200 rounded-lg hover:bg-zinc-50 transition-colors"
+                        className="flex-1 flex items-center justify-center gap-2 py-1 px-2 text-[10px] border border-zinc-200 rounded-lg hover:bg-zinc-50 transition-colors"
                       >
-                        <LinkIcon size={14} />
+                        <LinkIcon size={12} />
                         URL
                       </button>
                     </div>
@@ -740,14 +740,14 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                         <input
                           type="url"
                           placeholder="https://..."
-                          className="flex-1 text-xs p-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-zinc-900/10 outline-none"
+                          className="flex-1 text-xs py-1.5 px-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-zinc-900/10 outline-none"
                           value={urlInput}
                           onChange={e => setUrlInput(e.target.value)}
                         />
                         <button
                           type="button"
                           onClick={handleUrlSubmit}
-                          className="px-3 py-2 text-xs bg-zinc-900 text-white rounded-lg hover:bg-zinc-800"
+                          className="px-3 py-1.5 text-xs bg-zinc-900 text-white rounded-lg hover:bg-zinc-800"
                         >
                           OK
                         </button>
@@ -762,10 +762,10 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-zinc-500 mb-1">Próxima Revisión</label>
+                  <label className="block text-[10px] font-medium text-zinc-500 mb-1">Próxima Revisión</label>
                   <input
                     type="date"
-                    className={`w-full text-sm p-2 border rounded-lg focus:ring-2 focus:ring-zinc-900/10 outline-none ${isServiceDueSoon ? 'border-amber-300 bg-amber-50 text-amber-900' : 'border-zinc-200'
+                    className={`w-full text-xs py-1.5 px-2 border rounded-lg focus:ring-2 focus:ring-zinc-900/10 outline-none ${isServiceDueSoon ? 'border-amber-300 bg-amber-50 text-amber-900' : 'border-zinc-200'
                       }`}
                     value={editFormData.nextServiceDate}
                     onChange={e => setEditFormData({ ...editFormData, nextServiceDate: e.target.value })}
@@ -777,7 +777,7 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                   )}
                 </div>
 
-                <div className="flex items-center gap-3 p-3 bg-zinc-50 rounded-lg border border-zinc-200">
+                <div className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${editFormData.inWorkshop ? 'bg-rose-50 border-rose-200' : 'bg-zinc-50 border-zinc-200'}`}>
                   <input
                     type="checkbox"
                     id="inWorkshop"
@@ -785,8 +785,8 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                     onChange={e => setEditFormData({ ...editFormData, inWorkshop: e.target.checked })}
                     className="w-4 h-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900"
                   />
-                  <label htmlFor="inWorkshop" className="text-sm text-zinc-700 cursor-pointer">
-                    Marcar como "En taller" (deshabilita reservas)
+                  <label htmlFor="inWorkshop" className={`text-xs cursor-pointer ${editFormData.inWorkshop ? 'text-rose-700 font-medium' : 'text-zinc-700'}`}>
+                    {editFormData.inWorkshop ? 'En taller - reservas deshabilitadas' : 'En el taller'}
                   </label>
                 </div>
 
@@ -794,9 +794,9 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                   <button
                     onClick={handleSaveEdit}
                     disabled={loading}
-                    className="flex-1 px-4 py-2 text-sm bg-zinc-900 text-white rounded-lg hover:bg-zinc-800 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="flex-1 px-4 py-2 text-xs bg-zinc-900 text-white rounded-lg hover:bg-zinc-800 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                   >
-                    <Save size={16} />
+                    <Save size={14} />
                     Guardar
                   </button>
                 </div>
