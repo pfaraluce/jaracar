@@ -152,8 +152,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
       <main className="max-w-6xl mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h2 className="text-lg font-semibold text-zinc-900">Mis Vehículos</h2>
-            <p className="text-sm text-zinc-500">Reserva y gestiona tus viajes.</p>
+            <h2 className="text-lg font-semibold text-zinc-900">Todos los vehículos</h2>
+            <p className="text-sm text-zinc-500">Reserva y gestiona tus viajes. Recuerda consultar.</p>
           </div>
           <button
             onClick={handleAddCar}
