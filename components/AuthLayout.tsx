@@ -18,6 +18,7 @@ export const AuthLayout: React.FC<AuthProps> = ({ setViewState, setUser, current
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showCheckEmail, setShowCheckEmail] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,8 +32,15 @@ export const AuthLayout: React.FC<AuthProps> = ({ setViewState, setUser, current
         setViewState('DASHBOARD');
       } else if (currentView === 'SIGNUP') {
         const user = await authService.signup(email, name, password);
-        setUser(user);
-        setViewState('DASHBOARD');
+        // Check if we have a session (if not, email confirmation is likely required)
+        const session = await authService.getSession();
+
+        if (!session) {
+          setShowCheckEmail(true);
+        } else {
+          setUser(user);
+          setViewState('DASHBOARD');
+        }
       } else if (currentView === 'FORGOT_PASSWORD') {
         // Forgot password simulation
         setTimeout(() => {
