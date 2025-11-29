@@ -8,6 +8,7 @@ export interface User {
   email: string;
   name: string;
   role: UserRole;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
   avatarUrl?: string;
 }
 

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ViewState, User } from './types';
 import { AuthLayout } from './components/AuthLayout';
 import { Dashboard } from './components/Dashboard';
+import { PendingApproval } from './components/PendingApproval';
 
 export default function App() {
   // Simple state-based router for SPA feel without heavy routing libraries yet
@@ -9,19 +10,22 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
 
   const handleLogout = () => {
-      setUser(null);
-      setViewState('LOGIN');
+    setUser(null);
+    setViewState('LOGIN');
   }
 
   if (user && viewState === 'DASHBOARD') {
-      return <Dashboard user={user} onLogout={handleLogout} />;
+    if (user.status === 'PENDING') {
+      return <PendingApproval user={user} onLogout={handleLogout} />;
+    }
+    return <Dashboard user={user} onLogout={handleLogout} />;
   }
 
   return (
-    <AuthLayout 
-        currentView={viewState} 
-        setViewState={setViewState} 
-        setUser={setUser} 
+    <AuthLayout
+      currentView={viewState}
+      setViewState={setViewState}
+      setUser={setUser}
     />
   );
 }

@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { ViewState, User } from '../types';
 import { authService } from '../services/auth';
 import { Button } from './ui/Button';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Car, Mail, Lock, User as UserIcon, ArrowRight, Loader2 } from 'lucide-react';
+import { ForgotPassword } from './ForgotPassword';
 
 interface AuthProps {
   setViewState: (view: ViewState) => void;
@@ -30,7 +33,7 @@ export const AuthLayout: React.FC<AuthProps> = ({ setViewState, setUser, current
         const user = await authService.signup(email, name, password);
         setUser(user);
         setViewState('DASHBOARD');
-      } else {
+      } else if (currentView === 'FORGOT_PASSWORD') {
         // Forgot password simulation
         setTimeout(() => {
           alert('Si este correo existe, se ha enviado un enlace de recuperación.');
@@ -85,6 +88,17 @@ export const AuthLayout: React.FC<AuthProps> = ({ setViewState, setUser, current
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
+            {isLogin && (
+              <div className="text-right mt-2">
+                <button
+                  type="button"
+                  onClick={() => setViewState('FORGOT_PASSWORD')}
+                  className="text-xs text-zinc-500 hover:text-zinc-900 transition-colors"
+                >
+                  ¿Olvidaste tu contraseña?
+                </button>
+              </div>
+            )}
           </div>
 
           {!isForgot && (

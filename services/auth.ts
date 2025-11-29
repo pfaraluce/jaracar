@@ -11,22 +11,23 @@ export const authService = {
         if (error) throw new Error(error.message);
         if (!data.user) throw new Error('No user data returned');
 
-        // Try to get name from profiles table
+        // Try to get profile data
         const { data: profile } = await supabase
             .from('profiles')
-            .select('full_name')
+            .select('full_name, role, status')
             .eq('id', data.user.id)
             .single();
 
         const name = profile?.full_name || data.user.user_metadata.name || email.split('@')[0];
-        // Hardcoded admin check for specific email
-        const role = email.toLowerCase() === 'pfaraluce@gmail.com' ? UserRole.ADMIN : UserRole.USER;
+        const role = profile?.role || (email.toLowerCase() === 'pfaraluce@gmail.com' ? UserRole.ADMIN : UserRole.USER);
+        const status = profile?.status || 'PENDING';
 
         return {
             id: data.user.id,
             email: data.user.email || '',
             name: name,
             role: role,
+            status: status,
             avatarUrl: undefined
         };
     },
@@ -45,14 +46,16 @@ export const authService = {
         if (error) throw new Error(error.message);
         if (!data.user) throw new Error('No user data returned');
 
-        // Even on signup, check if it's the admin email
+        // Even on signup, check if it's the admin email (fallback)
         const role = email.toLowerCase() === 'pfaraluce@gmail.com' ? UserRole.ADMIN : UserRole.USER;
+        const status = role === UserRole.ADMIN ? 'APPROVED' : 'PENDING';
 
         return {
             id: data.user.id,
             email: data.user.email || '',
             name: name,
-            role: role
+            role: role,
+            status: status
         };
     },
 
@@ -68,10 +71,10 @@ export const authService = {
         const email = user.email || '';
         const role = email.toLowerCase() === 'pfaraluce@gmail.com' ? UserRole.ADMIN : UserRole.USER;
 
-        // Try to get name from profiles table
+        // Try to get profile data
         const { data: profile } = await supabase
             .from('profiles')
-            .select('full_name')
+            .select('full_name, role, status')
             .eq('id', user.id)
             .single();
 
@@ -79,7 +82,15 @@ export const authService = {
             id: user.id,
             email: email,
             name: profile?.full_name || user.user_metadata.name || email.split('@')[0] || 'User',
-            role: role
+            role: profile?.role || (email.toLowerCase() === 'pfaraluce@gmail.com' ? UserRole.ADMIN : UserRole.USER),
+            status: profile?.status || 'PENDING'
         };
+    },
+
+    resetPassword: async (email: string): Promise<void> => {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: window.location.origin, // Redirect back to app
+        });
+        if (error) throw new Error(error.message);
     }
 };
