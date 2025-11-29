@@ -61,7 +61,7 @@ export const AdminUserList: React.FC = () => {
     return (
         <div className="space-y-4">
             {/* Filters */}
-            <div className="flex flex-col sm:flex-row gap-3 justify-between items-center">
+            <div className="flex flex-col sm:flex-row gap-3 justify-between items-center flex-wrap">
                 <div className="flex bg-zinc-100 p-1 rounded-lg">
                     <button
                         onClick={() => setFilter('PENDING')}
@@ -123,8 +123,8 @@ export const AdminUserList: React.FC = () => {
                                         </td>
                                         <td className="px-4 py-3">
                                             <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${user.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
-                                                    user.status === 'REJECTED' ? 'bg-red-50 text-red-700 border-red-100' :
-                                                        'bg-amber-50 text-amber-700 border-amber-100'
+                                                user.status === 'REJECTED' ? 'bg-red-50 text-red-700 border-red-100' :
+                                                    'bg-amber-50 text-amber-700 border-amber-100'
                                                 }`}>
                                                 {user.status === 'APPROVED' ? 'Aprobado' :
                                                     user.status === 'REJECTED' ? 'Rechazado' : 'Pendiente'}
@@ -163,8 +163,8 @@ export const AdminUserList: React.FC = () => {
                                                 <button
                                                     onClick={() => handleRoleChange(user.id, user.role === UserRole.ADMIN ? UserRole.USER : UserRole.ADMIN)}
                                                     className={`p-1.5 rounded transition-colors ${user.role === UserRole.ADMIN
-                                                            ? 'text-purple-600 hover:bg-purple-50'
-                                                            : 'text-zinc-400 hover:text-purple-600 hover:bg-purple-50'
+                                                        ? 'text-purple-600 hover:bg-purple-50'
+                                                        : 'text-zinc-400 hover:text-purple-600 hover:bg-purple-50'
                                                         }`}
                                                     title={user.role === UserRole.ADMIN ? "Quitar Admin" : "Hacer Admin"}
                                                 >

@@ -85,10 +85,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClos
                     onClick={onClose}
                 />
                 <motion.div
-                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                    className="relative w-full max-w-md bg-white rounded-xl shadow-2xl p-6 max-h-[90vh] overflow-y-auto"
+                    className={`relative w-full bg-white rounded-xl shadow-2xl p-6 max-h-[90vh] overflow-y-auto transition-all duration-300 ${activeTab === 'ADMIN' ? 'max-w-2xl' : 'max-w-md'
+                        }`}
                 >
                     {/* Header */}
                     <div className="flex items-center justify-between mb-6">
@@ -109,8 +109,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClos
                             <button
                                 onClick={() => setActiveTab('PROFILE')}
                                 className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'PROFILE'
-                                        ? 'bg-white text-zinc-900 shadow-sm'
-                                        : 'text-zinc-500 hover:text-zinc-700'
+                                    ? 'bg-white text-zinc-900 shadow-sm'
+                                    : 'text-zinc-500 hover:text-zinc-700'
                                     }`}
                             >
                                 <User size={16} />
@@ -119,8 +119,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClos
                             <button
                                 onClick={() => setActiveTab('ADMIN')}
                                 className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'ADMIN'
-                                        ? 'bg-white text-zinc-900 shadow-sm'
-                                        : 'text-zinc-500 hover:text-zinc-700'
+                                    ? 'bg-white text-zinc-900 shadow-sm'
+                                    : 'text-zinc-500 hover:text-zinc-700'
                                     }`}
                             >
                                 <Users size={16} />
