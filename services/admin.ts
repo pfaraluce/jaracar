@@ -29,19 +29,19 @@ export const adminService = {
     },
 
     updateUserStatus: async (userId: string, status: 'APPROVED' | 'REJECTED' | 'PENDING') => {
-        const { error } = await supabase
-            .from('profiles')
-            .update({ status })
-            .eq('id', userId);
+        const { error } = await supabase.rpc('admin_update_profile', {
+            target_user_id: userId,
+            new_status: status
+        });
 
         if (error) throw new Error(error.message);
     },
 
     updateUserRole: async (userId: string, role: 'ADMIN' | 'USER') => {
-        const { error } = await supabase
-            .from('profiles')
-            .update({ role })
-            .eq('id', userId);
+        const { error } = await supabase.rpc('admin_update_profile', {
+            target_user_id: userId,
+            new_role: role
+        });
 
         if (error) throw new Error(error.message);
     }
