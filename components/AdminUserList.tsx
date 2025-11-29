@@ -7,7 +7,7 @@ import { Check, X, Shield, ShieldOff, Search } from 'lucide-react';
 export const AdminUserList: React.FC = () => {
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
-    const [filter, setFilter] = useState<'ALL' | 'PENDING'>('PENDING');
+    const [filter, setFilter] = useState<'ALL' | 'PENDING'>('ALL');
     const [searchTerm, setSearchTerm] = useState('');
 
     const fetchUsers = async () => {

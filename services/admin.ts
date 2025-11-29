@@ -8,6 +8,8 @@ export const adminService = {
             .select('*')
             .order('created_at', { ascending: false });
 
+        console.log('AdminService getUsers response:', { data, error });
+
         if (error) throw new Error(error.message);
 
         // Fetch emails from auth is not directly possible via client SDK for all users without admin API
