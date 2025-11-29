@@ -115,6 +115,7 @@ export const CarCard: React.FC<CarCardProps> = ({ car, reservations, isFavorite,
             onToggleFavorite(e);
           }}
           className="absolute top-2 right-2 p-1.5 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white transition-colors shadow-sm z-10"
+          data-tutorial="favorite-star"
         >
           <Star
             size={14}

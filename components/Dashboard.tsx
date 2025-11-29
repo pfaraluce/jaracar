@@ -6,6 +6,9 @@ import { AddCarModal } from './AddCarModal';
 import { CarCard } from './CarCard';
 import { CarDetail } from './CarDetail';
 import { UserAvatar } from './UserAvatar';
+import { ProfileModal } from './ProfileModal';
+import { WelcomeModal } from './WelcomeModal';
+import { TutorialOverlay } from './TutorialOverlay';
 import { AnimatePresence } from 'framer-motion';
 import { Plus, LogOut } from 'lucide-react';
 
@@ -21,7 +24,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
   const [selectedCar, setSelectedCar] = useState<Car | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
 
+  // Check if user is new (first time login)
+  useEffect(() => {
+    const hasSeenWelcome = localStorage.getItem('jaracar_welcome_seen');
+    if (!hasSeenWelcome) {
+      setShowWelcome(true);
+    }
+  }, []);
 
   const fetchData = async () => {
     try {
@@ -75,6 +88,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
     }
   };
 
+  const handleWelcomeComplete = () => {
+    localStorage.setItem('jaracar_welcome_seen', 'true');
+    setShowWelcome(false);
+  };
+
+  const handleStartTutorial = () => {
+    handleWelcomeComplete();
+    setShowTutorial(true);
+  };
+
+  const handleTutorialComplete = () => {
+    localStorage.setItem('jaracar_tutorial_seen', 'true');
+    setShowTutorial(false);
+  };
+
   const sortedCars = [...cars].sort((a, b) => {
     const aFav = favorites.includes(a.id);
     const bFav = favorites.includes(b.id);
@@ -96,9 +124,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2" data-tutorial="user-avatar">
               <div className="flex items-center gap-2">
-                <UserAvatar name={user.name} imageUrl={user.avatarUrl} size="md" />
+                <button onClick={() => setIsProfileModalOpen(true)} className="hover:opacity-80 transition-opacity">
+                  <UserAvatar name={user.name} imageUrl={user.avatarUrl} size="md" />
+                </button>
                 <div className="hidden sm:block text-right">
                   <p className="text-xs font-medium text-zinc-900">{user.name}</p>
                   <p className="text-[10px] text-zinc-500">{user.email}</p>
@@ -141,15 +171,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {sortedCars.map(car => (
-              <CarCard
-                key={car.id}
-                car={car}
-                reservations={reservations.filter(r => r.carId === car.id)}
-                isFavorite={favorites.includes(car.id)}
-                onToggleFavorite={() => handleToggleFavorite(car.id)}
-                onClick={() => setSelectedCar(car)}
-              />
+            {sortedCars.map((car, index) => (
+              <div key={car.id} data-tutorial={index === 0 ? "car-card" : undefined}>
+                <CarCard
+                  car={car}
+                  reservations={reservations.filter(r => r.carId === car.id)}
+                  isFavorite={favorites.includes(car.id)}
+                  onToggleFavorite={() => handleToggleFavorite(car.id)}
+                  onClick={() => setSelectedCar(car)}
+                />
+              </div>
             ))}
           </div>
         )}
@@ -174,6 +205,31 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
         onClose={() => setIsAddModalOpen(false)}
         onSuccess={fetchData}
       />
+
+      {/* Profile Modal */}
+      <ProfileModal
+        user={user}
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        onUpdate={fetchData}
+      />
+
+      {/* Welcome Modal */}
+      {showWelcome && (
+        <WelcomeModal
+          userName={user.name}
+          onStartTutorial={handleStartTutorial}
+          onSkip={handleWelcomeComplete}
+        />
+      )}
+
+      {/* Tutorial Overlay */}
+      {showTutorial && (
+        <TutorialOverlay
+          onComplete={handleTutorialComplete}
+          onSkip={handleTutorialComplete}
+        />
+      )}
     </div>
   );
 };
