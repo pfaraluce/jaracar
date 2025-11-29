@@ -29,9 +29,12 @@ export const AdminUserList: React.FC = () => {
         try {
             // Optimistic update
             setUsers(users.map(u => u.id === userId ? { ...u, status: newStatus } : u));
+            console.log(`Attempting to update user ${userId} to status ${newStatus}`);
             await adminService.updateUserStatus(userId, newStatus);
+            console.log('Update successful');
         } catch (error) {
             console.error('Error updating status:', error);
+            alert(`Error al actualizar: ${(error as Error).message}`);
             fetchUsers(); // Revert on error
         }
     };
