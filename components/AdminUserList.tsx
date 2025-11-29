@@ -68,14 +68,14 @@ export const AdminUserList: React.FC = () => {
                 <div className="flex bg-zinc-100 p-1 rounded-lg">
                     <button
                         onClick={() => setFilter('PENDING')}
-                        className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${filter === 'PENDING' ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-500 hover:text-zinc-700'
+                        className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${filter === 'PENDING' ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-500 hover:text-zinc-700'
                             }`}
                     >
                         Pendientes
                     </button>
                     <button
                         onClick={() => setFilter('ALL')}
-                        className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${filter === 'ALL' ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-500 hover:text-zinc-700'
+                        className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${filter === 'ALL' ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-500 hover:text-zinc-700'
                             }`}
                     >
                         Todos
@@ -99,10 +99,10 @@ export const AdminUserList: React.FC = () => {
                     <table className="w-full text-sm text-left">
                         <thead className="bg-zinc-50 text-zinc-500 font-medium border-b border-zinc-200">
                             <tr>
-                                <th className="px-4 py-3">Usuario</th>
-                                <th className="px-4 py-3">Estado</th>
-                                <th className="px-4 py-3">Rol</th>
-                                <th className="px-4 py-3 text-right">Acciones</th>
+                                <th className="px-4 py-2.5">Usuario</th>
+                                <th className="px-4 py-2.5">Estado</th>
+                                <th className="px-4 py-2.5">Rol</th>
+                                <th className="px-4 py-2.5 text-right">Acciones</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-zinc-100">
@@ -115,7 +115,7 @@ export const AdminUserList: React.FC = () => {
                             ) : (
                                 filteredUsers.map(user => (
                                     <tr key={user.id} className="hover:bg-zinc-50/50 transition-colors">
-                                        <td className="px-4 py-3">
+                                        <td className="px-4 py-2.5">
                                             <div className="flex items-center gap-3">
                                                 <UserAvatar name={user.name} imageUrl={user.avatarUrl} size="sm" />
                                                 <div>
@@ -124,8 +124,8 @@ export const AdminUserList: React.FC = () => {
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-4 py-3">
-                                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${user.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
+                                        <td className="px-4 py-2.5">
+                                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${user.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
                                                 user.status === 'REJECTED' ? 'bg-red-50 text-red-700 border-red-100' :
                                                     'bg-amber-50 text-amber-700 border-amber-100'
                                                 }`}>
@@ -133,14 +133,14 @@ export const AdminUserList: React.FC = () => {
                                                     user.status === 'REJECTED' ? 'Rechazado' : 'Pendiente'}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-3">
-                                            <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${user.role === UserRole.ADMIN ? 'bg-purple-50 text-purple-700' : 'text-zinc-600'
+                                        <td className="px-4 py-2.5">
+                                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium ${user.role === UserRole.ADMIN ? 'bg-purple-50 text-purple-700' : 'text-zinc-600'
                                                 }`}>
-                                                {user.role === UserRole.ADMIN && <Shield size={12} />}
+                                                {user.role === UserRole.ADMIN && <Shield size={10} />}
                                                 {user.role}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-3 text-right">
+                                        <td className="px-4 py-2.5 text-right">
                                             <div className="flex items-center justify-end gap-2">
                                                 {user.status === 'PENDING' && (
                                                     <>

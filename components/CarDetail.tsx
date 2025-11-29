@@ -465,19 +465,19 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                       <div className="flex gap-2">
                         <button
                           onClick={() => setBookingMode('NOW')}
-                          className={`flex-1 p-3 rounded-lg border transition-all ${bookingMode === 'NOW' ? 'border-zinc-900 bg-zinc-900 text-white' : 'border-zinc-200 hover:bg-zinc-50'}`}
+                          className={`flex-1 py-2 px-3 rounded-lg border transition-all ${bookingMode === 'NOW' ? 'border-zinc-900 bg-zinc-900 text-white' : 'border-zinc-200 hover:bg-zinc-50'}`}
                         >
                           <div className="flex items-center justify-center gap-2">
-                            <Play size={16} />
+                            <Play size={14} />
                             <span className="text-sm font-medium">Ahora</span>
                           </div>
                         </button>
                         <button
                           onClick={() => setBookingMode('LATER')}
-                          className={`flex-1 p-3 rounded-lg border transition-all ${bookingMode === 'LATER' ? 'border-zinc-900 bg-zinc-900 text-white' : 'border-zinc-200 hover:bg-zinc-50'}`}
+                          className={`flex-1 py-2 px-3 rounded-lg border transition-all ${bookingMode === 'LATER' ? 'border-zinc-900 bg-zinc-900 text-white' : 'border-zinc-200 hover:bg-zinc-50'}`}
                         >
                           <div className="flex items-center justify-center gap-2">
-                            <Calendar size={16} />
+                            <Calendar size={14} />
                             <span className="text-sm font-medium">Programar</span>
                           </div>
                         </button>
@@ -507,7 +507,7 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                           <button
                             type="button"
                             onClick={() => handleQuickDuration('LUNCH')}
-                            className={`text-xs p-2 border rounded-lg transition-all ${selectedDuration === 'LUNCH'
+                            className={`text-xs py-1.5 px-2 border rounded-lg transition-all ${selectedDuration === 'LUNCH'
                               ? 'border-zinc-900 bg-zinc-900 text-white'
                               : 'border-zinc-200 hover:bg-zinc-50'
                               }`}
@@ -517,7 +517,7 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                           <button
                             type="button"
                             onClick={() => handleQuickDuration('DINNER')}
-                            className={`text-xs p-2 border rounded-lg transition-all ${selectedDuration === 'DINNER'
+                            className={`text-xs py-1.5 px-2 border rounded-lg transition-all ${selectedDuration === 'DINNER'
                               ? 'border-zinc-900 bg-zinc-900 text-white'
                               : 'border-zinc-200 hover:bg-zinc-50'
                               }`}
@@ -527,7 +527,7 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                           <button
                             type="button"
                             onClick={() => handleQuickDuration('CUSTOM')}
-                            className={`text-xs p-2 border rounded-lg transition-all ${selectedDuration === 'CUSTOM'
+                            className={`text-xs py-1.5 px-2 border rounded-lg transition-all ${selectedDuration === 'CUSTOM'
                               ? 'border-zinc-900 bg-zinc-900 text-white'
                               : 'border-zinc-200 hover:bg-zinc-50'
                               }`}
@@ -721,7 +721,7 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
                         disabled={uploading}
-                        className="flex-1 flex items-center justify-center gap-2 p-2 text-xs border border-zinc-200 rounded-lg hover:bg-zinc-50 transition-colors disabled:opacity-50"
+                        className="flex-1 flex items-center justify-center gap-2 py-1.5 px-3 text-xs border border-zinc-200 rounded-lg hover:bg-zinc-50 transition-colors disabled:opacity-50"
                       >
                         <Upload size={14} />
                         {uploading ? 'Subiendo...' : 'Subir imagen'}
@@ -729,7 +729,7 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                       <button
                         type="button"
                         onClick={() => setShowUrlInput(!showUrlInput)}
-                        className="flex-1 flex items-center justify-center gap-2 p-2 text-xs border border-zinc-200 rounded-lg hover:bg-zinc-50 transition-colors"
+                        className="flex-1 flex items-center justify-center gap-2 py-1.5 px-3 text-xs border border-zinc-200 rounded-lg hover:bg-zinc-50 transition-colors"
                       >
                         <LinkIcon size={14} />
                         URL
@@ -909,7 +909,7 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
             )}
           </div>
         </motion.div>
-      </motion.div >
+      </motion.div>
 
       {/* Confirmation Overlay */}
       <AnimatePresence>
@@ -960,7 +960,7 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
             </div>
           )
         }
-      </AnimatePresence >
+      </AnimatePresence>
     </>
   );
 };

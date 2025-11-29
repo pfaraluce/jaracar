@@ -108,22 +108,22 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClos
                         <div className="flex p-1 bg-zinc-100 rounded-lg mb-6">
                             <button
                                 onClick={() => setActiveTab('PROFILE')}
-                                className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'PROFILE'
+                                className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'PROFILE'
                                     ? 'bg-white text-zinc-900 shadow-sm'
                                     : 'text-zinc-500 hover:text-zinc-700'
                                     }`}
                             >
-                                <User size={16} />
+                                <User size={14} />
                                 Mi Perfil
                             </button>
                             <button
                                 onClick={() => setActiveTab('ADMIN')}
-                                className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-all ${activeTab === 'ADMIN'
+                                className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'ADMIN'
                                     ? 'bg-white text-zinc-900 shadow-sm'
                                     : 'text-zinc-500 hover:text-zinc-700'
                                     }`}
                             >
-                                <Users size={16} />
+                                <Users size={14} />
                                 Usuarios
                             </button>
                         </div>
@@ -205,14 +205,14 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClos
                             <div className="flex gap-3 mt-6">
                                 <button
                                     onClick={onClose}
-                                    className="flex-1 px-4 py-2 text-sm font-medium text-zinc-700 bg-zinc-100 hover:bg-zinc-200 rounded-lg transition-colors"
+                                    className="flex-1 px-4 py-1.5 text-sm font-medium text-zinc-700 bg-zinc-100 hover:bg-zinc-200 rounded-lg transition-colors"
                                 >
                                     Cancelar
                                 </button>
                                 <button
                                     onClick={handleSave}
                                     disabled={loading || !fullName.trim()}
-                                    className="flex-1 px-4 py-2 text-sm font-medium text-white bg-zinc-900 hover:bg-zinc-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="flex-1 px-4 py-1.5 text-sm font-medium text-white bg-zinc-900 hover:bg-zinc-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {loading ? 'Guardando...' : 'Guardar cambios'}
                                 </button>

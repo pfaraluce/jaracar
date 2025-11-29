@@ -147,27 +147,27 @@ export const AddCarModal: React.FC<AddCarModalProps> = ({ isOpen, onClose, onSuc
                             </button>
                         </div>
 
-                        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+                        <form onSubmit={handleSubmit} className="p-4 space-y-3">
                             <div>
                                 <label className="block text-xs font-medium text-zinc-500 mb-1">Nombre del Vehículo</label>
                                 <input
                                     required
                                     type="text"
                                     placeholder="ej. Toyota Corolla 2023"
-                                    className="w-full text-sm p-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-zinc-900/10 outline-none"
+                                    className="w-full text-sm py-1.5 px-3 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-zinc-900/10 outline-none"
                                     value={formData.name}
                                     onChange={e => setFormData({ ...formData, name: e.target.value })}
                                 />
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <label className="block text-xs font-medium text-zinc-500 mb-1">Matrícula</label>
                                     <input
                                         required
                                         type="text"
                                         placeholder="1234 ABC"
-                                        className="w-full text-sm p-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-zinc-900/10 outline-none uppercase"
+                                        className="w-full text-sm py-1.5 px-3 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-zinc-900/10 outline-none uppercase"
                                         value={formData.plate}
                                         onChange={e => setFormData({ ...formData, plate: e.target.value })}
                                     />
@@ -176,7 +176,7 @@ export const AddCarModal: React.FC<AddCarModalProps> = ({ isOpen, onClose, onSuc
                                     <label className="block text-xs font-medium text-zinc-500 mb-1">Combustible</label>
                                     <select
                                         required
-                                        className="w-full text-sm p-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-zinc-900/10 outline-none"
+                                        className="w-full text-sm py-1.5 px-3 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-zinc-900/10 outline-none"
                                         value={formData.fuelType}
                                         onChange={e => setFormData({ ...formData, fuelType: e.target.value as any })}
                                     >
@@ -191,7 +191,7 @@ export const AddCarModal: React.FC<AddCarModalProps> = ({ isOpen, onClose, onSuc
                                 <label className="block text-xs font-medium text-zinc-500 mb-1">Próxima Revisión (Opcional)</label>
                                 <input
                                     type="date"
-                                    className="w-full text-sm p-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-zinc-900/10 outline-none"
+                                    className="w-full text-sm py-1.5 px-3 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-zinc-900/10 outline-none"
                                     value={formData.nextServiceDate}
                                     onChange={e => setFormData({ ...formData, nextServiceDate: e.target.value })}
                                 />
@@ -204,15 +204,15 @@ export const AddCarModal: React.FC<AddCarModalProps> = ({ isOpen, onClose, onSuc
                                     <div
                                         onDrop={handleDrop}
                                         onDragOver={(e) => e.preventDefault()}
-                                        className="relative aspect-video w-full overflow-hidden rounded-lg border-2 border-dashed border-zinc-200 bg-zinc-50 flex items-center justify-center cursor-pointer hover:border-zinc-300 transition-colors"
+                                        className="relative aspect-video w-full overflow-hidden rounded-lg border border-dashed border-zinc-300 bg-zinc-50 flex items-center justify-center cursor-pointer hover:border-zinc-400 transition-colors"
                                         onClick={() => fileInputRef.current?.click()}
                                     >
                                         {formData.imageUrl ? (
                                             <img src={formData.imageUrl} alt="Preview" className="w-full h-full object-cover" />
                                         ) : (
                                             <div className="text-center p-4">
-                                                <ImageIcon size={32} className="mx-auto text-zinc-300 mb-2" />
-                                                <p className="text-xs text-zinc-400">Arrastra, pega o haz clic para subir</p>
+                                                <ImageIcon size={24} className="mx-auto text-zinc-300 mb-2" />
+                                                <p className="text-[10px] text-zinc-400">Arrastra o haz clic</p>
                                             </div>
                                         )}
                                     </div>
@@ -230,7 +230,7 @@ export const AddCarModal: React.FC<AddCarModalProps> = ({ isOpen, onClose, onSuc
                                             type="button"
                                             onClick={() => fileInputRef.current?.click()}
                                             disabled={uploading}
-                                            className="flex-1 flex items-center justify-center gap-2 p-2 text-xs border border-zinc-200 rounded-lg hover:bg-zinc-50 transition-colors disabled:opacity-50"
+                                            className="flex-1 flex items-center justify-center gap-2 py-1.5 px-3 text-xs border border-zinc-200 rounded-lg hover:bg-zinc-50 transition-colors disabled:opacity-50"
                                         >
                                             <Upload size={14} />
                                             {uploading ? 'Subiendo...' : 'Subir'}
@@ -238,7 +238,7 @@ export const AddCarModal: React.FC<AddCarModalProps> = ({ isOpen, onClose, onSuc
                                         <button
                                             type="button"
                                             onClick={() => setShowUrlInput(!showUrlInput)}
-                                            className="flex-1 flex items-center justify-center gap-2 p-2 text-xs border border-zinc-200 rounded-lg hover:bg-zinc-50 transition-colors"
+                                            className="flex-1 flex items-center justify-center gap-2 py-1.5 px-3 text-xs border border-zinc-200 rounded-lg hover:bg-zinc-50 transition-colors"
                                         >
                                             <LinkIcon size={14} />
                                             URL
@@ -251,7 +251,7 @@ export const AddCarModal: React.FC<AddCarModalProps> = ({ isOpen, onClose, onSuc
                                             <input
                                                 type="url"
                                                 placeholder="https://..."
-                                                className="flex-1 text-xs p-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-zinc-900/10 outline-none"
+                                                className="flex-1 text-xs py-1.5 px-3 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-zinc-900/10 outline-none"
                                                 value={urlInput}
                                                 onChange={e => setUrlInput(e.target.value)}
                                                 onKeyPress={e => e.key === 'Enter' && (e.preventDefault(), handleUrlSubmit())}
@@ -259,7 +259,7 @@ export const AddCarModal: React.FC<AddCarModalProps> = ({ isOpen, onClose, onSuc
                                             <button
                                                 type="button"
                                                 onClick={handleUrlSubmit}
-                                                className="px-3 py-2 text-xs bg-zinc-900 text-white rounded-lg hover:bg-zinc-800"
+                                                className="px-3 py-1.5 text-xs bg-zinc-900 text-white rounded-lg hover:bg-zinc-800"
                                             >
                                                 OK
                                             </button>
