@@ -134,7 +134,9 @@ export const carService = {
             .select('*')
             .eq('car_id', carId)
             .eq('user_id', userId)
-            .single();
+            .eq('car_id', carId)
+            .eq('user_id', userId)
+            .maybeSingle();
 
         if (data) {
             await supabase.from('favorites').delete().eq('car_id', carId).eq('user_id', userId);

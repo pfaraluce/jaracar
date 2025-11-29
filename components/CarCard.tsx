@@ -38,6 +38,33 @@ export const CarCard: React.FC<CarCardProps> = ({ car, reservations, isFavorite,
     return isBefore(serviceDate, oneWeekFromNow) && isAfter(serviceDate, new Date());
   }, [car.nextServiceDate]);
 
+  // Find priority message
+  const messageReservation = React.useMemo(() => {
+    // 1. Active with notes
+    const active = reservations.find(r => r.status === 'ACTIVE' && r.notes && isWithinInterval(now, { start: parseISO(r.startTime), end: parseISO(r.endTime) }));
+    if (active) return active;
+
+    // 2. Recently finished (last 2 hours) with notes
+    const recent = reservations.find(r => {
+      if (r.status !== 'COMPLETED' || !r.notes) return false;
+      const end = parseISO(r.endTime);
+      const diff = differenceInHours(now, end);
+      return diff >= 0 && diff < 2;
+    });
+    if (recent) return recent;
+
+    // 3. Future (next 24h) with notes - Optional, but good for context
+    const future = reservations.find(r => {
+      if (r.status !== 'ACTIVE' || !r.notes) return false;
+      const start = parseISO(r.startTime);
+      const diff = differenceInHours(start, now);
+      return diff > 0 && diff < 24;
+    });
+    if (future) return future;
+
+    return null;
+  }, [reservations, now]);
+
   const statusColor = () => {
     if (car.inWorkshop) return 'border-rose-500 shadow-rose-100 bg-rose-50/30'; // Workshop - Red Alert
     if (car.status === CarStatus.WORKSHOP) return 'border-rose-500 shadow-rose-100 bg-rose-50/30';
@@ -67,7 +94,7 @@ export const CarCard: React.FC<CarCardProps> = ({ car, reservations, isFavorite,
       const hours = Math.floor(remaining / 60);
       const mins = remaining % 60;
       return (
-        <div className="flex flex-col">
+        <div className="flex flex-col items-end">
           <span className="text-xs font-medium text-blue-600 flex items-center gap-1">
             <UserAvatar name={currentReservation.userName} size="sm" className="w-4 h-4 text-[8px]" />
             {currentReservation.userName}
@@ -89,13 +116,13 @@ export const CarCard: React.FC<CarCardProps> = ({ car, reservations, isFavorite,
     <motion.div
       layoutId={`card-${car.id}`}
       className={clsx(
-        "group relative bg-white rounded-xl border p-3 cursor-pointer transition-all hover:shadow-md",
+        "group relative bg-white rounded-xl border p-3 cursor-pointer transition-all hover:shadow-md flex flex-col h-full",
         statusColor()
       )}
       onClick={onClick}
       whileHover={{ y: -2 }}
     >
-      <div className="aspect-[16/10] w-full overflow-hidden rounded-lg bg-zinc-100 mb-3 relative">
+      <div className="aspect-[16/10] w-full overflow-hidden rounded-lg bg-zinc-100 mb-3 relative shrink-0">
         <motion.img
           layoutId={`image-${car.id}`}
           src={car.imageUrl}
@@ -124,16 +151,37 @@ export const CarCard: React.FC<CarCardProps> = ({ car, reservations, isFavorite,
         </button>
       </div>
 
-      <div className="space-y-1">
+      <div className="space-y-2 flex-1 flex flex-col">
         <div className="flex justify-between items-start">
-          <motion.h3 layoutId={`title-${car.id}`} className="font-semibold text-zinc-900 text-sm">{car.name}</motion.h3>
+          <div>
+            <motion.h3 layoutId={`title-${car.id}`} className="font-semibold text-zinc-900 text-sm">{car.name}</motion.h3>
+            <p className="text-xs text-zinc-400 font-mono">{car.plate}</p>
+          </div>
           <StatusIndicator />
         </div>
-        <p className="text-xs text-zinc-400 font-mono">{car.plate}</p>
+
+        {/* Dashboard Message */}
+        {messageReservation && (
+          <div className="mt-auto pt-2">
+            <div className={`text-[10px] p-2 rounded-lg border flex gap-2 items-start ${messageReservation.status === 'COMPLETED' ? 'bg-zinc-50 border-zinc-100 text-zinc-500' : 'bg-blue-50 border-blue-100 text-blue-700'
+              }`}>
+              <div className="shrink-0 mt-0.5">
+                <UserAvatar name={messageReservation.userName} size="sm" className="w-4 h-4 text-[8px]" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium truncate">{messageReservation.userName}</p>
+                <p className="line-clamp-2 leading-tight opacity-90">"{messageReservation.notes}"</p>
+                {messageReservation.status === 'COMPLETED' && (
+                  <p className="text-[9px] opacity-70 mt-1">Hace {differenceInHours(now, parseISO(messageReservation.endTime))}h</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Helper Action Text */}
-        <div className="pt-2 opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-3 right-3">
-          <span className="text-[10px] font-medium text-zinc-400 uppercase tracking-wider bg-white/90 px-1.5 py-0.5 rounded border border-zinc-100">
+        <div className="pt-2 opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-3 right-3 pointer-events-none">
+          <span className="text-[10px] font-medium text-zinc-400 uppercase tracking-wider bg-white/90 px-1.5 py-0.5 rounded border border-zinc-100 shadow-sm">
             {currentReservation ? 'Ver Detalles' : 'Reservar'}
           </span>
         </div>
