@@ -80,6 +80,18 @@ export const reservationService = {
         if (error) throw new Error(error.message);
     },
 
+    updateReservation: async (reservationId: string, updates: { startTime: string; endTime: string }): Promise<void> => {
+        const { error } = await supabase
+            .from('reservations')
+            .update({
+                start_time: updates.startTime,
+                end_time: updates.endTime
+            })
+            .eq('id', reservationId);
+
+        if (error) throw new Error(error.message);
+    },
+
     finishReservation: async (reservationId: string): Promise<void> => {
         const now = new Date().toISOString();
         const { error } = await supabase

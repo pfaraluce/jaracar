@@ -5,6 +5,8 @@ import { Button } from './ui/Button';
 import { carService } from '../services/cars';
 import { CarStatus } from '../types';
 
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
+
 interface AddCarModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -12,6 +14,7 @@ interface AddCarModalProps {
 }
 
 export const AddCarModal: React.FC<AddCarModalProps> = ({ isOpen, onClose, onSuccess }) => {
+    useBodyScrollLock(isOpen);
     const [loading, setLoading] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [showUrlInput, setShowUrlInput] = useState(false);
@@ -124,7 +127,7 @@ export const AddCarModal: React.FC<AddCarModalProps> = ({ isOpen, onClose, onSuc
     return (
         <AnimatePresence>
             {isOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onPaste={handlePaste}>
+                <div className="fixed inset-0 z-50 flex items-center justify-center sm:p-4" onPaste={handlePaste}>
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -136,7 +139,7 @@ export const AddCarModal: React.FC<AddCarModalProps> = ({ isOpen, onClose, onSuc
                         initial={{ opacity: 0, scale: 0.95, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                        className="relative w-full max-w-md bg-white rounded-xl shadow-xl overflow-hidden"
+                        className="relative w-full h-full sm:h-auto max-w-md bg-white sm:rounded-xl shadow-xl overflow-hidden flex flex-col sm:block"
                     >
                         <div className="flex items-center justify-between p-4 border-b border-zinc-100">
                             <h3 className="font-semibold text-zinc-900 flex items-center gap-2 text-sm">

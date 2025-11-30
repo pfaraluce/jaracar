@@ -6,6 +6,8 @@ import { profileService } from '../services/profiles';
 import { UserAvatar } from './UserAvatar';
 import { AdminUserList } from './AdminUserList';
 
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
+
 interface ProfileModalProps {
     user: UserType;
     isOpen: boolean;
@@ -14,6 +16,7 @@ interface ProfileModalProps {
 }
 
 export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClose, onUpdate }) => {
+    useBodyScrollLock(isOpen);
     const [fullName, setFullName] = useState(user.name);
     const [avatarFile, setAvatarFile] = useState<File | null>(null);
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -76,7 +79,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClos
 
     return (
         <AnimatePresence>
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="fixed inset-0 z-50 flex items-center justify-center sm:p-4">
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -87,8 +90,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClos
                 <motion.div
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                    className={`relative w-full bg-white rounded-xl shadow-2xl p-6 max-h-[90vh] overflow-y-auto transition-all duration-300 ${activeTab === 'ADMIN' ? 'max-w-2xl' : 'max-w-md'
-                        }`}
+                    className={`relative w-full h-full sm:h-auto bg-white sm:rounded-2xl shadow-2xl p-6 overflow-y-auto transition-all duration-300 ${activeTab === 'ADMIN' ? 'sm:max-w-2xl' : 'sm:max-w-md'
+                        } sm:max-h-[90vh]`}
                 >
                     {/* Header */}
                     <div className="flex items-center justify-between mb-6">

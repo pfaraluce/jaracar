@@ -10,6 +10,8 @@ import { reservationService } from '../services/reservations';
 import { carService } from '../services/cars';
 import { DateTimeSelector } from './DateTimeSelector';
 
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
+
 interface CarDetailProps {
   car: Car;
   reservations: Reservation[];
@@ -20,6 +22,7 @@ interface CarDetailProps {
 }
 
 export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activity = [], currentUser, onClose, onUpdate }) => {
+  useBodyScrollLock(true);
   const [bookingMode, setBookingMode] = useState<'NOW' | 'LATER'>('NOW');
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(addMinutes(new Date(), 120));
@@ -49,22 +52,11 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
     isDangerous?: boolean;
   } | null>(null);
 
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
-    const notification = document.createElement('div');
-    const colors = type === 'success' ? 'bg-emerald-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
-    notification.className = `fixed top-4 right-4 ${colors} text-white px-4 py-3 rounded-lg shadow-lg z-[9999] flex items-center gap-2 animate-in fade-in slide-in-from-top-2`;
-
-    let icon = '';
-    if (type === 'success') icon = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
-    else if (type === 'error') icon = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
-    else icon = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
-
-    notification.innerHTML = `${icon}<span>${message}</span>`;
-    document.body.appendChild(notification);
-    setTimeout(() => {
-      notification.classList.add('animate-out', 'fade-out', 'slide-out-to-top-2');
-      setTimeout(() => notification.remove(), 300);
-    }, 3000);
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
   };
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [urlInput, setUrlInput] = useState('');
@@ -112,6 +104,37 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
     setShowCustomTime(false);
   };
 
+  const [editingReservationId, setEditingReservationId] = useState<string | null>(null);
+
+  const handleCancelReservation = async (reservationId: string) => {
+    setConfirmation({
+      isOpen: true,
+      title: 'Cancelar reserva',
+      message: '¿Estás seguro de que quieres cancelar esta reserva?',
+      confirmText: 'Sí, cancelar',
+      isDangerous: true,
+      onConfirm: async () => {
+        try {
+          await reservationService.cancelReservation(reservationId, currentUser.id);
+          showToast('Reserva cancelada', 'success');
+          onUpdate();
+        } catch (e) {
+          showToast('Error al cancelar: ' + (e as Error).message, 'error');
+        }
+      }
+    });
+  };
+
+  const handleEditReservation = (res: Reservation) => {
+    setStartDate(parseISO(res.startTime));
+    setEndDate(parseISO(res.endTime));
+    setEditingReservationId(res.id);
+    setBookingMode('LATER');
+    // Scroll to top to see the form
+    const formElement = document.getElementById('booking-form');
+    if (formElement) formElement.scrollIntoView({ behavior: 'smooth' });
+  };
+
   const handleBook = async () => {
     setLoading(true);
     try {
@@ -127,6 +150,7 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
       // Check for conflicts using robust interval check
       const hasConflict = reservations.some(res => {
         if (res.status === 'CANCELLED') return false; // Ignore cancelled
+        if (editingReservationId && res.id === editingReservationId) return false; // Ignore self when editing
 
         // Parse dates safely
         const resStart = parseISO(res.startTime);
@@ -144,20 +168,30 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
         return;
       }
 
-      await reservationService.createReservation({
-        carId: car.id,
-        userId: currentUser.id,
-        startTime: start.toISOString(),
-        endTime: end.toISOString(),
-        notes: ''
-      });
-
-      showToast('Reserva creada correctamente', 'success');
+      if (editingReservationId) {
+        await reservationService.updateReservation(editingReservationId, {
+          startTime: start.toISOString(),
+          endTime: end.toISOString()
+        });
+        showToast('Reserva actualizada', 'success');
+        setEditingReservationId(null);
+      } else {
+        await reservationService.createReservation({
+          carId: car.id,
+          userId: currentUser.id,
+          startTime: start.toISOString(),
+          endTime: end.toISOString(),
+          notes: ''
+        });
+        showToast('Reserva creada con éxito', 'success');
+      }
 
       onUpdate();
-      onClose();
+      if (!editingReservationId) onClose(); // Only close on create, maybe keep open on edit? User preference. Let's close.
+      else onClose();
+
     } catch (e) {
-      showToast('Error al crear reserva: ' + (e as Error).message, 'error');
+      showToast('Error al guardar reserva: ' + (e as Error).message, 'error');
     } finally {
       setLoading(false);
     }
@@ -166,17 +200,17 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
   const handleDeleteCar = async () => {
     setConfirmation({
       isOpen: true,
-      title: 'Eliminar coche',
-      message: '¿Estás seguro de que quieres eliminar este coche? Esta acción no se puede deshacer.',
-      confirmText: 'Eliminar definitivamente',
+      title: 'Eliminar vehículo',
+      message: '¿Estás seguro de que quieres eliminar este vehículo? Esta acción no se puede deshacer y se perderá todo el historial.',
+      confirmText: 'Sí, eliminar',
       isDangerous: true,
       onConfirm: async () => {
         try {
           setLoading(true);
           await carService.deleteCar(car.id);
-          showToast('Coche eliminado correctamente', 'success');
-          onUpdate(); // This will likely trigger a refresh in Dashboard
-          onClose(); // Close the modal
+          showToast('Vehículo eliminado', 'success');
+          onUpdate(); // Refresh list
+          onClose(); // Close modal
         } catch (error) {
           console.error('Error deleting car:', error);
           showToast('Error al eliminar el coche', 'error');
@@ -357,7 +391,7 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
     <>
       <motion.div
         layoutId={`card-${car.id}`}
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+        className="fixed inset-0 z-50 flex items-center justify-center sm:p-6"
       >
         <motion.div
           className="absolute inset-0 bg-black/20 backdrop-blur-sm"
@@ -368,7 +402,7 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
         />
 
         <motion.div
-          className="relative w-full max-w-2xl bg-white rounded-2xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]"
+          className="relative w-full h-full sm:h-auto max-w-2xl bg-white sm:rounded-2xl shadow-xl overflow-hidden flex flex-col sm:max-h-[90vh]"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header Section */}
@@ -385,28 +419,29 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                 )}
 
                 {currentView === 'DETAILS' && (
-                  <motion.img
-                    layoutId={`image-${car.id}`}
-                    src={car.imageUrl}
-                    alt={car.name}
-                    className="w-24 h-16 object-cover rounded-lg"
-                  />
+                  <div
+                    className={`relative group ${currentUser.role === 'ADMIN' ? 'cursor-pointer' : ''}`}
+                    onClick={() => {
+                      if (currentUser.role === 'ADMIN') setCurrentView('EDIT');
+                    }}
+                  >
+                    <motion.img
+                      layoutId={`image-${car.id}`}
+                      src={car.imageUrl}
+                      alt={car.name}
+                      className="w-24 h-16 object-cover rounded-lg"
+                    />
+                    {currentUser.role === 'ADMIN' && (
+                      <div className="absolute inset-0 bg-black/50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <Pencil className="text-white" size={16} />
+                      </div>
+                    )}
+                  </div>
                 )}
 
                 <div>
                   <motion.h2 layoutId={`title-${car.id}`} className="text-xl font-semibold text-zinc-900 flex items-center gap-2">
                     {currentView === 'EDIT' ? 'Editar Coche' : currentView === 'ACTIVITY' ? 'Historial de Actividad' : car.name}
-
-                    {/* Edit Button - Only visible in DETAILS view for admins */}
-                    {currentView === 'DETAILS' && currentUser.role === 'ADMIN' && (
-                      <button
-                        onClick={() => setCurrentView('EDIT')}
-                        className="p-1.5 hover:bg-zinc-100 rounded-full text-zinc-400 hover:text-zinc-600 transition-colors"
-                        title="Editar detalles"
-                      >
-                        <Pencil size={16} />
-                      </button>
-                    )}
                   </motion.h2>
 
                   {currentView === 'DETAILS' && (
@@ -460,25 +495,44 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
 
                 {/* Booking Form - Visible if NOT in workshop */}
                 {!car.inWorkshop && (
-                  <section>
-                    <h3 className="text-sm font-semibold text-zinc-900 mb-4">Reservar Vehículo</h3>
+                  <section id="booking-form">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-sm font-semibold text-zinc-900">
+                        {editingReservationId ? 'Editar Reserva' : 'Reservar Vehículo'}
+                      </h3>
+                      {editingReservationId && (
+                        <button
+                          onClick={() => {
+                            setEditingReservationId(null);
+                            setBookingMode('NOW');
+                            setStartDate(new Date());
+                            setEndDate(addMinutes(new Date(), 120));
+                          }}
+                          className="text-xs text-red-600 hover:text-red-700"
+                        >
+                          Cancelar edición
+                        </button>
+                      )}
+                    </div>
                     <div className="space-y-4">
                       {/* Booking Mode Selector */}
                       <div className="flex p-1 bg-zinc-100 rounded-lg">
                         <button
                           onClick={() => setBookingMode('NOW')}
+                          disabled={!!editingReservationId}
                           className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all ${bookingMode === 'NOW'
                             ? 'bg-white text-zinc-900 shadow-sm'
-                            : 'text-zinc-500 hover:text-zinc-700'
+                            : 'text-zinc-500 hover:text-zinc-700 disabled:opacity-50'
                             }`}
                         >
                           Ahora
                         </button>
                         <button
                           onClick={() => setBookingMode('LATER')}
+                          disabled={!!editingReservationId}
                           className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all ${bookingMode === 'LATER'
                             ? 'bg-white text-zinc-900 shadow-sm'
-                            : 'text-zinc-500 hover:text-zinc-700'
+                            : 'text-zinc-500 hover:text-zinc-700 disabled:opacity-50'
                             }`}
                         >
                           Programar
@@ -561,13 +615,20 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                         </div>
                       )}
 
-                      <Button
+                      <button
                         onClick={handleBook}
-                        isLoading={loading}
-                        className="w-full py-2 text-xs"
+                        disabled={loading}
+                        className="w-full py-3 bg-zinc-900 text-white text-sm font-medium rounded-xl hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-zinc-900/10"
                       >
-                        Confirmar Reserva
-                      </Button>
+                        {loading ? (
+                          <span className="flex items-center justify-center gap-2">
+                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            {editingReservationId ? 'Actualizando...' : 'Procesando...'}
+                          </span>
+                        ) : (
+                          editingReservationId ? 'Actualizar Reserva' : 'Confirmar Reserva'
+                        )}
+                      </button>
                     </div>
                   </section>
                 )}
@@ -623,12 +684,45 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                               </div>
                             </div>
                             {currentUser.role === 'ADMIN' && res.status === 'ACTIVE' && (
-                              <button
-                                onClick={() => handleFinishReservation(res.id)}
-                                className="text-[10px] text-blue-600 hover:text-blue-700 px-2 py-1 hover:bg-blue-50 rounded transition-colors flex items-center gap-1 ml-2"
-                              >
-                                <CheckCircle size={10} /> Finalizar
-                              </button>
+                              <div className="flex items-center gap-2 ml-2">
+                                {isAfter(now, parseISO(res.startTime)) ? (
+                                  // Ongoing Reservation: Finish or Cancel
+                                  <>
+                                    <button
+                                      onClick={() => handleFinishReservation(res.id)}
+                                      className="text-[10px] text-blue-600 hover:text-blue-700 px-2 py-1 hover:bg-blue-50 rounded transition-colors flex items-center gap-1"
+                                      title="Finalizar reserva ahora"
+                                    >
+                                      <CheckCircle size={12} /> Finalizar
+                                    </button>
+                                    <button
+                                      onClick={() => handleCancelReservation(res.id)}
+                                      className="text-[10px] text-red-600 hover:text-red-700 px-2 py-1 hover:bg-red-50 rounded transition-colors flex items-center gap-1"
+                                      title="Cancelar reserva"
+                                    >
+                                      <X size={12} />
+                                    </button>
+                                  </>
+                                ) : (
+                                  // Future Reservation: Edit or Cancel
+                                  <>
+                                    <button
+                                      onClick={() => handleEditReservation(res)}
+                                      className="text-[10px] text-zinc-600 hover:text-zinc-900 px-2 py-1 hover:bg-zinc-100 rounded transition-colors flex items-center gap-1"
+                                      title="Editar horario"
+                                    >
+                                      <Pencil size={12} /> Editar
+                                    </button>
+                                    <button
+                                      onClick={() => handleCancelReservation(res.id)}
+                                      className="text-[10px] text-red-600 hover:text-red-700 px-2 py-1 hover:bg-red-50 rounded transition-colors flex items-center gap-1"
+                                      title="Cancelar reserva"
+                                    >
+                                      <X size={12} /> Cancelar
+                                    </button>
+                                  </>
+                                )}
+                              </div>
                             )}
                           </div>
                         </div>
@@ -886,25 +980,46 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                                       type="text"
                                       value={noteContent}
                                       onChange={(e) => setNoteContent(e.target.value)}
-                                      className="text-xs border rounded px-2 py-1 w-full"
+                                      className="text-base sm:text-xs border rounded px-2 py-1 w-full focus:ring-2 focus:ring-zinc-900/10 outline-none"
                                       autoFocus
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleSaveNote(res.id);
+                                        if (e.key === 'Escape') setEditingNoteId(null);
+                                      }}
+                                      placeholder="Escribe una nota..."
                                     />
-                                    <button onClick={() => handleSaveNote(res.id)} className="text-emerald-600"><Save size={14} /></button>
-                                    <button onClick={() => setEditingNoteId(null)} className="text-zinc-400"><X size={14} /></button>
+                                    <button onClick={() => handleSaveNote(res.id)} className="text-emerald-600 p-1 hover:bg-emerald-50 rounded" title="Guardar"><Save size={16} /></button>
+                                    <button
+                                      onClick={async () => {
+                                        setNoteContent('');
+                                        await reservationService.updateReservationNote(res.id, '');
+                                        setEditingNoteId(null);
+                                        showToast('Nota eliminada', 'success');
+                                        onUpdate();
+                                      }}
+                                      className="text-red-600 p-1 hover:bg-red-50 rounded"
+                                      title="Eliminar nota"
+                                    >
+                                      <Trash2 size={16} />
+                                    </button>
+                                    <button onClick={() => setEditingNoteId(null)} className="text-zinc-400 p-1 hover:bg-zinc-100 rounded" title="Cancelar"><X size={16} /></button>
                                   </div>
                                 ) : (
-                                  <div className="group flex items-center gap-2 min-h-[16px]">
-                                    <p className="text-xs text-zinc-600 italic">
-                                      {res.notes || 'Sin notas'}
+                                  <div
+                                    className={`group flex items-center gap-2 min-h-[20px] ${(currentUser.id === res.userId || currentUser.role === 'ADMIN') ? 'cursor-pointer' : ''
+                                      }`}
+                                    onClick={() => {
+                                      if (currentUser.id === res.userId || currentUser.role === 'ADMIN') {
+                                        handleEditNote(res);
+                                      }
+                                    }}
+                                  >
+                                    <p className={`text-xs ${(currentUser.id === res.userId || currentUser.role === 'ADMIN')
+                                      ? 'underline decoration-zinc-300 hover:decoration-zinc-500 underline-offset-2'
+                                      : ''
+                                      } ${res.notes ? 'text-zinc-600 italic' : 'text-zinc-400'}`}>
+                                      {res.notes || 'Añadir nota...'}
                                     </p>
-                                    {(currentUser.id === res.userId || currentUser.role === 'ADMIN') && (
-                                      <button
-                                        onClick={() => handleEditNote(res)}
-                                        className="opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-zinc-600 transition-opacity p-0.5"
-                                      >
-                                        <Pencil size={10} />
-                                      </button>
-                                    )}
                                   </div>
                                 )}
                               </div>
@@ -920,8 +1035,27 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
               </div>
             )}
           </div>
+
+          {/* Toast Notification */}
+          <AnimatePresence>
+            {toast && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                className={`absolute bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full shadow-lg flex items-center gap-2 text-xs font-medium text-white ${toast.type === 'success' ? 'bg-emerald-600' :
+                    toast.type === 'error' ? 'bg-red-600' : 'bg-zinc-900'
+                  }`}
+              >
+                {toast.type === 'success' && <CheckCircle size={14} />}
+                {toast.type === 'error' && <AlertTriangle size={14} />}
+                {toast.type === 'info' && <MessageSquare size={14} />}
+                {toast.message}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
-      </motion.div>
+      </motion.div >
 
       {/* Confirmation Overlay */}
       <AnimatePresence>
@@ -972,7 +1106,7 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
             </div>
           )
         }
-      </AnimatePresence>
+      </AnimatePresence >
     </>
   );
 };

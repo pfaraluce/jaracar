@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles, ArrowRight, X } from 'lucide-react';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
 interface WelcomeModalProps {
     userName: string;
@@ -9,6 +10,7 @@ interface WelcomeModalProps {
 }
 
 export const WelcomeModal: React.FC<WelcomeModalProps> = ({ userName, onStartTutorial, onSkip }) => {
+    useBodyScrollLock(true);
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <motion.div
