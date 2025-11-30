@@ -79,32 +79,44 @@ export const authService = {
     },
 
     getCurrentUser: async (): Promise<User | null> => {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user) return null;
+        try {
+            // Add timeout to prevent infinite hang
+            const sessionPromise = supabase.auth.getSession();
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('getSession timeout')), 5000)
+            );
 
-        const user = session.user;
-        const email = user.email || '';
+            const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]) as any;
 
-        // Try to get profile data
-        const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('full_name, role, status')
-            .eq('id', user.id)
-            .single();
+            if (!session?.user) return null;
 
-        if (profileError) {
-            console.error('Error fetching profile:', profileError);
+            const user = session.user;
+            const email = user.email || '';
+
+            // Try to get profile data
+            const { data: profile, error: profileError } = await supabase
+                .from('profiles')
+                .select('full_name, role, status')
+                .eq('id', user.id)
+                .single();
+
+            if (profileError) {
+                console.error('Error fetching profile:', profileError);
+            }
+
+            const isAdminEmail = email.toLowerCase() === 'pfaraluce@gmail.com';
+
+            return {
+                id: user.id,
+                email: email,
+                name: profile?.full_name || user.user_metadata.name || email.split('@')[0] || 'User',
+                role: profile?.role || (isAdminEmail ? UserRole.ADMIN : UserRole.USER),
+                status: isAdminEmail ? 'APPROVED' : (profile?.status || 'PENDING')
+            };
+        } catch (error) {
+            console.error('[AUTH] getCurrentUser: Error', error);
+            return null;
         }
-
-        const isAdminEmail = email.toLowerCase() === 'pfaraluce@gmail.com';
-
-        return {
-            id: user.id,
-            email: email,
-            name: profile?.full_name || user.user_metadata.name || email.split('@')[0] || 'User',
-            role: profile?.role || (isAdminEmail ? UserRole.ADMIN : UserRole.USER),
-            status: isAdminEmail ? 'APPROVED' : (profile?.status || 'PENDING')
-        };
     },
 
     getSession: async () => {

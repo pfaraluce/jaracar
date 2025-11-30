@@ -40,10 +40,10 @@ export const CarListView: React.FC<CarListViewProps> = ({
     };
 
     return (
-        <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden shadow-sm">
+        <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden shadow-sm transition-colors duration-300">
             <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left">
-                    <thead className="bg-zinc-50 text-zinc-500 font-medium border-b border-zinc-200">
+                    <thead className="bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500 dark:text-zinc-400 font-medium border-b border-zinc-200 dark:border-zinc-700">
                         <tr>
                             <th className="px-6 py-4">Vehículo</th>
                             <th className="px-6 py-4">Matrícula</th>
@@ -52,18 +52,18 @@ export const CarListView: React.FC<CarListViewProps> = ({
                             <th className="px-6 py-4 text-right">Acciones</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-zinc-100">
+                    <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
                         {cars.map((car) => {
                             const isFavorite = favorites.includes(car.id);
                             return (
                                 <tr
                                     key={car.id}
-                                    className="hover:bg-zinc-50/50 transition-colors cursor-pointer group"
+                                    className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer group"
                                     onClick={() => onSelectCar(car)}
                                 >
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-4">
-                                            <div className="relative h-12 w-20 rounded-lg overflow-hidden bg-zinc-100 shrink-0">
+                                            <div className="relative h-12 w-20 rounded-lg overflow-hidden bg-zinc-100 dark:bg-zinc-800 shrink-0">
                                                 <img
                                                     src={car.imageUrl}
                                                     alt={car.name}
@@ -71,10 +71,10 @@ export const CarListView: React.FC<CarListViewProps> = ({
                                                 />
                                             </div>
                                             <div>
-                                                <p className="font-medium text-zinc-900">{car.name}</p>
+                                                <p className="font-medium text-zinc-900 dark:text-white">{car.name}</p>
                                                 <div className="flex items-center gap-2 mt-1">
                                                     <span className={`text-[10px] px-1.5 py-0.5 rounded border ${car.fuelType === 'electric' ? 'bg-blue-50 text-blue-700 border-blue-100' :
-                                                            'bg-zinc-100 text-zinc-600 border-zinc-200'
+                                                        'bg-zinc-100 text-zinc-600 border-zinc-200'
                                                         }`}>
                                                         {car.fuelType === 'electric' ? 'Eléctrico' : car.fuelType === 'diesel' ? 'Diésel' : 'Gasolina'}
                                                     </span>
@@ -83,7 +83,7 @@ export const CarListView: React.FC<CarListViewProps> = ({
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <span className="font-mono text-zinc-600 bg-zinc-100 px-2 py-1 rounded text-xs">
+                                        <span className="font-mono text-zinc-600 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded text-xs">
                                             {car.plate}
                                         </span>
                                     </td>
@@ -94,12 +94,12 @@ export const CarListView: React.FC<CarListViewProps> = ({
                                     </td>
                                     <td className="px-6 py-4">
                                         {car.nextServiceDate ? (
-                                            <div className="flex items-center gap-2 text-zinc-600">
+                                            <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
                                                 <Calendar size={14} />
                                                 <span>{format(new Date(car.nextServiceDate), 'd MMM yyyy', { locale: es })}</span>
                                             </div>
                                         ) : (
-                                            <span className="text-zinc-400">-</span>
+                                            <span className="text-zinc-400 dark:text-zinc-600">-</span>
                                         )}
                                     </td>
                                     <td className="px-6 py-4 text-right">
@@ -109,8 +109,8 @@ export const CarListView: React.FC<CarListViewProps> = ({
                                                 onToggleFavorite(car.id);
                                             }}
                                             className={`p-2 rounded-full transition-all ${isFavorite
-                                                    ? 'text-rose-500 bg-rose-50 hover:bg-rose-100'
-                                                    : 'text-zinc-400 hover:text-rose-500 hover:bg-zinc-100'
+                                                ? 'text-rose-500 bg-rose-50 dark:bg-rose-900/20 hover:bg-rose-100 dark:hover:bg-rose-900/30'
+                                                : 'text-zinc-400 dark:text-zinc-500 hover:text-rose-500 hover:bg-zinc-100 dark:hover:bg-zinc-800'
                                                 }`}
                                             title={isFavorite ? "Quitar de favoritos" : "Añadir a favoritos"}
                                         >
