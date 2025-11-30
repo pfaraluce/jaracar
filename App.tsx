@@ -5,6 +5,7 @@ import { Dashboard } from './components/Dashboard';
 import { PendingApproval } from './components/PendingApproval';
 import { authService } from './services/auth';
 import { supabase } from './services/supabase';
+import { ThemeProvider } from './contexts/ThemeContext';
 
 export default function App() {
   // Simple state-based router for SPA feel without heavy routing libraries yet
@@ -70,24 +71,27 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-50">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-zinc-900"></div>
+      <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-black">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-zinc-900 dark:border-white"></div>
       </div>
     );
   }
 
-  if (user && viewState === 'DASHBOARD') {
-    if (user.status === 'PENDING') {
-      return <PendingApproval user={user} onLogout={handleLogout} />;
-    }
-    return <Dashboard user={user} onLogout={handleLogout} />;
-  }
-
   return (
-    <AuthLayout
-      currentView={viewState}
-      setViewState={setViewState}
-      setUser={setUser}
-    />
+    <ThemeProvider defaultTheme="system" storageKey="jaracar-theme">
+      {user && viewState === 'DASHBOARD' ? (
+        user.status === 'PENDING' ? (
+          <PendingApproval user={user} onLogout={handleLogout} />
+        ) : (
+          <Dashboard user={user} onLogout={handleLogout} />
+        )
+      ) : (
+        <AuthLayout
+          currentView={viewState}
+          setViewState={setViewState}
+          setUser={setUser}
+        />
+      )}
+    </ThemeProvider>
   );
 }

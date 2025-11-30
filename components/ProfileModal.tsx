@@ -1,77 +1,69 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import { User, UserRole } from '../types';
+import { X, Camera, Shield, Mail, User as UserIcon, Loader2, Moon, Sun, Monitor } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Upload, User, Users } from 'lucide-react';
-import { User as UserType, UserRole } from '../types';
-import { profileService } from '../services/profiles';
-import { UserAvatar } from './UserAvatar';
+import { supabase } from '../services/supabase';
 import { AdminUserList } from './AdminUserList';
-
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface ProfileModalProps {
-    user: UserType;
+    user: User;
     isOpen: boolean;
     onClose: () => void;
     onUpdate: () => void;
 }
 
 export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClose, onUpdate }) => {
-    useBodyScrollLock(isOpen);
-    const [fullName, setFullName] = useState(user.name);
-    const [avatarFile, setAvatarFile] = useState<File | null>(null);
-    const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
     const [activeTab, setActiveTab] = useState<'PROFILE' | 'ADMIN'>('PROFILE');
+    const [uploading, setUploading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const { theme, setTheme } = useTheme();
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+    useBodyScrollLock(isOpen);
 
-        // Validate file size (max 2MB)
-        if (file.size > 2 * 1024 * 1024) {
-            setError('La imagen debe ser menor a 2MB');
-            return;
-        }
-
-        // Validate file type
-        if (!file.type.startsWith('image/')) {
-            setError('Solo se permiten imágenes');
-            return;
-        }
-
-        setAvatarFile(file);
-        setError('');
-
-        // Create preview
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            setAvatarPreview(reader.result as string);
-        };
-        reader.readAsDataURL(file);
+    const handleAvatarClick = () => {
+        fileInputRef.current?.click();
     };
 
-    const handleSave = async () => {
-        setLoading(true);
-        setError('');
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (!event.target.files || event.target.files.length === 0) {
+            return;
+        }
+        setUploading(true);
+        const file = event.target.files[0];
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${user.id}-${Math.random()}.${fileExt}`;
+        const filePath = `${fileName}`;
 
         try {
-            let avatarUrl = user.avatarUrl;
+            const { error: uploadError } = await supabase.storage
+                .from('avatars')
+                .upload(filePath, file);
 
-            // Upload avatar if changed
-            if (avatarFile) {
-                avatarUrl = await profileService.uploadAvatar(user.id, avatarFile);
+            if (uploadError) {
+                throw uploadError;
             }
 
-            // Update profile
-            await profileService.updateProfile(user.id, fullName, avatarUrl);
+            const { data: { publicUrl } } = supabase.storage
+                .from('avatars')
+                .getPublicUrl(filePath);
+
+            const { error: updateError } = await supabase
+                .from('profiles')
+                .update({ avatar_url: publicUrl })
+                .eq('id', user.id);
+
+            if (updateError) {
+                throw updateError;
+            }
 
             onUpdate();
-            onClose();
-        } catch (e) {
-            setError((e as Error).message);
+        } catch (error) {
+            console.error('Error uploading avatar:', error);
+            alert('Error al subir la imagen');
         } finally {
-            setLoading(false);
+            setUploading(false);
         }
     };
 
@@ -84,144 +76,138 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClos
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="absolute inset-0 bg-black/50 backdrop-blur-sm"
                     onClick={onClose}
+                    className="absolute inset-0 bg-black/50 backdrop-blur-sm"
                 />
                 <motion.div
+                    initial={{ opacity: 0, scale: 0.95, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                    className={`relative w-full h-full sm:h-auto bg-white sm:rounded-2xl shadow-2xl p-6 overflow-y-auto transition-all duration-300 ${activeTab === 'ADMIN' ? 'sm:max-w-2xl' : 'sm:max-w-md'
+                    className={`relative w-full h-full sm:h-auto bg-white dark:bg-zinc-900 sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col transition-all duration-300 ${activeTab === 'ADMIN' ? 'sm:max-w-4xl' : 'sm:max-w-md'
                         } sm:max-h-[90vh]`}
                 >
                     {/* Header */}
-                    <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-xl font-semibold text-zinc-900">
-                            {activeTab === 'PROFILE' ? 'Editar Perfil' : 'Gestión de Usuarios'}
-                        </h2>
+                    <div className="flex items-center justify-between p-4 border-b border-zinc-100 dark:border-zinc-800">
+                        <div className="flex gap-4">
+                            <button
+                                onClick={() => setActiveTab('PROFILE')}
+                                className={`text-sm font-medium transition-colors ${activeTab === 'PROFILE' ? 'text-zinc-900 dark:text-white' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300'
+                                    }`}
+                            >
+                                Perfil
+                            </button>
+                            {user.role === UserRole.ADMIN && (
+                                <button
+                                    onClick={() => setActiveTab('ADMIN')}
+                                    className={`text-sm font-medium transition-colors ${activeTab === 'ADMIN' ? 'text-zinc-900 dark:text-white' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300'
+                                        }`}
+                                >
+                                    Administración
+                                </button>
+                            )}
+                        </div>
                         <button
                             onClick={onClose}
-                            className="p-2 hover:bg-zinc-100 rounded-full text-zinc-400 hover:text-zinc-900 transition-colors"
+                            className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors text-zinc-500 dark:text-zinc-400"
                         >
                             <X size={20} />
                         </button>
                     </div>
 
-                    {/* Admin Tabs */}
-                    {user.role === UserRole.ADMIN && (
-                        <div className="flex p-1 bg-zinc-100 rounded-lg mb-6">
-                            <button
-                                onClick={() => setActiveTab('PROFILE')}
-                                className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'PROFILE'
-                                    ? 'bg-white text-zinc-900 shadow-sm'
-                                    : 'text-zinc-500 hover:text-zinc-700'
-                                    }`}
-                            >
-                                <User size={14} />
-                                Mi Perfil
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('ADMIN')}
-                                className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-sm font-medium rounded-md transition-all ${activeTab === 'ADMIN'
-                                    ? 'bg-white text-zinc-900 shadow-sm'
-                                    : 'text-zinc-500 hover:text-zinc-700'
-                                    }`}
-                            >
-                                <Users size={14} />
-                                Usuarios
-                            </button>
-                        </div>
-                    )}
-
-                    {activeTab === 'ADMIN' ? (
-                        <AdminUserList />
-                    ) : (
-                        <>
-                            {/* Avatar Section */}
-                            <div className="flex flex-col items-center mb-6">
-                                <div className="relative mb-4">
-                                    {avatarPreview ? (
-                                        <img
-                                            src={avatarPreview}
-                                            alt="Preview"
-                                            className="w-24 h-24 rounded-full object-cover border-2 border-zinc-200"
-                                        />
-                                    ) : (
-                                        <UserAvatar
-                                            name={fullName}
-                                            imageUrl={user.avatarUrl}
-                                            size="lg"
-                                            className="w-24 h-24 text-4xl"
-                                        />
-                                    )}
-                                    <label
-                                        htmlFor="avatar-upload"
-                                        className="absolute bottom-0 right-0 p-2 bg-zinc-900 text-white rounded-full cursor-pointer hover:bg-zinc-800 transition-colors shadow-lg"
-                                    >
-                                        <Upload size={16} />
-                                    </label>
+                    {/* Content */}
+                    <div className="flex-1 overflow-y-auto p-6">
+                        {activeTab === 'PROFILE' ? (
+                            <div className="space-y-8">
+                                {/* Avatar Section */}
+                                <div className="flex flex-col items-center">
+                                    <div className="relative group cursor-pointer" onClick={handleAvatarClick}>
+                                        <div className="w-24 h-24 rounded-full overflow-hidden bg-zinc-100 dark:bg-zinc-800 ring-4 ring-white dark:ring-zinc-900 shadow-lg">
+                                            {user.avatarUrl ? (
+                                                <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-zinc-300 dark:text-zinc-600">
+                                                    <UserIcon size={40} />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 rounded-full transition-opacity">
+                                            <Camera className="text-white drop-shadow-md" size={24} />
+                                        </div>
+                                        {uploading && (
+                                            <div className="absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-black/80 rounded-full">
+                                                <Loader2 className="animate-spin text-zinc-900 dark:text-white" size={24} />
+                                            </div>
+                                        )}
+                                    </div>
                                     <input
-                                        id="avatar-upload"
                                         type="file"
-                                        accept="image/*"
+                                        ref={fileInputRef}
                                         onChange={handleFileChange}
+                                        accept="image/*"
                                         className="hidden"
                                     />
-                                </div>
-                                <p className="text-xs text-zinc-500">Haz clic en el icono para cambiar tu foto</p>
-                            </div>
-
-                            {/* Form */}
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-[10px] font-medium text-zinc-700 mb-1">
-                                        Nombre completo
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={fullName}
-                                        onChange={(e) => setFullName(e.target.value)}
-                                        className="w-full px-2 py-1.5 text-xs border border-zinc-200 rounded-lg focus:ring-2 focus:ring-zinc-900/10 outline-none"
-                                        placeholder="Tu nombre"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-[10px] font-medium text-zinc-700 mb-1">
-                                        Email
-                                    </label>
-                                    <input
-                                        type="email"
-                                        value={user.email}
-                                        disabled
-                                        className="w-full px-2 py-1.5 text-xs border border-zinc-200 rounded-lg bg-zinc-50 text-zinc-500 cursor-not-allowed outline-none"
-                                    />
-                                </div>
-
-                                {error && (
-                                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
-                                        {error}
+                                    <h2 className="mt-4 text-xl font-semibold text-zinc-900 dark:text-white">{user.name}</h2>
+                                    <p className="text-sm text-zinc-500 dark:text-zinc-400">{user.email}</p>
+                                    <div className="mt-2 flex gap-2">
+                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200">
+                                            {user.role === UserRole.ADMIN && <Shield size={12} />}
+                                            {user.role}
+                                        </span>
                                     </div>
-                                )}
-                            </div>
+                                </div>
 
-                            {/* Actions */}
-                            <div className="flex gap-3 mt-6">
-                                <button
-                                    onClick={onClose}
-                                    className="flex-1 px-4 py-1.5 text-sm font-medium text-zinc-700 bg-zinc-100 hover:bg-zinc-200 rounded-lg transition-colors"
-                                >
-                                    Cancelar
-                                </button>
-                                <button
-                                    onClick={handleSave}
-                                    disabled={loading || !fullName.trim()}
-                                    className="flex-1 px-4 py-1.5 text-sm font-medium text-white bg-zinc-900 hover:bg-zinc-800 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    {loading ? 'Guardando...' : 'Guardar cambios'}
-                                </button>
+                                {/* Appearance Section */}
+                                <div className="space-y-3">
+                                    <h3 className="text-sm font-medium text-zinc-900 dark:text-white">Apariencia</h3>
+                                    <div className="grid grid-cols-3 gap-3">
+                                        <button
+                                            onClick={() => setTheme('light')}
+                                            className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-all ${theme === 'light'
+                                                ? 'bg-zinc-50 border-zinc-900 text-zinc-900 dark:bg-zinc-800 dark:border-white dark:text-white'
+                                                : 'border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                                                }`}
+                                        >
+                                            <Sun size={20} />
+                                            <span className="text-xs font-medium">Claro</span>
+                                        </button>
+                                        <button
+                                            onClick={() => setTheme('dark')}
+                                            className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-all ${theme === 'dark'
+                                                ? 'bg-zinc-50 border-zinc-900 text-zinc-900 dark:bg-zinc-800 dark:border-white dark:text-white'
+                                                : 'border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                                                }`}
+                                        >
+                                            <Moon size={20} />
+                                            <span className="text-xs font-medium">Oscuro</span>
+                                        </button>
+                                        <button
+                                            onClick={() => setTheme('system')}
+                                            className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-all ${theme === 'system'
+                                                ? 'bg-zinc-50 border-zinc-900 text-zinc-900 dark:bg-zinc-800 dark:border-white dark:text-white'
+                                                : 'border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+                                                }`}
+                                        >
+                                            <Monitor size={20} />
+                                            <span className="text-xs font-medium">Sistema</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Info Section */}
+                                <div className="space-y-3 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                                    <div className="flex items-center gap-3 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-800/50">
+                                        <Mail className="text-zinc-400" size={20} />
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Correo electrónico</p>
+                                            <p className="text-sm text-zinc-900 dark:text-zinc-200 truncate">{user.email}</p>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                        </>
-                    )}
+                        ) : (
+                            <AdminUserList />
+                        )}
+                    </div>
                 </motion.div>
             </div>
         </AnimatePresence>

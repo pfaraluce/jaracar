@@ -5,12 +5,14 @@ import { reservationService } from '../services/reservations';
 import { AddCarModal } from './AddCarModal';
 import { CarCard } from './CarCard';
 import { CarDetail } from './CarDetail';
+import { CarListView } from './CarListView';
+import { CarTimelineView } from './CarTimelineView';
 import { UserAvatar } from './UserAvatar';
 import { ProfileModal } from './ProfileModal';
 import { WelcomeModal } from './WelcomeModal';
 import { TutorialOverlay } from './TutorialOverlay';
 import { AnimatePresence } from 'framer-motion';
-import { Plus, LogOut } from 'lucide-react';
+import { Plus, LogOut, LayoutGrid, List, CalendarRange } from 'lucide-react';
 
 interface DashboardProps {
   user: User;
@@ -28,6 +30,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [viewMode, setViewMode] = useState<'GRID' | 'LIST' | 'TIMELINE'>(() => {
+    const saved = localStorage.getItem('jaracar_view_mode');
+    return (saved as 'GRID' | 'LIST' | 'TIMELINE') || 'GRID';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('jaracar_view_mode', viewMode);
+  }, [viewMode]);
 
   // Check if user is new (first time login)
   useEffect(() => {
@@ -114,15 +124,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
   });
 
   return (
-    <div className="min-h-screen bg-zinc-50 p-6">
+    <div className="min-h-screen bg-zinc-50 dark:bg-black p-6 transition-colors duration-300">
       {/* Header */}
-      <header className="bg-white border-b border-zinc-200 sticky top-0 z-30">
+      <header className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-30 transition-colors duration-300">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="h-6 w-6 bg-zinc-900 rounded-md flex items-center justify-center">
-              <span className="text-white text-xs font-bold">J</span>
+            <div className="h-6 w-6 bg-zinc-900 dark:bg-white rounded-md flex items-center justify-center">
+              <span className="text-white dark:text-black text-xs font-bold">J</span>
             </div>
-            <h1 className="font-semibold text-zinc-900 tracking-tight">JaraCar</h1>
+            <h1 className="font-semibold text-zinc-900 dark:text-white tracking-tight">JaraCar</h1>
           </div>
 
           <div className="flex items-center gap-4">
@@ -132,13 +142,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                   <UserAvatar name={user.name} imageUrl={user.avatarUrl} size="md" />
                 </button>
                 <div className="hidden sm:block text-right">
-                  <p className="text-xs font-medium text-zinc-900">{user.name}</p>
-                  <p className="text-[10px] text-zinc-500">{user.email}</p>
+                  <p className="text-xs font-medium text-zinc-900 dark:text-white">{user.name}</p>
+                  <p className="text-[10px] text-zinc-500 dark:text-zinc-400">{user.email}</p>
                 </div>
               </div>
               <button
                 onClick={onLogout}
-                className="p-2 hover:bg-zinc-100 rounded-full text-zinc-400 hover:text-rose-500 transition-colors"
+                className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full text-zinc-400 hover:text-rose-500 transition-colors"
                 title="Cerrar sesión"
               >
                 <LogOut size={16} />
@@ -150,28 +160,64 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
 
       {/* Main Content */}
       <main className="max-w-6xl mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
           <div>
-            <h2 className="text-lg font-semibold text-zinc-900">Todos los vehículos</h2>
-            <p className="text-sm text-zinc-500">Reserva y gestiona tus viajes. Recuerda consultar.</p>
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">Todos los vehículos</h2>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">Reserva y gestiona tus viajes. Recuerda consultar.</p>
           </div>
-          <button
-            onClick={handleAddCar}
-            className="group h-7 px-3 flex items-center gap-1.5 text-zinc-400 hover:text-zinc-900 transition-colors text-xs"
-            title="Añadir Vehículo"
-          >
-            <Plus size={14} className="opacity-50 group-hover:opacity-100 transition-opacity" />
-            <span className="hidden sm:inline opacity-0 group-hover:opacity-100 transition-opacity">Añadir</span>
-          </button>
+
+          <div className="flex items-center gap-3">
+            {/* View Switcher */}
+            <div className="flex bg-zinc-100 dark:bg-zinc-900 p-1 rounded-lg border border-zinc-200 dark:border-zinc-800">
+              <button
+                onClick={() => setViewMode('GRID')}
+                className={`p-1.5 rounded-md transition-all ${viewMode === 'GRID'
+                  ? 'bg-white dark:bg-zinc-800 shadow-sm text-zinc-900 dark:text-white'
+                  : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300'}`}
+                title="Vista Cuadrícula"
+              >
+                <LayoutGrid size={16} />
+              </button>
+              <button
+                onClick={() => setViewMode('LIST')}
+                className={`p-1.5 rounded-md transition-all ${viewMode === 'LIST'
+                  ? 'bg-white dark:bg-zinc-800 shadow-sm text-zinc-900 dark:text-white'
+                  : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300'}`}
+                title="Vista Lista"
+              >
+                <List size={16} />
+              </button>
+              <button
+                onClick={() => setViewMode('TIMELINE')}
+                className={`p-1.5 rounded-md transition-all ${viewMode === 'TIMELINE'
+                  ? 'bg-white dark:bg-zinc-800 shadow-sm text-zinc-900 dark:text-white'
+                  : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300'}`}
+                title="Vista Cronograma"
+              >
+                <CalendarRange size={16} />
+              </button>
+            </div>
+
+            <div className="h-6 w-px bg-zinc-200 dark:bg-zinc-800 mx-1" />
+
+            <button
+              onClick={handleAddCar}
+              className="group h-8 px-3 flex items-center gap-1.5 bg-zinc-900 dark:bg-white text-white dark:text-black rounded-lg hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors text-xs font-medium"
+              title="Añadir Vehículo"
+            >
+              <Plus size={14} />
+              <span className="hidden sm:inline">Añadir</span>
+            </button>
+          </div>
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg mb-6">
             <p className="font-medium">Error cargando datos:</p>
             <p className="text-sm">{error}</p>
             <button
               onClick={fetchData}
-              className="mt-2 text-sm font-medium underline hover:text-red-800"
+              className="mt-2 text-sm font-medium underline hover:text-red-800 dark:hover:text-red-300"
             >
               Reintentar
             </button>
@@ -181,23 +227,45 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {[1, 2, 3, 4].map(i => (
-              <div key={i} className="h-64 bg-zinc-200/50 rounded-xl animate-pulse" />
+              <div key={i} className="h-64 bg-zinc-200/50 dark:bg-zinc-800/50 rounded-xl animate-pulse" />
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {sortedCars.map((car, index) => (
-              <div key={car.id} data-tutorial={index === 0 ? "car-card" : undefined}>
-                <CarCard
-                  car={car}
-                  reservations={reservations.filter(r => r.carId === car.id)}
-                  isFavorite={favorites.includes(car.id)}
-                  onToggleFavorite={() => handleToggleFavorite(car.id)}
-                  onClick={() => setSelectedCar(car)}
-                />
+          <>
+            {viewMode === 'GRID' && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {sortedCars.map((car, index) => (
+                  <div key={car.id} data-tutorial={index === 0 ? "car-card" : undefined}>
+                    <CarCard
+                      car={car}
+                      reservations={reservations.filter(r => r.carId === car.id)}
+                      isFavorite={favorites.includes(car.id)}
+                      onToggleFavorite={() => handleToggleFavorite(car.id)}
+                      onClick={() => setSelectedCar(car)}
+                    />
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            )}
+
+            {viewMode === 'LIST' && (
+              <CarListView
+                cars={sortedCars}
+                reservations={reservations}
+                favorites={favorites}
+                onToggleFavorite={handleToggleFavorite}
+                onSelectCar={setSelectedCar}
+              />
+            )}
+
+            {viewMode === 'TIMELINE' && (
+              <CarTimelineView
+                cars={sortedCars}
+                reservations={reservations}
+                onSelectCar={setSelectedCar}
+              />
+            )}
+          </>
         )}
       </main>
 
