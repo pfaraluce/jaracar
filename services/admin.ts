@@ -44,5 +44,14 @@ export const adminService = {
         });
 
         if (error) throw new Error(error.message);
+    },
+
+    inviteUser: async (email: string) => {
+        const { data, error } = await supabase.functions.invoke('invite-user', {
+            body: { email }
+        });
+
+        if (error) throw new Error(error.message);
+        return data;
     }
 };

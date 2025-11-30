@@ -1,14 +1,44 @@
 import React, { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { User, UserRole } from '../types';
 import { adminService } from '../services/admin';
 import { UserAvatar } from './UserAvatar';
-import { Check, X, Shield, ShieldOff, Search } from 'lucide-react';
+import { Check, X, Shield, ShieldOff, Search, Mail, CheckCircle, AlertTriangle, MessageSquare } from 'lucide-react';
 
 export const AdminUserList: React.FC = () => {
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<'ALL' | 'PENDING'>('ALL');
     const [searchTerm, setSearchTerm] = useState('');
+
+    // Invite State
+    const [showInviteModal, setShowInviteModal] = useState(false);
+    const [inviteEmail, setInviteEmail] = useState('');
+    const [inviting, setInviting] = useState(false);
+
+    // Toast State
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+
+    const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+        setToast({ message, type });
+        setTimeout(() => setToast(null), 3000);
+    };
+
+    const handleInviteUser = async () => {
+        if (!inviteEmail) return;
+        setInviting(true);
+        try {
+            await adminService.inviteUser(inviteEmail);
+            showToast('Invitación enviada con éxito', 'success');
+            setShowInviteModal(false);
+            setInviteEmail('');
+        } catch (error) {
+            console.error('Error inviting user:', error);
+            showToast('Error al invitar: ' + (error as Error).message, 'error');
+        } finally {
+            setInviting(false);
+        }
+    };
 
     const fetchUsers = async () => {
         try {
@@ -32,9 +62,10 @@ export const AdminUserList: React.FC = () => {
             console.log(`Attempting to update user ${userId} to status ${newStatus}`);
             await adminService.updateUserStatus(userId, newStatus);
             console.log('Update successful');
+            showToast('Estado actualizado', 'success');
         } catch (error) {
             console.error('Error updating status:', error);
-            alert(`Error al actualizar: ${(error as Error).message}`);
+            showToast(`Error al actualizar: ${(error as Error).message}`, 'error');
             fetchUsers(); // Revert on error
         }
     };
@@ -44,8 +75,10 @@ export const AdminUserList: React.FC = () => {
             // Optimistic update
             setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
             await adminService.updateUserRole(userId, newRole === UserRole.ADMIN ? 'ADMIN' : 'USER');
+            showToast('Rol actualizado', 'success');
         } catch (error) {
             console.error('Error updating role:', error);
+            showToast('Error al actualizar rol', 'error');
             fetchUsers(); // Revert on error
         }
     };
@@ -62,23 +95,31 @@ export const AdminUserList: React.FC = () => {
     }
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-4 relative min-h-[400px]">
             {/* Filters */}
             <div className="flex flex-col sm:flex-row gap-3 justify-between items-center flex-wrap">
-                <div className="flex bg-zinc-100 p-1 rounded-lg">
+                <div className="flex gap-3 items-center w-full sm:w-auto">
+                    <div className="flex bg-zinc-100 p-1 rounded-lg">
+                        <button
+                            onClick={() => setFilter('PENDING')}
+                            className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${filter === 'PENDING' ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-500 hover:text-zinc-700'
+                                }`}
+                        >
+                            Pendientes
+                        </button>
+                        <button
+                            onClick={() => setFilter('ALL')}
+                            className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${filter === 'ALL' ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-500 hover:text-zinc-700'
+                                }`}
+                        >
+                            Todos
+                        </button>
+                    </div>
                     <button
-                        onClick={() => setFilter('PENDING')}
-                        className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${filter === 'PENDING' ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-500 hover:text-zinc-700'
-                            }`}
+                        onClick={() => setShowInviteModal(true)}
+                        className="px-3 py-1.5 text-xs font-medium bg-zinc-900 text-white rounded-lg hover:bg-zinc-800 transition-colors flex items-center gap-2"
                     >
-                        Pendientes
-                    </button>
-                    <button
-                        onClick={() => setFilter('ALL')}
-                        className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${filter === 'ALL' ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-500 hover:text-zinc-700'
-                            }`}
-                    >
-                        Todos
+                        <Mail size={14} /> Invitar
                     </button>
                 </div>
                 <div className="relative w-full sm:w-auto">
@@ -182,6 +223,67 @@ export const AdminUserList: React.FC = () => {
                     </table>
                 </div>
             </div>
+            {/* Invite Modal */}
+            {showInviteModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowInviteModal(false)} />
+                    <div className="relative w-full max-w-sm bg-white rounded-xl shadow-2xl p-6 overflow-hidden">
+                        <h3 className="text-lg font-semibold text-zinc-900 mb-2">Invitar Usuario</h3>
+                        <p className="text-sm text-zinc-600 mb-4">
+                            Envía una invitación por correo. El usuario será aprobado automáticamente al registrarse.
+                        </p>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-medium text-zinc-500 mb-1">Correo electrónico</label>
+                                <input
+                                    type="email"
+                                    value={inviteEmail}
+                                    onChange={(e) => setInviteEmail(e.target.value)}
+                                    placeholder="usuario@ejemplo.com"
+                                    className="w-full px-3 py-2 text-sm border border-zinc-200 rounded-lg focus:ring-2 focus:ring-zinc-900/10 outline-none"
+                                    autoFocus
+                                />
+                            </div>
+
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setShowInviteModal(false)}
+                                    className="flex-1 px-4 py-2 text-sm font-medium text-zinc-700 bg-zinc-100 hover:bg-zinc-200 rounded-lg transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={handleInviteUser}
+                                    disabled={inviting || !inviteEmail}
+                                    className="flex-1 px-4 py-2 text-sm font-medium text-white bg-zinc-900 hover:bg-zinc-800 rounded-lg transition-colors disabled:opacity-50"
+                                >
+                                    {inviting ? 'Enviando...' : 'Enviar Invitación'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Toast Notification */}
+            <AnimatePresence>
+                {toast && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                        className={`absolute bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full shadow-lg flex items-center gap-2 text-xs font-medium text-white ${toast.type === 'success' ? 'bg-emerald-600' :
+                            toast.type === 'error' ? 'bg-red-600' : 'bg-zinc-900'
+                            }`}
+                    >
+                        {toast.type === 'success' && <CheckCircle size={14} />}
+                        {toast.type === 'error' && <AlertTriangle size={14} />}
+                        {toast.type === 'info' && <MessageSquare size={14} />}
+                        {toast.message}
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

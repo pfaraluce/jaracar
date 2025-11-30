@@ -18,12 +18,14 @@ export const AuthLayout: React.FC<AuthProps> = ({ setViewState, setUser, current
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [showCheckEmail, setShowCheckEmail] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setSuccess('');
 
     try {
       if (currentView === 'LOGIN') {
@@ -42,11 +44,8 @@ export const AuthLayout: React.FC<AuthProps> = ({ setViewState, setUser, current
           setViewState('DASHBOARD');
         }
       } else if (currentView === 'FORGOT_PASSWORD') {
-        // Forgot password simulation
-        setTimeout(() => {
-          alert('Si este correo existe, se ha enviado un enlace de recuperación.');
-          setViewState('LOGIN');
-        }, 1000);
+        await authService.resetPassword(email);
+        setSuccess('Si este correo existe, se ha enviado un enlace de recuperación.');
       }
     } catch (err) {
       if (err instanceof Error) {
@@ -116,6 +115,11 @@ export const AuthLayout: React.FC<AuthProps> = ({ setViewState, setUser, current
           )}
 
           {error && <p className="text-xs text-rose-500">{error}</p>}
+          {success && (
+            <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-lg">
+              <p className="text-xs text-emerald-700 text-center">{success}</p>
+            </div>
+          )}
 
           <Button type="submit" className="w-full" isLoading={loading}>
             {isLogin ? 'Entrar' : isSignup ? 'Registrarse' : 'Enviar enlace'}
