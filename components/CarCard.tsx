@@ -38,24 +38,52 @@ export const CarCard: React.FC<CarCardProps> = ({ car, reservations, isFavorite,
     return isBefore(serviceDate, oneWeekFromNow) && isAfter(serviceDate, new Date());
   }, [car.nextServiceDate]);
 
+  // Dismissed messages state
+  const [dismissedIds, setDismissedIds] = React.useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('dismissed_messages');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const handleDismiss = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    const newIds = [...dismissedIds, id];
+    setDismissedIds(newIds);
+    localStorage.setItem('dismissed_messages', JSON.stringify(newIds));
+  };
+
   // Find priority message
   const messageReservation = React.useMemo(() => {
-    // 1. Active with notes
-    const active = reservations.find(r => r.status === 'ACTIVE' && r.notes && isWithinInterval(now, { start: parseISO(r.startTime), end: parseISO(r.endTime) }));
+    // 1. Active with notes (Always show, cannot be dismissed permanently effectively, or maybe yes? Let's allow dismiss too)
+    const active = reservations.find(r =>
+      r.status === 'ACTIVE' &&
+      r.notes &&
+      !dismissedIds.includes(r.id) &&
+      isWithinInterval(now, { start: parseISO(r.startTime), end: parseISO(r.endTime) })
+    );
     if (active) return active;
 
-    // 2. Recently finished (last 2 hours) with notes
-    const recent = reservations.find(r => {
-      if (r.status !== 'COMPLETED' || !r.notes) return false;
-      const end = parseISO(r.endTime);
-      const diff = differenceInHours(now, end);
-      return diff >= 0 && diff < 2;
-    });
-    if (recent) return recent;
+    // 2. Last finished with notes (Show until next reservation starts)
+    // Sort past reservations by end time descending
+    const lastPast = reservations
+      .filter(r => {
+        if (!r.notes || dismissedIds.includes(r.id)) return false;
+        const end = parseISO(r.endTime);
+        // Include if it ended in the past (regardless of status ACTIVE/COMPLETED)
+        return isBefore(end, now);
+      })
+      .sort((a, b) => parseISO(b.endTime).getTime() - parseISO(a.endTime).getTime());
 
-    // 3. Future (next 24h) with notes - Optional, but good for context
+    if (lastPast.length > 0) {
+      return lastPast[0];
+    }
+
+    // 3. Future (next 24h) with notes
     const future = reservations.find(r => {
-      if (r.status !== 'ACTIVE' || !r.notes) return false;
+      if (r.status !== 'ACTIVE' || !r.notes || dismissedIds.includes(r.id)) return false;
       const start = parseISO(r.startTime);
       const diff = differenceInHours(start, now);
       return diff > 0 && diff < 24;
@@ -63,7 +91,7 @@ export const CarCard: React.FC<CarCardProps> = ({ car, reservations, isFavorite,
     if (future) return future;
 
     return null;
-  }, [reservations, now]);
+  }, [reservations, now, dismissedIds]);
 
   const statusColor = () => {
     if (car.inWorkshop) return 'border-rose-500 shadow-rose-100 bg-rose-50/30'; // Workshop - Red Alert
@@ -132,7 +160,12 @@ export const CarCard: React.FC<CarCardProps> = ({ car, reservations, isFavorite,
         {/* Overlay Warning for Soon Reservation */}
         {soonReservation && !currentReservation && (
           <div className="absolute bottom-0 left-0 right-0 bg-zinc-900/80 backdrop-blur-sm text-white text-[10px] py-1 px-2 text-center">
-            Reservado en {differenceInMinutes(parseISO(soonReservation.startTime), now)} mins
+            Reservado en {(() => {
+              const diff = differenceInMinutes(parseISO(soonReservation.startTime), now);
+              const h = Math.floor(diff / 60);
+              const m = diff % 60;
+              return h > 0 ? `${h}h ${m}m` : `${m} mins`;
+            })()}
           </div>
         )}
         {/* Favorite Button */}
@@ -162,8 +195,8 @@ export const CarCard: React.FC<CarCardProps> = ({ car, reservations, isFavorite,
 
         {/* Dashboard Message */}
         {messageReservation && (
-          <div className="mt-auto pt-2">
-            <div className={`text-[10px] p-2 rounded-lg border flex gap-2 items-start ${messageReservation.status === 'COMPLETED' ? 'bg-zinc-50 border-zinc-100 text-zinc-500' : 'bg-blue-50 border-blue-100 text-blue-700'
+          <div className="mt-auto pt-2 relative group/msg">
+            <div className={`text-[10px] p-2 rounded-lg border flex gap-2 items-start pr-6 ${messageReservation.status === 'COMPLETED' ? 'bg-zinc-50 border-zinc-100 text-zinc-500' : 'bg-blue-50 border-blue-100 text-blue-700'
               }`}>
               <div className="shrink-0 mt-0.5">
                 <UserAvatar name={messageReservation.userName} size="sm" className="w-4 h-4 text-[8px]" />
@@ -176,6 +209,14 @@ export const CarCard: React.FC<CarCardProps> = ({ car, reservations, isFavorite,
                 )}
               </div>
             </div>
+            {/* Dismiss Button */}
+            <button
+              onClick={(e) => handleDismiss(e, messageReservation.id)}
+              className="absolute top-3 right-1 p-1 text-zinc-400 hover:text-zinc-600 hover:bg-black/5 rounded-full opacity-0 group-hover/msg:opacity-100 transition-all"
+              title="Ocultar aviso"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
           </div>
         )}
 

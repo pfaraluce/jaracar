@@ -439,7 +439,7 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
             {currentView === 'DETAILS' && (
               <>
                 {/* Booking Section - Disabled if in workshop */}
-                {car.inWorkshop ? (
+                {car.inWorkshop && (
                   <section className="bg-zinc-50 border border-zinc-200 rounded-lg p-6">
                     <div className="text-center">
                       <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-zinc-100 mb-3">
@@ -456,20 +456,15 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                       )}
                     </div>
                   </section>
-                ) : currentUser.role === 'ADMIN' && (
+                )}
+
+                {/* Booking Form - Visible if NOT in workshop */}
+                {!car.inWorkshop && (
                   <section>
                     <h3 className="text-sm font-semibold text-zinc-900 mb-4">Reservar Vehículo</h3>
-                    {/* Booking Form - Always visible to allow future bookings */}
-                    <div className="bg-zinc-50 rounded-xl p-4 border border-zinc-200">
-                      <div className="flex items-center gap-2 mb-4">
-                        <div className="p-1.5 bg-white rounded-md shadow-sm">
-                          <Calendar size={14} className="text-zinc-900" />
-                        </div>
-                        <h3 className="text-sm font-medium text-zinc-900">Nueva Reserva</h3>
-                      </div>
-
+                    <div className="space-y-4">
                       {/* Booking Mode Selector */}
-                      <div className="flex p-1 bg-zinc-200/50 rounded-lg mb-4">
+                      <div className="flex p-1 bg-zinc-100 rounded-lg">
                         <button
                           onClick={() => setBookingMode('NOW')}
                           className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all ${bookingMode === 'NOW'
@@ -490,83 +485,89 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                         </button>
                       </div>
 
-                      <div className="space-y-4">
-                        {bookingMode === 'NOW' ? (
-                          <div className="space-y-3">
-                            <div className="grid grid-cols-3 gap-2">
-                              <button
-                                onClick={() => handleQuickDuration('LUNCH')}
-                                className={`p-2 rounded-lg border text-left transition-all ${selectedDuration === 'LUNCH'
-                                  ? 'border-zinc-900 bg-zinc-900 text-white'
-                                  : 'border-zinc-200 bg-white hover:border-zinc-300'
-                                  }`}
-                              >
-                                <span className="block text-[10px] opacity-70 mb-0.5">Hasta la</span>
-                                <span className="block text-xs font-medium">Comida</span>
-                              </button>
-                              <button
-                                onClick={() => handleQuickDuration('DINNER')}
-                                className={`p-2 rounded-lg border text-left transition-all ${selectedDuration === 'DINNER'
-                                  ? 'border-zinc-900 bg-zinc-900 text-white'
-                                  : 'border-zinc-200 bg-white hover:border-zinc-300'
-                                  }`}
-                              >
-                                <span className="block text-[10px] opacity-70 mb-0.5">Hasta la</span>
-                                <span className="block text-xs font-medium">Cena</span>
-                              </button>
-                              <button
-                                onClick={() => handleQuickDuration('CUSTOM')}
-                                className={`p-2 rounded-lg border text-left transition-all ${selectedDuration === 'CUSTOM'
-                                  ? 'border-zinc-900 bg-zinc-900 text-white'
-                                  : 'border-zinc-200 bg-white hover:border-zinc-300'
-                                  }`}
-                              >
-                                <span className="block text-[10px] opacity-70 mb-0.5">Elegir</span>
-                                <span className="block text-xs font-medium">Otro</span>
-                              </button>
-                            </div>
-
-                            <AnimatePresence>
-                              {showCustomTime && (
-                                <motion.div
-                                  initial={{ height: 0, opacity: 0 }}
-                                  animate={{ height: 'auto', opacity: 1 }}
-                                  exit={{ height: 0, opacity: 0 }}
-                                  className="overflow-hidden"
-                                >
-                                  <div className="pt-2">
-                                    <label className="block text-[10px] font-medium text-zinc-500 mb-1">Hora de fin</label>
-                                    <input
-                                      type="time"
-                                      className="w-full text-xs py-1.5 px-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-zinc-900/10 outline-none"
-                                      value={format(endDate, 'HH:mm')}
-                                      onChange={(e) => {
-                                        const [hours, minutes] = e.target.value.split(':').map(Number);
-                                        setEndDate(setMinutes(setHours(endDate, hours), minutes));
-                                      }}
-                                    />
-                                  </div>
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
+                      {bookingMode === 'NOW' ? (
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-3 gap-2">
+                            <button
+                              onClick={() => handleQuickDuration('LUNCH')}
+                              className={`p-2 rounded-lg border text-left transition-all ${selectedDuration === 'LUNCH'
+                                ? 'border-zinc-900 bg-zinc-900 text-white'
+                                : 'border-zinc-200 bg-white hover:border-zinc-300'
+                                }`}
+                            >
+                              <span className="block text-[10px] opacity-70 mb-0.5">Hasta la</span>
+                              <span className="block text-xs font-medium">Comida</span>
+                            </button>
+                            <button
+                              onClick={() => handleQuickDuration('DINNER')}
+                              className={`p-2 rounded-lg border text-left transition-all ${selectedDuration === 'DINNER'
+                                ? 'border-zinc-900 bg-zinc-900 text-white'
+                                : 'border-zinc-200 bg-white hover:border-zinc-300'
+                                }`}
+                            >
+                              <span className="block text-[10px] opacity-70 mb-0.5">Hasta la</span>
+                              <span className="block text-xs font-medium">Cena</span>
+                            </button>
+                            <button
+                              onClick={() => handleQuickDuration('CUSTOM')}
+                              className={`p-2 rounded-lg border text-left transition-all ${selectedDuration === 'CUSTOM'
+                                ? 'border-zinc-900 bg-zinc-900 text-white'
+                                : 'border-zinc-200 bg-white hover:border-zinc-300'
+                                }`}
+                            >
+                              <span className="block text-[10px] opacity-70 mb-0.5">Elegir</span>
+                              <span className="block text-xs font-medium">Otro</span>
+                            </button>
                           </div>
-                        ) : (
-                          <DateTimeSelector
-                            startDate={startDate}
-                            endDate={endDate}
-                            onStartDateChange={setStartDate}
-                            onEndDateChange={setEndDate}
-                          />
-                        )}
 
-                        <Button
-                          onClick={handleBook}
-                          isLoading={loading}
-                          className="w-full py-2 text-xs"
-                        >
-                          Confirmar Reserva
-                        </Button>
-                      </div>
+                          <AnimatePresence>
+                            {showCustomTime && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                className="overflow-hidden"
+                              >
+                                <div className="pt-2">
+                                  <label className="block text-[10px] font-medium text-zinc-500 mb-1">Hora de fin</label>
+                                  <input
+                                    type="time"
+                                    className="w-full text-xs py-1.5 px-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-zinc-900/10 outline-none"
+                                    value={format(endDate, 'HH:mm')}
+                                    onChange={(e) => {
+                                      const [hours, minutes] = e.target.value.split(':').map(Number);
+                                      setEndDate(setMinutes(setHours(endDate, hours), minutes));
+                                    }}
+                                  />
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          <DateTimeSelector
+                            label="Inicio"
+                            value={startDate}
+                            onChange={setStartDate}
+                            minDate={new Date()}
+                          />
+                          <DateTimeSelector
+                            label="Fin"
+                            value={endDate}
+                            onChange={setEndDate}
+                            minDate={startDate}
+                          />
+                        </div>
+                      )}
+
+                      <Button
+                        onClick={handleBook}
+                        isLoading={loading}
+                        className="w-full py-2 text-xs"
+                      >
+                        Confirmar Reserva
+                      </Button>
                     </div>
                   </section>
                 )}
