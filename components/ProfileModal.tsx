@@ -12,9 +12,10 @@ interface ProfileModalProps {
     isOpen: boolean;
     onClose: () => void;
     onUpdate: () => void;
+    onRestartTutorial?: () => void;
 }
 
-export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClose, onUpdate }) => {
+export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClose, onUpdate, onRestartTutorial }) => {
     const [activeTab, setActiveTab] = useState<'PROFILE' | 'ADMIN'>('PROFILE');
     const [uploading, setUploading] = useState(false);
     const [isEditingName, setIsEditingName] = useState(false);
@@ -268,6 +269,19 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClos
                                             <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Correo electrónico</p>
                                             <p className="text-sm text-zinc-900 dark:text-zinc-200 truncate">{user.email}</p>
                                         </div>
+                                    </div>
+
+                                    {/* Tutorial Reset */}
+                                    <div className="flex justify-center pt-2">
+                                        <button
+                                            onClick={() => {
+                                                onRestartTutorial?.();
+                                                onClose();
+                                            }}
+                                            className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+                                        >
+                                            Volver a ver el tutorial de inicio
+                                        </button>
                                     </div>
                                 </div>
                             </div>

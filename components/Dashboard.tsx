@@ -168,7 +168,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
 
           <div className="flex items-center gap-3">
             {/* View Switcher */}
-            <div className="flex bg-zinc-100 dark:bg-zinc-900 p-1 rounded-lg border border-zinc-200 dark:border-zinc-800">
+            <div className="flex bg-zinc-100 dark:bg-zinc-900 p-1 rounded-lg border border-zinc-200 dark:border-zinc-800" data-tutorial="view-switcher">
               <button
                 onClick={() => setViewMode('GRID')}
                 className={`p-1.5 rounded-md transition-all ${viewMode === 'GRID'
@@ -295,6 +295,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
         onUpdate={fetchData}
+        onRestartTutorial={handleStartTutorial}
       />
 
       {/* Welcome Modal */}

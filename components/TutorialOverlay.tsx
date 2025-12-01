@@ -15,34 +15,41 @@ const tutorialSteps: TutorialStep[] = [
     {
         id: 'dashboard',
         title: 'Panel de Flota',
-        description: 'Aquí ves todos los coches disponibles. Los coches en taller aparecen con un punto rojo.',
+        description: 'Bienvenido a JaraCar. Aquí podrás gestionar toda la flota de vehículos de manera sencilla.',
         position: 'center'
+    },
+    {
+        id: 'views',
+        title: 'Vistas Flexibles',
+        description: 'Alterna entre vista de Cuadrícula, Lista o Cronograma según lo que necesites visualizar.',
+        targetSelector: '[data-tutorial="view-switcher"]',
+        position: 'bottom'
     },
     {
         id: 'car-card',
         title: 'Tarjetas de Coches',
-        description: 'Haz clic en cualquier coche para ver sus detalles, historial y hacer una reserva.',
+        description: 'En la vista de cuadrícula, haz clic en cualquier coche para ver sus detalles, historial y hacer una reserva.',
         targetSelector: '[data-tutorial="car-card"]',
         position: 'bottom'
     },
     {
         id: 'favorites',
         title: 'Marca Favoritos',
-        description: 'Haz clic en la estrella para marcar tus coches favoritos. Aparecerán primero en la lista.',
+        description: 'Usa la estrella para marcar los coches que más usas. Aparecerán siempre al principio.',
         targetSelector: '[data-tutorial="favorite-star"]',
         position: 'bottom'
     },
     {
         id: 'profile',
         title: 'Tu Perfil',
-        description: 'Haz clic en tu avatar para editar tu nombre y subir una foto de perfil.',
+        description: 'Accede a tu perfil para editar tus datos o cambiar tus preferencias.',
         targetSelector: '[data-tutorial="user-avatar"]',
         position: 'bottom'
     },
     {
         id: 'complete',
         title: '¡Todo listo!',
-        description: 'Ya conoces lo básico. Explora la app y reserva tu primer coche cuando quieras.',
+        description: 'Si necesitas volver a ver este tutorial, puedes encontrarlo en tu perfil de usuario.',
         position: 'center'
     }
 ];
