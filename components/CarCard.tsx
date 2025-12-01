@@ -94,26 +94,26 @@ export const CarCard: React.FC<CarCardProps> = ({ car, reservations, isFavorite,
   }, [reservations, now, dismissedIds]);
 
   const statusColor = () => {
-    if (car.inWorkshop) return 'border-rose-500 shadow-rose-100 bg-rose-50/30'; // Workshop - Red Alert
-    if (car.status === CarStatus.WORKSHOP) return 'border-rose-500 shadow-rose-100 bg-rose-50/30';
-    if (isServiceDueSoon || car.status === CarStatus.MAINTENANCE) return 'border-amber-500 shadow-amber-100'; // Maintenance/Due - Orange
-    if (currentReservation) return 'border-blue-400/50 shadow-blue-100';
-    return 'border-emerald-400/50 shadow-emerald-50'; // Available
+    if (car.inWorkshop) return 'border-rose-500 shadow-rose-100 dark:shadow-rose-900/20 bg-rose-50/30 dark:bg-rose-900/10'; // Workshop - Red Alert
+    if (car.status === CarStatus.WORKSHOP) return 'border-rose-500 shadow-rose-100 dark:shadow-rose-900/20 bg-rose-50/30 dark:bg-rose-900/10';
+    if (isServiceDueSoon || car.status === CarStatus.MAINTENANCE) return 'border-amber-500 shadow-amber-100 dark:shadow-amber-900/20'; // Maintenance/Due - Orange
+    if (currentReservation) return 'border-blue-400/50 shadow-blue-100 dark:shadow-blue-900/20';
+    return 'border-emerald-400/50 shadow-emerald-50 dark:shadow-emerald-900/20 dark:border-zinc-800'; // Available
   };
 
   const StatusIndicator = () => {
     if (car.inWorkshop) return (
-      <span className="text-xs font-medium text-rose-600 flex items-center gap-1">
+      <span className="text-xs font-medium text-rose-600 dark:text-rose-400 flex items-center gap-1">
         <div className="w-1.5 h-1.5 rounded-full bg-rose-500" /> En Taller
       </span>
     );
     if (car.status === CarStatus.WORKSHOP) return (
-      <span className="text-xs font-medium text-rose-600 flex items-center gap-1">
+      <span className="text-xs font-medium text-rose-600 dark:text-rose-400 flex items-center gap-1">
         <div className="w-1.5 h-1.5 rounded-full bg-rose-500" /> Taller
       </span>
     );
     if (car.status === CarStatus.MAINTENANCE) return (
-      <span className="text-xs font-medium text-amber-600 flex items-center gap-1">
+      <span className="text-xs font-medium text-amber-600 dark:text-amber-400 flex items-center gap-1">
         <AlertCircle size={12} /> Revisión
       </span>
     );
@@ -123,18 +123,18 @@ export const CarCard: React.FC<CarCardProps> = ({ car, reservations, isFavorite,
       const mins = remaining % 60;
       return (
         <div className="flex flex-col items-end">
-          <span className="text-xs font-medium text-blue-600 flex items-center gap-1">
+          <span className="text-xs font-medium text-blue-600 dark:text-blue-400 flex items-center gap-1">
             <UserAvatar name={currentReservation.userName} size="sm" className="w-4 h-4 text-[8px]" />
             {currentReservation.userName}
           </span>
-          <span className="text-[10px] text-blue-400">
+          <span className="text-[10px] text-blue-400 dark:text-blue-300/70">
             Libre en {hours > 0 ? `${hours}h ` : ''}{mins}m
           </span>
         </div>
       );
     }
     return (
-      <span className="text-xs font-medium text-emerald-600 flex items-center gap-1">
+      <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Disponible
       </span>
     );
@@ -144,13 +144,13 @@ export const CarCard: React.FC<CarCardProps> = ({ car, reservations, isFavorite,
     <motion.div
       layoutId={`card-${car.id}`}
       className={clsx(
-        "group relative bg-white rounded-xl border p-3 cursor-pointer transition-all hover:shadow-md flex flex-col h-full",
+        "group relative bg-white dark:bg-zinc-900 rounded-xl border p-3 cursor-pointer transition-all hover:shadow-md flex flex-col h-full",
         statusColor()
       )}
       onClick={onClick}
       whileHover={{ y: -2 }}
     >
-      <div className="aspect-[16/10] w-full overflow-hidden rounded-lg bg-zinc-100 mb-3 relative shrink-0">
+      <div className="aspect-[16/10] w-full overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800 mb-3 relative shrink-0">
         <motion.img
           layoutId={`image-${car.id}`}
           src={car.imageUrl}
@@ -174,12 +174,12 @@ export const CarCard: React.FC<CarCardProps> = ({ car, reservations, isFavorite,
             e.stopPropagation();
             onToggleFavorite(e);
           }}
-          className="absolute top-2 right-2 p-1.5 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white transition-colors shadow-sm z-10"
+          className="absolute top-2 right-2 p-1.5 rounded-full bg-white/80 dark:bg-black/50 backdrop-blur-sm hover:bg-white dark:hover:bg-black/80 transition-colors shadow-sm z-10"
           data-tutorial="favorite-star"
         >
           <Star
             size={14}
-            className={isFavorite ? "fill-amber-400 text-amber-400" : "text-zinc-400"}
+            className={isFavorite ? "fill-amber-400 text-amber-400" : "text-zinc-400 dark:text-zinc-300"}
           />
         </button>
       </div>
@@ -187,8 +187,8 @@ export const CarCard: React.FC<CarCardProps> = ({ car, reservations, isFavorite,
       <div className="space-y-2 flex-1 flex flex-col">
         <div className="flex justify-between items-start">
           <div>
-            <motion.h3 layoutId={`title-${car.id}`} className="font-semibold text-zinc-900 text-sm">{car.name}</motion.h3>
-            <p className="text-xs text-zinc-400 font-mono">{car.plate}</p>
+            <motion.h3 layoutId={`title-${car.id}`} className="font-semibold text-zinc-900 dark:text-white text-sm">{car.name}</motion.h3>
+            <p className="text-xs text-zinc-400 dark:text-zinc-500 font-mono">{car.plate}</p>
           </div>
           <StatusIndicator />
         </div>
@@ -196,7 +196,7 @@ export const CarCard: React.FC<CarCardProps> = ({ car, reservations, isFavorite,
         {/* Dashboard Message */}
         {messageReservation && (
           <div className="mt-auto pt-2 relative group/msg">
-            <div className={`text-[10px] p-2 rounded-lg border flex gap-2 items-start pr-6 ${messageReservation.status === 'COMPLETED' ? 'bg-zinc-50 border-zinc-100 text-zinc-500' : 'bg-blue-50 border-blue-100 text-blue-700'
+            <div className={`text-[10px] p-2 rounded-lg border flex gap-2 items-start pr-6 ${messageReservation.status === 'COMPLETED' ? 'bg-zinc-50 dark:bg-zinc-800/50 border-zinc-100 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400' : 'bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800 text-blue-700 dark:text-blue-300'
               }`}>
               <div className="shrink-0 mt-0.5">
                 <UserAvatar name={messageReservation.userName} size="sm" className="w-4 h-4 text-[8px]" />
@@ -212,7 +212,7 @@ export const CarCard: React.FC<CarCardProps> = ({ car, reservations, isFavorite,
             {/* Dismiss Button */}
             <button
               onClick={(e) => handleDismiss(e, messageReservation.id)}
-              className="absolute top-3 right-1 p-1 text-zinc-400 hover:text-zinc-600 hover:bg-black/5 rounded-full opacity-0 group-hover/msg:opacity-100 transition-all"
+              className="absolute top-3 right-1 p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-black/5 dark:hover:bg-white/10 rounded-full opacity-0 group-hover/msg:opacity-100 transition-all"
               title="Ocultar aviso"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -222,7 +222,7 @@ export const CarCard: React.FC<CarCardProps> = ({ car, reservations, isFavorite,
 
         {/* Helper Action Text */}
         <div className="pt-2 opacity-0 group-hover:opacity-100 transition-opacity absolute bottom-3 right-3 pointer-events-none">
-          <span className="text-[10px] font-medium text-zinc-400 uppercase tracking-wider bg-white/90 px-1.5 py-0.5 rounded border border-zinc-100 shadow-sm">
+          <span className="text-[10px] font-medium text-zinc-400 dark:text-zinc-300 uppercase tracking-wider bg-white/90 dark:bg-zinc-800/90 px-1.5 py-0.5 rounded border border-zinc-100 dark:border-zinc-700 shadow-sm">
             {currentReservation ? 'Ver Detalles' : 'Reservar'}
           </span>
         </div>

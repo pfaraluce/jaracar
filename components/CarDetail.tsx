@@ -361,27 +361,27 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
 
   const StatusIndicator = () => {
     if (car.inWorkshop) return (
-      <span className="text-xs font-medium text-rose-700 flex items-center gap-1 bg-rose-100 px-2 py-0.5 rounded-full border border-rose-200">
+      <span className="text-xs font-medium text-rose-700 dark:text-rose-400 flex items-center gap-1 bg-rose-100 dark:bg-rose-900/30 px-2 py-0.5 rounded-full border border-rose-200 dark:border-rose-800">
         <Wrench size={12} /> En Taller
       </span>
     );
     if (car.status === CarStatus.WORKSHOP) return (
-      <span className="text-xs font-medium text-rose-600 flex items-center gap-1 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
+      <span className="text-xs font-medium text-rose-600 dark:text-rose-400 flex items-center gap-1 bg-rose-50 dark:bg-rose-900/20 px-2 py-0.5 rounded-full border border-rose-200 dark:border-rose-800">
         <Wrench size={12} /> Taller
       </span>
     );
     if (car.status === CarStatus.MAINTENANCE) return (
-      <span className="text-xs font-medium text-amber-600 flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+      <span className="text-xs font-medium text-amber-600 dark:text-amber-400 flex items-center gap-1 bg-amber-50 dark:bg-amber-900/20 px-2 py-0.5 rounded-full border border-amber-200 dark:border-amber-800">
         <AlertTriangle size={12} /> Revisión
       </span>
     );
     if (currentReservation) return (
-      <span className="text-xs font-medium text-blue-600 flex items-center gap-1 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
+      <span className="text-xs font-medium text-blue-600 dark:text-blue-400 flex items-center gap-1 bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-800">
         <CarIcon size={12} /> Reservado
       </span>
     );
     return (
-      <span className="text-xs font-medium text-emerald-600 flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+      <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
         <CheckCircle size={12} /> Disponible
       </span>
     );
@@ -402,17 +402,17 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
         />
 
         <motion.div
-          className="relative w-full h-full sm:h-auto max-w-2xl bg-white sm:rounded-2xl shadow-xl overflow-hidden flex flex-col sm:max-h-[90vh]"
+          className="relative w-full h-full sm:h-auto max-w-2xl bg-white dark:bg-zinc-900 sm:rounded-2xl shadow-xl overflow-hidden flex flex-col sm:max-h-[90vh] border border-zinc-200 dark:border-zinc-800"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header Section */}
-          <div className="p-6 border-b border-zinc-100 bg-white z-10 sticky top-0">
+          <div className="p-6 border-b border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 z-10 sticky top-0">
             <div className="flex justify-between items-start">
               <div className="flex gap-4 items-center">
                 {currentView !== 'DETAILS' && (
                   <button
                     onClick={() => setCurrentView('DETAILS')}
-                    className="p-2 -ml-2 hover:bg-zinc-100 rounded-full text-zinc-500 hover:text-zinc-900 transition-colors"
+                    className="p-2 -ml-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
                   >
                     <ArrowLeft size={20} />
                   </button>
@@ -440,19 +440,19 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                 )}
 
                 <div>
-                  <motion.h2 layoutId={`title-${car.id}`} className="text-xl font-semibold text-zinc-900 flex items-center gap-2">
+                  <motion.h2 layoutId={`title-${car.id}`} className="text-xl font-semibold text-zinc-900 dark:text-white flex items-center gap-2">
                     {currentView === 'EDIT' ? 'Editar Coche' : currentView === 'ACTIVITY' ? 'Historial de Actividad' : car.name}
                   </motion.h2>
 
                   {currentView === 'DETAILS' && (
                     <>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="text-sm text-zinc-500 font-mono">{car.plate}</span>
+                        <span className="text-sm text-zinc-500 dark:text-zinc-400 font-mono">{car.plate}</span>
                         <StatusIndicator />
                       </div>
                       {/* Service Warning */}
                       {isServiceDueSoon && !car.inWorkshop && (
-                        <div className="mt-2 flex items-center gap-1.5 text-xs text-amber-600 font-medium">
+                        <div className="mt-2 flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 font-medium">
                           <AlertTriangle size={12} />
                           <span>Revisión próxima: {format(parseISO(car.nextServiceDate!), 'd MMM', { locale: es })}</span>
                         </div>
@@ -461,7 +461,7 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                   )}
                 </div>
               </div>
-              <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-full text-zinc-400 hover:text-zinc-900 transition-colors">
+              <button onClick={onClose} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full text-zinc-400 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors">
                 <X size={20} />
               </button>
             </div>
@@ -475,17 +475,17 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
               <>
                 {/* Booking Section - Disabled if in workshop */}
                 {car.inWorkshop && (
-                  <section className="bg-zinc-50 border border-zinc-200 rounded-lg p-6">
+                  <section className="bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-lg p-6">
                     <div className="text-center">
-                      <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-zinc-100 mb-3">
-                        <Wrench size={24} className="text-zinc-500" />
+                      <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-700 mb-3">
+                        <Wrench size={24} className="text-zinc-500 dark:text-zinc-400" />
                       </div>
-                      <h3 className="text-sm font-semibold text-zinc-900 mb-1">Coche en el taller</h3>
-                      <p className="text-xs text-zinc-500 max-w-xs mx-auto mb-4">
+                      <h3 className="text-sm font-semibold text-zinc-900 dark:text-white mb-1">Coche en el taller</h3>
+                      <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-xs mx-auto mb-4">
                         Este coche no se puede reservar hasta que salga del taller.
                       </p>
                       {currentUser.role === 'ADMIN' && (
-                        <p className="text-xs text-zinc-400">
+                        <p className="text-xs text-zinc-400 dark:text-zinc-500">
                           Edita el coche y desmarca la casilla "En taller" para volver a habilitarlo.
                         </p>
                       )}
@@ -497,7 +497,7 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                 {!car.inWorkshop && (
                   <section id="booking-form">
                     <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-sm font-semibold text-zinc-900">
+                      <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">
                         {editingReservationId ? 'Editar Reserva' : 'Reservar Vehículo'}
                       </h3>
                       {editingReservationId && (
@@ -508,7 +508,7 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                             setStartDate(new Date());
                             setEndDate(addMinutes(new Date(), 120));
                           }}
-                          className="text-xs text-red-600 hover:text-red-700"
+                          className="text-xs text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                         >
                           Cancelar edición
                         </button>
@@ -516,13 +516,13 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                     </div>
                     <div className="space-y-4">
                       {/* Booking Mode Selector */}
-                      <div className="flex p-1 bg-zinc-100 rounded-lg">
+                      <div className="flex p-1 bg-zinc-100 dark:bg-zinc-800 rounded-lg">
                         <button
                           onClick={() => setBookingMode('NOW')}
                           disabled={!!editingReservationId}
                           className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all ${bookingMode === 'NOW'
-                            ? 'bg-white text-zinc-900 shadow-sm'
-                            : 'text-zinc-500 hover:text-zinc-700 disabled:opacity-50'
+                            ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm'
+                            : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 disabled:opacity-50'
                             }`}
                         >
                           Ahora
@@ -531,8 +531,8 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                           onClick={() => setBookingMode('LATER')}
                           disabled={!!editingReservationId}
                           className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all ${bookingMode === 'LATER'
-                            ? 'bg-white text-zinc-900 shadow-sm'
-                            : 'text-zinc-500 hover:text-zinc-700 disabled:opacity-50'
+                            ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm'
+                            : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 disabled:opacity-50'
                             }`}
                         >
                           Programar
@@ -545,8 +545,8 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                             <button
                               onClick={() => handleQuickDuration('LUNCH')}
                               className={`p-2 rounded-lg border text-left transition-all ${selectedDuration === 'LUNCH'
-                                ? 'border-zinc-900 bg-zinc-900 text-white'
-                                : 'border-zinc-200 bg-white hover:border-zinc-300'
+                                ? 'border-zinc-900 bg-zinc-900 text-white dark:border-white dark:bg-white dark:text-black'
+                                : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-600 text-zinc-900 dark:text-white'
                                 }`}
                             >
                               <span className="block text-[10px] opacity-70 mb-0.5">Hasta la</span>
@@ -555,8 +555,8 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                             <button
                               onClick={() => handleQuickDuration('DINNER')}
                               className={`p-2 rounded-lg border text-left transition-all ${selectedDuration === 'DINNER'
-                                ? 'border-zinc-900 bg-zinc-900 text-white'
-                                : 'border-zinc-200 bg-white hover:border-zinc-300'
+                                ? 'border-zinc-900 bg-zinc-900 text-white dark:border-white dark:bg-white dark:text-black'
+                                : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-600 text-zinc-900 dark:text-white'
                                 }`}
                             >
                               <span className="block text-[10px] opacity-70 mb-0.5">Hasta la</span>
@@ -565,8 +565,8 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                             <button
                               onClick={() => handleQuickDuration('CUSTOM')}
                               className={`p-2 rounded-lg border text-left transition-all ${selectedDuration === 'CUSTOM'
-                                ? 'border-zinc-900 bg-zinc-900 text-white'
-                                : 'border-zinc-200 bg-white hover:border-zinc-300'
+                                ? 'border-zinc-900 bg-zinc-900 text-white dark:border-white dark:bg-white dark:text-black'
+                                : 'border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-600 text-zinc-900 dark:text-white'
                                 }`}
                             >
                               <span className="block text-[10px] opacity-70 mb-0.5">Elegir</span>
@@ -583,10 +583,10 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                                 className="overflow-hidden"
                               >
                                 <div className="pt-2">
-                                  <label className="block text-[10px] font-medium text-zinc-500 mb-1">Hora de fin</label>
+                                  <label className="block text-[10px] font-medium text-zinc-500 dark:text-zinc-400 mb-1">Hora de fin</label>
                                   <input
                                     type="time"
-                                    className="w-full text-xs py-1.5 px-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-zinc-900/10 outline-none"
+                                    className="w-full text-xs py-1.5 px-2 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white rounded-lg focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/10 outline-none [color-scheme:light] dark:[color-scheme:dark]"
                                     value={format(endDate, 'HH:mm')}
                                     onChange={(e) => {
                                       const [hours, minutes] = e.target.value.split(':').map(Number);
@@ -618,11 +618,11 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                       <button
                         onClick={handleBook}
                         disabled={loading}
-                        className="w-full py-3 bg-zinc-900 text-white text-sm font-medium rounded-xl hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-zinc-900/10"
+                        className="w-full py-3 bg-zinc-900 dark:bg-white text-white dark:text-black text-sm font-medium rounded-xl hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-zinc-900/10 dark:shadow-white/5"
                       >
                         {loading ? (
                           <span className="flex items-center justify-center gap-2">
-                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            <div className="w-4 h-4 border-2 border-white/30 dark:border-black/30 border-t-white dark:border-t-black rounded-full animate-spin" />
                             {editingReservationId ? 'Actualizando...' : 'Procesando...'}
                           </span>
                         ) : (
@@ -636,17 +636,17 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                 {/* Current & Upcoming Reservations */}
                 {activeReservations.length > 0 && (
                   <section>
-                    <h3 className="text-sm font-semibold text-zinc-900 mb-4">Reservas Activas</h3>
+                    <h3 className="text-sm font-semibold text-zinc-900 dark:text-white mb-4">Reservas Activas</h3>
                     <div className="space-y-2">
                       {activeReservations.slice(0, 3).map(res => (
-                        <div key={res.id} className="p-3 bg-zinc-50 rounded-lg border border-zinc-100">
+                        <div key={res.id} className="p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-zinc-100 dark:border-zinc-800">
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
                                 <UserAvatar name={res.userName} size="sm" className="w-5 h-5 text-[10px]" />
-                                <p className="text-xs font-medium text-zinc-900">{res.userName}</p>
+                                <p className="text-xs font-medium text-zinc-900 dark:text-white">{res.userName}</p>
                               </div>
-                              <p className="text-[10px] text-zinc-500 mt-0.5 ml-7">
+                              <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5 ml-7">
                                 {format(parseISO(res.startTime), 'd MMM, HH:mm', { locale: es })} → {format(parseISO(res.endTime), 'HH:mm', { locale: es })}
                               </p>
 
@@ -658,22 +658,22 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                                       type="text"
                                       value={noteContent}
                                       onChange={(e) => setNoteContent(e.target.value)}
-                                      className="text-xs border rounded px-2 py-1 w-full bg-white"
+                                      className="text-xs border border-zinc-200 dark:border-zinc-700 rounded px-2 py-1 w-full bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-zinc-500"
                                       placeholder="Añadir nota..."
                                       autoFocus
                                     />
-                                    <button onClick={() => handleSaveNote(res.id)} className="text-emerald-600 p-1 hover:bg-emerald-50 rounded"><Save size={14} /></button>
-                                    <button onClick={() => setEditingNoteId(null)} className="text-zinc-400 p-1 hover:bg-zinc-100 rounded"><X size={14} /></button>
+                                    <button onClick={() => handleSaveNote(res.id)} className="text-emerald-600 dark:text-emerald-400 p-1 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded"><Save size={14} /></button>
+                                    <button onClick={() => setEditingNoteId(null)} className="text-zinc-400 dark:text-zinc-500 p-1 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded"><X size={14} /></button>
                                   </div>
                                 ) : (
                                   <div className="group flex items-center gap-2 min-h-[20px]">
-                                    <p className="text-[10px] text-zinc-600 italic">
+                                    <p className="text-[10px] text-zinc-600 dark:text-zinc-400 italic">
                                       {res.notes || 'Añadir nota...'}
                                     </p>
                                     {(currentUser.id === res.userId || currentUser.role === 'ADMIN') && (
                                       <button
                                         onClick={() => handleEditNote(res)}
-                                        className="opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-zinc-600 transition-opacity p-1"
+                                        className="opacity-0 group-hover:opacity-100 text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 transition-opacity p-1"
                                         title="Editar nota"
                                       >
                                         <Pencil size={10} />
@@ -690,14 +690,14 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                                   <>
                                     <button
                                       onClick={() => handleFinishReservation(res.id)}
-                                      className="text-[10px] text-blue-600 hover:text-blue-700 px-2 py-1 hover:bg-blue-50 rounded transition-colors flex items-center gap-1"
+                                      className="text-[10px] text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 px-2 py-1 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors flex items-center gap-1"
                                       title="Finalizar reserva ahora"
                                     >
                                       <CheckCircle size={12} /> Finalizar
                                     </button>
                                     <button
                                       onClick={() => handleCancelReservation(res.id)}
-                                      className="text-[10px] text-red-600 hover:text-red-700 px-2 py-1 hover:bg-red-50 rounded transition-colors flex items-center gap-1"
+                                      className="text-[10px] text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 px-2 py-1 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors flex items-center gap-1"
                                       title="Cancelar reserva"
                                     >
                                       <X size={12} />
@@ -708,14 +708,14 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                                   <>
                                     <button
                                       onClick={() => handleEditReservation(res)}
-                                      className="text-[10px] text-zinc-600 hover:text-zinc-900 px-2 py-1 hover:bg-zinc-100 rounded transition-colors flex items-center gap-1"
+                                      className="text-[10px] text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 px-2 py-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded transition-colors flex items-center gap-1"
                                       title="Editar horario"
                                     >
                                       <Pencil size={12} /> Editar
                                     </button>
                                     <button
                                       onClick={() => handleCancelReservation(res.id)}
-                                      className="text-[10px] text-red-600 hover:text-red-700 px-2 py-1 hover:bg-red-50 rounded transition-colors flex items-center gap-1"
+                                      className="text-[10px] text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 px-2 py-1 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors flex items-center gap-1"
                                       title="Cancelar reserva"
                                     >
                                       <X size={12} /> Cancelar
@@ -734,25 +734,25 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                 {/* Past Reservations (History) */}
                 <section>
                   <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-sm font-semibold text-zinc-900 flex items-center gap-2">
+                    <h3 className="text-sm font-semibold text-zinc-900 dark:text-white flex items-center gap-2">
                       <History size={16} /> Historial Reciente
                     </h3>
                     <button
                       onClick={() => setCurrentView('ACTIVITY')}
-                      className="text-xs text-zinc-500 hover:text-zinc-900 transition-colors"
+                      className="text-xs text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
                     >
                       Ver todo
                     </button>
                   </div>
-                  <div className="space-y-0 relative border-l border-zinc-100 ml-2">
+                  <div className="space-y-0 relative border-l border-zinc-100 dark:border-zinc-800 ml-2">
                     {pastReservations && pastReservations.length > 0 ? (
                       pastReservations.slice(0, 3).map((res) => (
                         <div key={res.id} className="relative pl-6 pb-6 last:pb-0">
-                          <div className="absolute -left-[5px] top-1 w-2.5 h-2.5 rounded-full border-2 border-white shadow-sm bg-zinc-300"></div>
+                          <div className="absolute -left-[5px] top-1 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-zinc-900 shadow-sm bg-zinc-300 dark:bg-zinc-600"></div>
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
-                              <p className="text-xs font-medium text-zinc-900">{res.userName}</p>
-                              <p className="text-[10px] text-zinc-500">
+                              <p className="text-xs font-medium text-zinc-900 dark:text-white">{res.userName}</p>
+                              <p className="text-[10px] text-zinc-500 dark:text-zinc-400">
                                 {format(parseISO(res.startTime), 'd MMM HH:mm', { locale: es })} — {format(parseISO(res.endTime), 'HH:mm', { locale: es })}
                               </p>
 
@@ -764,21 +764,21 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                                       type="text"
                                       value={noteContent}
                                       onChange={(e) => setNoteContent(e.target.value)}
-                                      className="text-xs border rounded px-2 py-1 w-full"
+                                      className="text-xs border border-zinc-200 dark:border-zinc-700 rounded px-2 py-1 w-full bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-zinc-500"
                                       autoFocus
                                     />
-                                    <button onClick={() => handleSaveNote(res.id)} className="text-emerald-600"><Save size={14} /></button>
-                                    <button onClick={() => setEditingNoteId(null)} className="text-zinc-400"><X size={14} /></button>
+                                    <button onClick={() => handleSaveNote(res.id)} className="text-emerald-600 dark:text-emerald-400"><Save size={14} /></button>
+                                    <button onClick={() => setEditingNoteId(null)} className="text-zinc-400 dark:text-zinc-500"><X size={14} /></button>
                                   </div>
                                 ) : (
                                   <div className="group flex items-center gap-2 min-h-[16px]">
-                                    <p className="text-[10px] text-zinc-600 italic">
+                                    <p className="text-[10px] text-zinc-600 dark:text-zinc-400 italic">
                                       {res.notes || 'Sin notas'}
                                     </p>
                                     {(currentUser.id === res.userId || currentUser.role === 'ADMIN') && (
                                       <button
                                         onClick={() => handleEditNote(res)}
-                                        className="opacity-0 group-hover:opacity-100 text-zinc-400 hover:text-zinc-600 transition-opacity p-0.5"
+                                        className="opacity-0 group-hover:opacity-100 text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 transition-opacity p-0.5"
                                       >
                                         <Pencil size={10} />
                                       </button>
@@ -791,7 +791,7 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                         </div>
                       ))
                     ) : (
-                      <p className="text-xs text-zinc-400 pl-6">No hay historial reciente</p>
+                      <p className="text-xs text-zinc-400 dark:text-zinc-500 pl-6">No hay historial reciente</p>
                     )}
                   </div>
                 </section>
@@ -802,10 +802,10 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
             {currentView === 'EDIT' && (
               <div className="space-y-6">
                 <div>
-                  <label className="block text-[10px] font-medium text-zinc-500 mb-1">Nombre</label>
+                  <label className="block text-[10px] font-medium text-zinc-500 dark:text-zinc-400 mb-1">Nombre</label>
                   <input
                     type="text"
-                    className="w-full text-xs py-1.5 px-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-zinc-900/10 outline-none"
+                    className="w-full text-xs py-1.5 px-2 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white rounded-lg focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/10 outline-none"
                     value={editFormData.name}
                     onChange={e => setEditFormData({ ...editFormData, name: e.target.value })}
                   />
@@ -813,7 +813,7 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
 
                 {/* Image Upload in Edit */}
                 <div>
-                  <label className="block text-[10px] font-medium text-zinc-500 mb-1">Imagen</label>
+                  <label className="block text-[10px] font-medium text-zinc-500 dark:text-zinc-400 mb-1">Imagen</label>
                   <div className="space-y-2">
                     <div className="flex gap-2">
                       <input
@@ -827,7 +827,7 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
                         disabled={uploading}
-                        className="flex-1 flex items-center justify-center gap-2 py-1 px-2 text-[10px] border border-zinc-200 rounded-lg hover:bg-zinc-50 transition-colors disabled:opacity-50"
+                        className="flex-1 flex items-center justify-center gap-2 py-1 px-2 text-[10px] border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors disabled:opacity-50"
                       >
                         <Upload size={12} />
                         {uploading ? 'Subiendo...' : 'Subir imagen'}
@@ -835,7 +835,7 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                       <button
                         type="button"
                         onClick={() => setShowUrlInput(!showUrlInput)}
-                        className="flex-1 flex items-center justify-center gap-2 py-1 px-2 text-[10px] border border-zinc-200 rounded-lg hover:bg-zinc-50 transition-colors"
+                        className="flex-1 flex items-center justify-center gap-2 py-1 px-2 text-[10px] border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors"
                       >
                         <LinkIcon size={12} />
                         URL
@@ -846,21 +846,21 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                         <input
                           type="url"
                           placeholder="https://..."
-                          className="flex-1 text-xs py-1.5 px-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-zinc-900/10 outline-none"
+                          className="flex-1 text-xs py-1.5 px-2 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white rounded-lg focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/10 outline-none"
                           value={urlInput}
                           onChange={e => setUrlInput(e.target.value)}
                         />
                         <button
                           type="button"
                           onClick={handleUrlSubmit}
-                          className="px-3 py-1.5 text-xs bg-zinc-900 text-white rounded-lg hover:bg-zinc-800"
+                          className="px-3 py-1.5 text-xs bg-zinc-900 dark:bg-white text-white dark:text-black rounded-lg hover:bg-zinc-800 dark:hover:bg-zinc-200"
                         >
                           OK
                         </button>
                       </div>
                     )}
                     {editFormData.imageUrl && (
-                      <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-zinc-100">
+                      <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
                         <img src={editFormData.imageUrl} alt="Preview" className="w-full h-full object-cover" />
                       </div>
                     )}
@@ -868,30 +868,30 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-medium text-zinc-500 mb-1">Próxima Revisión</label>
+                  <label className="block text-[10px] font-medium text-zinc-500 dark:text-zinc-400 mb-1">Próxima Revisión</label>
                   <input
                     type="date"
-                    className={`w-full text-xs py-1.5 px-2 border rounded-lg focus:ring-2 focus:ring-zinc-900/10 outline-none ${isServiceDueSoon ? 'border-amber-300 bg-amber-50 text-amber-900' : 'border-zinc-200'
+                    className={`w-full text-xs py-1.5 px-2 border rounded-lg focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/10 outline-none bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white [color-scheme:light] dark:[color-scheme:dark] ${isServiceDueSoon ? 'border-amber-300 bg-amber-50 dark:bg-amber-900/20 text-amber-900 dark:text-amber-100' : 'border-zinc-200 dark:border-zinc-700'
                       }`}
                     value={editFormData.nextServiceDate}
                     onChange={e => setEditFormData({ ...editFormData, nextServiceDate: e.target.value })}
                   />
                   {isServiceDueSoon && (
-                    <p className="text-[10px] text-amber-600 mt-1 flex items-center gap-1">
+                    <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1">
                       <AlertTriangle size={10} /> Revisión próxima (menos de 1 semana)
                     </p>
                   )}
                 </div>
 
-                <div className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${editFormData.inWorkshop ? 'bg-rose-50 border-rose-200' : 'bg-zinc-50 border-zinc-200'}`}>
+                <div className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${editFormData.inWorkshop ? 'bg-rose-50 dark:bg-rose-900/20 border-rose-200 dark:border-rose-800' : 'bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700'}`}>
                   <input
                     type="checkbox"
                     id="inWorkshop"
                     checked={editFormData.inWorkshop}
                     onChange={e => setEditFormData({ ...editFormData, inWorkshop: e.target.checked })}
-                    className="w-4 h-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900"
+                    className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-zinc-900 dark:text-white focus:ring-zinc-900 dark:focus:ring-white bg-white dark:bg-zinc-700"
                   />
-                  <label htmlFor="inWorkshop" className={`text-xs cursor-pointer ${editFormData.inWorkshop ? 'text-rose-700 font-medium' : 'text-zinc-700'}`}>
+                  <label htmlFor="inWorkshop" className={`text-xs cursor-pointer ${editFormData.inWorkshop ? 'text-rose-700 dark:text-rose-400 font-medium' : 'text-zinc-700 dark:text-zinc-300'}`}>
                     {editFormData.inWorkshop ? 'En taller - reservas deshabilitadas' : 'En el taller'}
                   </label>
                 </div>
@@ -900,7 +900,7 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                   <button
                     onClick={handleSaveEdit}
                     disabled={loading}
-                    className="flex-1 px-4 py-2 text-xs bg-zinc-900 text-white rounded-lg hover:bg-zinc-800 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="flex-1 px-4 py-2 text-xs bg-zinc-900 dark:bg-white text-white dark:text-black rounded-lg hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     <Save size={14} />
                     Guardar
@@ -908,11 +908,11 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                 </div>
 
                 {/* Delete Button inside Edit View */}
-                <div className="pt-4 mt-4 border-t border-zinc-100">
+                <div className="pt-4 mt-4 border-t border-zinc-100 dark:border-zinc-800">
                   <button
                     onClick={handleDeleteCar}
                     disabled={loading}
-                    className="w-full flex items-center justify-center gap-2 p-3 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                    className="w-full flex items-center justify-center gap-2 p-3 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-50"
                   >
                     <Trash2 size={16} />
                     Eliminar coche
@@ -925,21 +925,21 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
             {currentView === 'ACTIVITY' && (
               <div className="space-y-4">
                 {/* Filters */}
-                <div className="grid grid-cols-2 gap-4 mb-4 p-4 bg-zinc-50 rounded-lg">
+                <div className="grid grid-cols-2 gap-4 mb-4 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg">
                   <div>
-                    <label className="block text-xs font-medium text-zinc-500 mb-1">Desde</label>
+                    <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Desde</label>
                     <input
                       type="date"
-                      className="w-full text-xs p-2 border border-zinc-200 rounded-lg"
+                      className="w-full text-xs p-2 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white rounded-lg [color-scheme:light] dark:[color-scheme:dark]"
                       value={activityFilter.startDate}
                       onChange={e => setActivityFilter(prev => ({ ...prev, startDate: e.target.value }))}
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-zinc-500 mb-1">Hasta</label>
+                    <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Hasta</label>
                     <input
                       type="date"
-                      className="w-full text-xs p-2 border border-zinc-200 rounded-lg"
+                      className="w-full text-xs p-2 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white rounded-lg [color-scheme:light] dark:[color-scheme:dark]"
                       value={activityFilter.endDate}
                       onChange={e => setActivityFilter(prev => ({ ...prev, endDate: e.target.value }))}
                     />
@@ -947,28 +947,28 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                 </div>
 
                 <div className="space-y-4">
-                  <h3 className="text-sm font-semibold text-zinc-900">Historial de Reservas</h3>
-                  <div className="space-y-0 relative border-l border-zinc-100 ml-2">
+                  <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">Historial de Reservas</h3>
+                  <div className="space-y-0 relative border-l border-zinc-100 dark:border-zinc-800 ml-2">
                     {historyReservations.length > 0 ? (
                       historyReservations.map((res) => (
                         <div key={res.id} className="relative pl-6 pb-6 last:pb-0">
-                          <div className={`absolute -left-[5px] top-1 w-2.5 h-2.5 rounded-full border-2 border-white shadow-sm ${res.status === 'CANCELLED' ? 'bg-red-400' :
+                          <div className={`absolute -left-[5px] top-1 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-zinc-900 shadow-sm ${res.status === 'CANCELLED' ? 'bg-red-400' :
                             res.status === 'ACTIVE' && isAfter(parseISO(res.endTime), new Date()) ? 'bg-blue-400' :
-                              'bg-zinc-300'
+                              'bg-zinc-300 dark:bg-zinc-600'
                             }`}></div>
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
                               <div className="flex items-center gap-2">
                                 <UserAvatar name={res.userName} size="sm" className="w-5 h-5 text-[10px]" />
-                                <p className="text-sm font-medium text-zinc-900">{res.userName}</p>
+                                <p className="text-sm font-medium text-zinc-900 dark:text-white">{res.userName}</p>
                                 {res.status === 'CANCELLED' && (
-                                  <span className="text-[10px] px-1.5 py-0.5 bg-red-50 text-red-600 rounded border border-red-100">Cancelada</span>
+                                  <span className="text-[10px] px-1.5 py-0.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded border border-red-100 dark:border-red-800">Cancelada</span>
                                 )}
                                 {res.status === 'ACTIVE' && isAfter(parseISO(res.endTime), new Date()) && (
-                                  <span className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded border border-blue-100">Activa</span>
+                                  <span className="text-[10px] px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded border border-blue-100 dark:border-blue-800">Activa</span>
                                 )}
                               </div>
-                              <p className="text-xs text-zinc-500">
+                              <p className="text-xs text-zinc-500 dark:text-zinc-400">
                                 {format(parseISO(res.startTime), 'd MMM yyyy, HH:mm', { locale: es })} — {format(parseISO(res.endTime), 'HH:mm', { locale: es })}
                               </p>
 
@@ -980,7 +980,7 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                                       type="text"
                                       value={noteContent}
                                       onChange={(e) => setNoteContent(e.target.value)}
-                                      className="text-base sm:text-xs border rounded px-2 py-1 w-full focus:ring-2 focus:ring-zinc-900/10 outline-none"
+                                      className="text-base sm:text-xs border border-zinc-200 dark:border-zinc-700 rounded px-2 py-1 w-full bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/10 outline-none"
                                       autoFocus
                                       onKeyDown={(e) => {
                                         if (e.key === 'Enter') handleSaveNote(res.id);
@@ -988,7 +988,7 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                                       }}
                                       placeholder="Escribe una nota..."
                                     />
-                                    <button onClick={() => handleSaveNote(res.id)} className="text-emerald-600 p-1 hover:bg-emerald-50 rounded" title="Guardar"><Save size={16} /></button>
+                                    <button onClick={() => handleSaveNote(res.id)} className="text-emerald-600 dark:text-emerald-400 p-1 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded" title="Guardar"><Save size={16} /></button>
                                     <button
                                       onClick={async () => {
                                         setNoteContent('');
@@ -997,12 +997,12 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                                         showToast('Nota eliminada', 'success');
                                         onUpdate();
                                       }}
-                                      className="text-red-600 p-1 hover:bg-red-50 rounded"
+                                      className="text-red-600 dark:text-red-400 p-1 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
                                       title="Eliminar nota"
                                     >
                                       <Trash2 size={16} />
                                     </button>
-                                    <button onClick={() => setEditingNoteId(null)} className="text-zinc-400 p-1 hover:bg-zinc-100 rounded" title="Cancelar"><X size={16} /></button>
+                                    <button onClick={() => setEditingNoteId(null)} className="text-zinc-400 dark:text-zinc-500 p-1 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded" title="Cancelar"><X size={16} /></button>
                                   </div>
                                 ) : (
                                   <div
@@ -1015,9 +1015,9 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                                     }}
                                   >
                                     <p className={`text-xs ${(currentUser.id === res.userId || currentUser.role === 'ADMIN')
-                                      ? 'underline decoration-zinc-300 hover:decoration-zinc-500 underline-offset-2'
+                                      ? 'underline decoration-zinc-300 dark:decoration-zinc-600 hover:decoration-zinc-500 dark:hover:decoration-zinc-400 underline-offset-2'
                                       : ''
-                                      } ${res.notes ? 'text-zinc-600 italic' : 'text-zinc-400'}`}>
+                                      } ${res.notes ? 'text-zinc-600 dark:text-zinc-400 italic' : 'text-zinc-400 dark:text-zinc-600'}`}>
                                       {res.notes || 'Añadir nota...'}
                                     </p>
                                   </div>
@@ -1028,7 +1028,7 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                         </div>
                       ))
                     ) : (
-                      <p className="text-sm text-zinc-400 pl-6 py-4 text-center">No hay reservas pasadas</p>
+                      <p className="text-sm text-zinc-400 dark:text-zinc-500 pl-6 py-4 text-center">No hay reservas pasadas</p>
                     )}
                   </div>
                 </div>
@@ -1044,7 +1044,7 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 10 }}
                 className={`absolute bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full shadow-lg flex items-center gap-2 text-xs font-medium text-white ${toast.type === 'success' ? 'bg-emerald-600' :
-                    toast.type === 'error' ? 'bg-red-600' : 'bg-zinc-900'
+                  toast.type === 'error' ? 'bg-red-600' : 'bg-zinc-900 dark:bg-zinc-700'
                   }`}
               >
                 {toast.type === 'success' && <CheckCircle size={14} />}
@@ -1073,19 +1073,19 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                 initial={{ opacity: 0, scale: 0.95, y: 10 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                className="relative w-full max-w-sm bg-white rounded-xl shadow-2xl p-6 overflow-hidden"
+                className="relative w-full max-w-sm bg-white dark:bg-zinc-900 rounded-xl shadow-2xl p-6 overflow-hidden border border-zinc-200 dark:border-zinc-800"
               >
-                <div className={`absolute top-0 left-0 w-full h-1 ${confirmation.isDangerous ? 'bg-red-500' : 'bg-zinc-900'}`} />
+                <div className={`absolute top-0 left-0 w-full h-1 ${confirmation.isDangerous ? 'bg-red-500' : 'bg-zinc-900 dark:bg-white'}`} />
 
-                <h3 className="text-lg font-semibold text-zinc-900 mb-2">{confirmation.title}</h3>
-                <p className="text-sm text-zinc-600 mb-6 leading-relaxed">
+                <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">{confirmation.title}</h3>
+                <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-6 leading-relaxed">
                   {confirmation.message}
                 </p>
 
                 <div className="flex gap-3">
                   <button
                     onClick={() => setConfirmation(null)}
-                    className="flex-1 px-4 py-2 text-sm font-medium text-zinc-700 bg-zinc-100 hover:bg-zinc-200 rounded-lg transition-colors"
+                    className="flex-1 px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg transition-colors"
                   >
                     Cancelar
                   </button>
@@ -1096,7 +1096,7 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                     }}
                     className={`flex-1 px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors shadow-sm ${confirmation.isDangerous
                       ? 'bg-red-600 hover:bg-red-700'
-                      : 'bg-zinc-900 hover:bg-zinc-800'
+                      : 'bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:text-black dark:hover:bg-zinc-200'
                       }`}
                   >
                     {confirmation.confirmText || 'Confirmar'}

@@ -139,25 +139,25 @@ export const AddCarModal: React.FC<AddCarModalProps> = ({ isOpen, onClose, onSuc
                         initial={{ opacity: 0, scale: 0.95, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                        className="relative w-full h-full sm:h-auto max-w-md bg-white sm:rounded-xl shadow-xl overflow-hidden flex flex-col sm:block"
+                        className="relative w-full h-full sm:h-auto max-w-md bg-white dark:bg-zinc-900 sm:rounded-xl shadow-xl overflow-hidden flex flex-col sm:block border border-zinc-200 dark:border-zinc-800"
                     >
-                        <div className="flex items-center justify-between p-4 border-b border-zinc-100">
-                            <h3 className="font-semibold text-zinc-900 flex items-center gap-2 text-sm">
+                        <div className="flex items-center justify-between p-4 border-b border-zinc-100 dark:border-zinc-800">
+                            <h3 className="font-semibold text-zinc-900 dark:text-white flex items-center gap-2 text-sm">
                                 <CarIcon size={16} /> Añadir Nuevo Vehículo
                             </h3>
-                            <button onClick={onClose} className="p-1 hover:bg-zinc-100 rounded-full text-zinc-400">
+                            <button onClick={onClose} className="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full text-zinc-400 dark:text-zinc-500 transition-colors">
                                 <X size={18} />
                             </button>
                         </div>
 
                         <form onSubmit={handleSubmit} className="p-4 space-y-3">
                             <div>
-                                <label className="block text-[10px] font-medium text-zinc-500 mb-1">Nombre del Vehículo</label>
+                                <label className="block text-[10px] font-medium text-zinc-500 dark:text-zinc-400 mb-1">Nombre del Vehículo</label>
                                 <input
                                     required
                                     type="text"
                                     placeholder="ej. Toyota Corolla 2023"
-                                    className="w-full text-xs py-1.5 px-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-zinc-900/10 outline-none"
+                                    className="w-full text-xs py-1.5 px-2 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white rounded-lg focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/10 outline-none placeholder-zinc-400 dark:placeholder-zinc-600"
                                     value={formData.name}
                                     onChange={e => setFormData({ ...formData, name: e.target.value })}
                                 />
@@ -165,21 +165,21 @@ export const AddCarModal: React.FC<AddCarModalProps> = ({ isOpen, onClose, onSuc
 
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                    <label className="block text-[10px] font-medium text-zinc-500 mb-1">Matrícula</label>
+                                    <label className="block text-[10px] font-medium text-zinc-500 dark:text-zinc-400 mb-1">Matrícula</label>
                                     <input
                                         required
                                         type="text"
                                         placeholder="1234 ABC"
-                                        className="w-full text-xs py-1.5 px-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-zinc-900/10 outline-none uppercase"
+                                        className="w-full text-xs py-1.5 px-2 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white rounded-lg focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/10 outline-none uppercase placeholder-zinc-400 dark:placeholder-zinc-600"
                                         value={formData.plate}
                                         onChange={e => setFormData({ ...formData, plate: e.target.value })}
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-[10px] font-medium text-zinc-500 mb-1">Combustible</label>
+                                    <label className="block text-[10px] font-medium text-zinc-500 dark:text-zinc-400 mb-1">Combustible</label>
                                     <select
                                         required
-                                        className="w-full text-xs py-1.5 px-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-zinc-900/10 outline-none"
+                                        className="w-full text-xs py-1.5 px-2 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white rounded-lg focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/10 outline-none"
                                         value={formData.fuelType}
                                         onChange={e => setFormData({ ...formData, fuelType: e.target.value as any })}
                                     >
@@ -191,31 +191,31 @@ export const AddCarModal: React.FC<AddCarModalProps> = ({ isOpen, onClose, onSuc
                             </div>
 
                             <div>
-                                <label className="block text-[10px] font-medium text-zinc-500 mb-1">Próxima Revisión (Opcional)</label>
+                                <label className="block text-[10px] font-medium text-zinc-500 dark:text-zinc-400 mb-1">Próxima Revisión (Opcional)</label>
                                 <input
                                     type="date"
-                                    className="w-full text-xs py-1.5 px-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-zinc-900/10 outline-none"
+                                    className="w-full text-xs py-1.5 px-2 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white rounded-lg focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/10 outline-none [color-scheme:light] dark:[color-scheme:dark]"
                                     value={formData.nextServiceDate}
                                     onChange={e => setFormData({ ...formData, nextServiceDate: e.target.value })}
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-[10px] font-medium text-zinc-500 mb-1">Imagen del Vehículo</label>
+                                <label className="block text-[10px] font-medium text-zinc-500 dark:text-zinc-400 mb-1">Imagen del Vehículo</label>
                                 <div className="space-y-2">
                                     {/* Image Preview or Placeholder */}
                                     <div
                                         onDrop={handleDrop}
                                         onDragOver={(e) => e.preventDefault()}
-                                        className="relative aspect-video w-full overflow-hidden rounded-lg border border-dashed border-zinc-300 bg-zinc-50 flex items-center justify-center cursor-pointer hover:border-zinc-400 transition-colors"
+                                        className="relative aspect-video w-full overflow-hidden rounded-lg border border-dashed border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 flex items-center justify-center cursor-pointer hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors"
                                         onClick={() => fileInputRef.current?.click()}
                                     >
                                         {formData.imageUrl ? (
                                             <img src={formData.imageUrl} alt="Preview" className="w-full h-full object-cover" />
                                         ) : (
                                             <div className="text-center p-4">
-                                                <ImageIcon size={20} className="mx-auto text-zinc-300 mb-2" />
-                                                <p className="text-[10px] text-zinc-400">Arrastra o haz clic</p>
+                                                <ImageIcon size={20} className="mx-auto text-zinc-300 dark:text-zinc-600 mb-2" />
+                                                <p className="text-[10px] text-zinc-400 dark:text-zinc-500">Arrastra o haz clic</p>
                                             </div>
                                         )}
                                     </div>
@@ -233,7 +233,7 @@ export const AddCarModal: React.FC<AddCarModalProps> = ({ isOpen, onClose, onSuc
                                             type="button"
                                             onClick={() => fileInputRef.current?.click()}
                                             disabled={uploading}
-                                            className="flex-1 flex items-center justify-center gap-2 py-1 px-2 text-[10px] border border-zinc-200 rounded-lg hover:bg-zinc-50 transition-colors disabled:opacity-50"
+                                            className="flex-1 flex items-center justify-center gap-2 py-1 px-2 text-[10px] border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition-colors disabled:opacity-50"
                                         >
                                             <Upload size={12} />
                                             {uploading ? 'Subiendo...' : 'Subir'}
@@ -241,7 +241,7 @@ export const AddCarModal: React.FC<AddCarModalProps> = ({ isOpen, onClose, onSuc
                                         <button
                                             type="button"
                                             onClick={() => setShowUrlInput(!showUrlInput)}
-                                            className="flex-1 flex items-center justify-center gap-2 py-1 px-2 text-[10px] border border-zinc-200 rounded-lg hover:bg-zinc-50 transition-colors"
+                                            className="flex-1 flex items-center justify-center gap-2 py-1 px-2 text-[10px] border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 transition-colors"
                                         >
                                             <LinkIcon size={12} />
                                             URL
@@ -254,7 +254,7 @@ export const AddCarModal: React.FC<AddCarModalProps> = ({ isOpen, onClose, onSuc
                                             <input
                                                 type="url"
                                                 placeholder="https://..."
-                                                className="flex-1 text-xs py-1.5 px-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-zinc-900/10 outline-none"
+                                                className="flex-1 text-xs py-1.5 px-2 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white rounded-lg focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/10 outline-none"
                                                 value={urlInput}
                                                 onChange={e => setUrlInput(e.target.value)}
                                                 onKeyPress={e => e.key === 'Enter' && (e.preventDefault(), handleUrlSubmit())}
@@ -262,7 +262,7 @@ export const AddCarModal: React.FC<AddCarModalProps> = ({ isOpen, onClose, onSuc
                                             <button
                                                 type="button"
                                                 onClick={handleUrlSubmit}
-                                                className="px-3 py-1.5 text-xs bg-zinc-900 text-white rounded-lg hover:bg-zinc-800"
+                                                className="px-3 py-1.5 text-xs bg-zinc-900 dark:bg-white text-white dark:text-black rounded-lg hover:bg-zinc-800 dark:hover:bg-zinc-200"
                                             >
                                                 OK
                                             </button>
@@ -272,7 +272,7 @@ export const AddCarModal: React.FC<AddCarModalProps> = ({ isOpen, onClose, onSuc
                             </div>
 
                             <div className="pt-2">
-                                <Button className="w-full text-xs py-2" isLoading={loading} disabled={uploading}>
+                                <Button className="w-full text-xs py-2 bg-zinc-900 dark:bg-white text-white dark:text-black hover:bg-zinc-800 dark:hover:bg-zinc-200" isLoading={loading} disabled={uploading}>
                                     <Save size={14} className="mr-2" /> Guardar Vehículo
                                 </Button>
                             </div>

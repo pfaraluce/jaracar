@@ -21,6 +21,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClos
     const [isEditingName, setIsEditingName] = useState(false);
     const [editedName, setEditedName] = useState(user.name);
     const [savingName, setSavingName] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { theme, setTheme } = useTheme();
 
@@ -35,15 +36,16 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClos
             return;
         }
         setUploading(true);
+        setError(null);
         const file = event.target.files[0];
         const fileExt = file.name.split('.').pop();
-        const fileName = `${user.id}-${Math.random()}.${fileExt}`;
-        const filePath = `${fileName}`;
+        // Use a consistent path for the user's avatar to avoid cluttering storage
+        const fileName = `${user.id}/avatar.${fileExt}`;
 
         try {
             const { error: uploadError } = await supabase.storage
                 .from('avatars')
-                .upload(filePath, file);
+                .upload(fileName, file, { upsert: true });
 
             if (uploadError) {
                 throw uploadError;
@@ -51,11 +53,14 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClos
 
             const { data: { publicUrl } } = supabase.storage
                 .from('avatars')
-                .getPublicUrl(filePath);
+                .getPublicUrl(fileName);
+
+            // Add timestamp to force cache refresh
+            const publicUrlWithTimestamp = `${publicUrl}?t=${new Date().getTime()}`;
 
             const { error: updateError } = await supabase
                 .from('profiles')
-                .update({ avatar_url: publicUrl })
+                .update({ avatar_url: publicUrlWithTimestamp })
                 .eq('id', user.id);
 
             if (updateError) {
@@ -63,9 +68,9 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClos
             }
 
             onUpdate();
-        } catch (error) {
-            console.error('Error uploading avatar:', error);
-            alert('Error al subir la imagen');
+        } catch (err: any) {
+            console.error('Error uploading avatar:', err);
+            setError(err.message || 'Error al subir la imagen');
         } finally {
             setUploading(false);
         }
@@ -78,10 +83,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClos
         }
 
         setSavingName(true);
+        setError(null);
         try {
             const { error } = await supabase
                 .from('profiles')
-                .update({ name: editedName.trim() })
+                .update({ full_name: editedName.trim() })
                 .eq('id', user.id);
 
             if (error) {
@@ -90,13 +96,21 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClos
 
             onUpdate();
             setIsEditingName(false);
-        } catch (error) {
-            console.error('Error updating name:', error);
-            alert('Error al actualizar el nombre');
+        } catch (err: any) {
+            console.error('Error updating name:', err);
+            setError(err.message || 'Error al actualizar el nombre');
             setEditedName(user.name);
         } finally {
             setSavingName(false);
         }
+    };
+
+    const getThemeButtonClass = (btnTheme: string) => {
+        const isActive = theme === btnTheme;
+        return `flex flex-col items-center gap-2 p-3 rounded-xl border transition-all ${isActive
+            ? 'bg-zinc-50 border-zinc-900 text-zinc-900 dark:bg-zinc-800 dark:border-white dark:text-white ring-1 ring-zinc-900 dark:ring-white'
+            : 'border-zinc-200 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800'
+            }`;
     };
 
     if (!isOpen) return null;
@@ -115,7 +129,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClos
                     initial={{ opacity: 0, scale: 0.95, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                    className={`relative w-full h-full sm:h-auto bg-white dark:bg-zinc-900 sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col transition-all duration-300 ${activeTab === 'ADMIN' ? 'sm:max-w-4xl' : 'sm:max-w-md'
+                    className={`relative w-full h-full sm:h-auto bg-white dark:bg-zinc-900 sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col transition-all duration-300 border border-zinc-200 dark:border-zinc-800 ${activeTab === 'ADMIN' ? 'sm:max-w-4xl' : 'sm:max-w-md'
                         } sm:max-h-[90vh]`}
                 >
                     {/* Header */}
@@ -145,6 +159,14 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClos
                             <X size={20} />
                         </button>
                     </div>
+
+                    {/* Error Message */}
+                    {error && (
+                        <div className="mx-6 mt-6 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
+                            <div className="min-w-[4px] h-4 bg-red-500 rounded-full" />
+                            {error}
+                        </div>
+                    )}
 
                     {/* Content */}
                     <div className="flex-1 overflow-y-auto p-6">
@@ -230,30 +252,21 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClos
                                     <div className="grid grid-cols-3 gap-3">
                                         <button
                                             onClick={() => setTheme('light')}
-                                            className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-all ${theme === 'light'
-                                                ? 'bg-zinc-50 border-zinc-900 text-zinc-900 dark:bg-zinc-800 dark:border-white dark:text-white'
-                                                : 'border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800'
-                                                }`}
+                                            className={getThemeButtonClass('light')}
                                         >
                                             <Sun size={20} />
                                             <span className="text-xs font-medium">Claro</span>
                                         </button>
                                         <button
                                             onClick={() => setTheme('dark')}
-                                            className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-all ${theme === 'dark'
-                                                ? 'bg-zinc-50 border-zinc-900 text-zinc-900 dark:bg-zinc-800 dark:border-white dark:text-white'
-                                                : 'border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800'
-                                                }`}
+                                            className={getThemeButtonClass('dark')}
                                         >
                                             <Moon size={20} />
                                             <span className="text-xs font-medium">Oscuro</span>
                                         </button>
                                         <button
                                             onClick={() => setTheme('system')}
-                                            className={`flex flex-col items-center gap-2 p-3 rounded-xl border transition-all ${theme === 'system'
-                                                ? 'bg-zinc-50 border-zinc-900 text-zinc-900 dark:bg-zinc-800 dark:border-white dark:text-white'
-                                                : 'border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800'
-                                                }`}
+                                            className={getThemeButtonClass('system')}
                                         >
                                             <Monitor size={20} />
                                             <span className="text-xs font-medium">Sistema</span>
