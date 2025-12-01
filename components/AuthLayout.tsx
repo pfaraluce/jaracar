@@ -6,14 +6,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Car, Mail, Lock, User as UserIcon, ArrowRight, Loader2 } from 'lucide-react';
 import { ForgotPassword } from './ForgotPassword';
 import { ResetPassword } from './ResetPassword';
+import { InviteSignup } from './InviteSignup';
 
 interface AuthProps {
   setViewState: (view: ViewState) => void;
   setUser: (user: User) => void;
   currentView: ViewState;
+  inviteEmail?: string; // Email del usuario invitado
 }
 
-export const AuthLayout: React.FC<AuthProps> = ({ setViewState, setUser, currentView }) => {
+export const AuthLayout: React.FC<AuthProps> = ({ setViewState, setUser, currentView, inviteEmail }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -63,6 +65,7 @@ export const AuthLayout: React.FC<AuthProps> = ({ setViewState, setUser, current
   const isSignup = currentView === 'SIGNUP';
   const isForgot = currentView === 'FORGOT_PASSWORD';
   const isReset = currentView === 'RESET_PASSWORD';
+  const isInvite = currentView === 'INVITE_SIGNUP';
 
   // Si estamos en el flujo de reset password, mostrar ese componente
   if (isReset) {
@@ -73,6 +76,20 @@ export const AuthLayout: React.FC<AuthProps> = ({ setViewState, setUser, current
             <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 mb-2">JaraCar</h1>
           </div>
           <ResetPassword onSuccess={() => setViewState('DASHBOARD')} />
+        </div>
+      </div>
+    );
+  }
+
+  // Si estamos en el flujo de invitación, mostrar el componente de invite signup
+  if (isInvite && inviteEmail) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-zinc-50 p-4">
+        <div className="w-full max-w-sm bg-white p-8 rounded-xl border border-zinc-200 shadow-sm">
+          <div className="mb-8 text-center">
+            <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 mb-2">JaraCar</h1>
+          </div>
+          <InviteSignup inviteEmail={inviteEmail} onSuccess={() => setViewState('DASHBOARD')} />
         </div>
       </div>
     );

@@ -51,4 +51,4 @@ export interface ActivityLog {
   details?: string;
 }
 
-export type ViewState = 'LOGIN' | 'SIGNUP' | 'FORGOT_PASSWORD' | 'RESET_PASSWORD' | 'DASHBOARD';
+export type ViewState = 'LOGIN' | 'SIGNUP' | 'FORGOT_PASSWORD' | 'RESET_PASSWORD' | 'INVITE_SIGNUP' | 'DASHBOARD';

@@ -12,6 +12,7 @@ export default function App() {
   const [viewState, setViewState] = useState<ViewState>('LOGIN');
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [inviteEmail, setInviteEmail] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     // Check initial session
@@ -33,19 +34,37 @@ export default function App() {
 
     // Listen for auth changes (login, logout, password recovery, etc.)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth event:', event);
+      console.log('Auth event:', event, 'Session:', session);
 
-      if (event === 'SIGNED_IN' || event === 'PASSWORD_RECOVERY') {
+      if (event === 'SIGNED_IN') {
         // Reload user data to get profile/roles
         const currentUser = await authService.getCurrentUser();
         if (currentUser) {
           setUser(currentUser);
-          // Si es recuperación de contraseña, mostrar el formulario de reset
-          // Si es login normal, ir al dashboard
-          setViewState(event === 'PASSWORD_RECOVERY' ? 'RESET_PASSWORD' : 'DASHBOARD');
+
+          // Verificar si es un usuario invitado (viene del enlace de invitación)
+          // Los usuarios invitados tienen el tipo 'invite' en el session
+          const { data: { user: authUser } } = await supabase.auth.getUser();
+
+          if (authUser?.app_metadata?.provider === 'email' && authUser?.user_metadata?.invited === true) {
+            // Usuario invitado - mostrar formulario de completar registro
+            setInviteEmail(authUser.email || '');
+            setViewState('INVITE_SIGNUP');
+          } else {
+            // Login normal
+            setViewState('DASHBOARD');
+          }
+        }
+      } else if (event === 'PASSWORD_RECOVERY') {
+        // Reload user data
+        const currentUser = await authService.getCurrentUser();
+        if (currentUser) {
+          setUser(currentUser);
+          setViewState('RESET_PASSWORD');
         }
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
+        setInviteEmail(undefined);
         setViewState('LOGIN');
       }
     });
@@ -81,6 +100,7 @@ export default function App() {
           currentView={viewState}
           setViewState={setViewState}
           setUser={setUser}
+          inviteEmail={inviteEmail}
         />
       )}
     </ThemeProvider>

@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { User, UserRole } from '../types';
-import { X, Camera, Shield, Mail, User as UserIcon, Loader2, Moon, Sun, Monitor } from 'lucide-react';
+import { X, Camera, Shield, Mail, User as UserIcon, Loader2, Moon, Sun, Monitor, Edit2, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../services/supabase';
 import { AdminUserList } from './AdminUserList';
@@ -17,6 +17,9 @@ interface ProfileModalProps {
 export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClose, onUpdate }) => {
     const [activeTab, setActiveTab] = useState<'PROFILE' | 'ADMIN'>('PROFILE');
     const [uploading, setUploading] = useState(false);
+    const [isEditingName, setIsEditingName] = useState(false);
+    const [editedName, setEditedName] = useState(user.name);
+    const [savingName, setSavingName] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { theme, setTheme } = useTheme();
 
@@ -64,6 +67,34 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClos
             alert('Error al subir la imagen');
         } finally {
             setUploading(false);
+        }
+    };
+
+    const handleSaveName = async () => {
+        if (!editedName.trim() || editedName === user.name) {
+            setIsEditingName(false);
+            return;
+        }
+
+        setSavingName(true);
+        try {
+            const { error } = await supabase
+                .from('profiles')
+                .update({ name: editedName.trim() })
+                .eq('id', user.id);
+
+            if (error) {
+                throw error;
+            }
+
+            onUpdate();
+            setIsEditingName(false);
+        } catch (error) {
+            console.error('Error updating name:', error);
+            alert('Error al actualizar el nombre');
+            setEditedName(user.name);
+        } finally {
+            setSavingName(false);
         }
     };
 
@@ -146,8 +177,44 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClos
                                         accept="image/*"
                                         className="hidden"
                                     />
-                                    <h2 className="mt-4 text-xl font-semibold text-zinc-900 dark:text-white">{user.name}</h2>
-                                    <p className="text-sm text-zinc-500 dark:text-zinc-400">{user.email}</p>
+                                    <div className="mt-4 flex items-center gap-2">
+                                        {isEditingName ? (
+                                            <>
+                                                <input
+                                                    type="text"
+                                                    value={editedName}
+                                                    onChange={(e) => setEditedName(e.target.value)}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') handleSaveName();
+                                                        if (e.key === 'Escape') {
+                                                            setIsEditingName(false);
+                                                            setEditedName(user.name);
+                                                        }
+                                                    }}
+                                                    className="text-xl font-semibold text-zinc-900 dark:text-white bg-transparent border-b-2 border-zinc-300 dark:border-zinc-600 focus:border-zinc-900 dark:focus:border-white outline-none px-2 text-center"
+                                                    autoFocus
+                                                    disabled={savingName}
+                                                />
+                                                <button
+                                                    onClick={handleSaveName}
+                                                    disabled={savingName}
+                                                    className="p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors text-green-600 dark:text-green-400 disabled:opacity-50"
+                                                >
+                                                    {savingName ? <Loader2 className="animate-spin" size={18} /> : <Check size={18} />}
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <h2 className="text-xl font-semibold text-zinc-900 dark:text-white">{user.name}</h2>
+                                                <button
+                                                    onClick={() => setIsEditingName(true)}
+                                                    className="p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                                                >
+                                                    <Edit2 size={16} />
+                                                </button>
+                                            </>
+                                        )}
+                                    </div>
                                     <div className="mt-2 flex gap-2">
                                         <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200">
                                             {user.role === UserRole.ADMIN && <Shield size={12} />}
