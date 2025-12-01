@@ -17,9 +17,10 @@ import { Plus, LogOut, LayoutGrid, List, CalendarRange } from 'lucide-react';
 interface DashboardProps {
   user: User;
   onLogout: () => void;
+  onUserUpdate: () => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpdate }) => {
   const [cars, setCars] = useState<Car[]>([]);
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
@@ -294,7 +295,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
         user={user}
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
-        onUpdate={fetchData}
+        onUpdate={onUserUpdate}
         onRestartTutorial={handleStartTutorial}
       />
 

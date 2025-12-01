@@ -79,6 +79,17 @@ export default function App() {
     // State update will happen via onAuthStateChange
   }
 
+  const refreshUser = async () => {
+    try {
+      const currentUser = await authService.getCurrentUser();
+      if (currentUser) {
+        setUser(currentUser);
+      }
+    } catch (error) {
+      console.error('Error refreshing user:', error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-black">
@@ -93,7 +104,7 @@ export default function App() {
         user.status === 'PENDING' ? (
           <PendingApproval user={user} onLogout={handleLogout} />
         ) : (
-          <Dashboard user={user} onLogout={handleLogout} />
+          <Dashboard user={user} onLogout={handleLogout} onUserUpdate={refreshUser} />
         )
       ) : (
         <AuthLayout
