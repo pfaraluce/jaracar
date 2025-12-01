@@ -5,6 +5,7 @@ import { Button } from './ui/Button';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Car, Mail, Lock, User as UserIcon, ArrowRight, Loader2 } from 'lucide-react';
 import { ForgotPassword } from './ForgotPassword';
+import { ResetPassword } from './ResetPassword';
 
 interface AuthProps {
   setViewState: (view: ViewState) => void;
@@ -61,6 +62,21 @@ export const AuthLayout: React.FC<AuthProps> = ({ setViewState, setUser, current
   const isLogin = currentView === 'LOGIN';
   const isSignup = currentView === 'SIGNUP';
   const isForgot = currentView === 'FORGOT_PASSWORD';
+  const isReset = currentView === 'RESET_PASSWORD';
+
+  // Si estamos en el flujo de reset password, mostrar ese componente
+  if (isReset) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-zinc-50 p-4">
+        <div className="w-full max-w-sm bg-white p-8 rounded-xl border border-zinc-200 shadow-sm">
+          <div className="mb-8 text-center">
+            <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 mb-2">JaraCar</h1>
+          </div>
+          <ResetPassword onSuccess={() => setViewState('DASHBOARD')} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-zinc-50 p-4">

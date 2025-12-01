@@ -31,7 +31,7 @@ export default function App() {
 
     initAuth();
 
-    // Listen for auth changes (login, logout, invite link, etc.)
+    // Listen for auth changes (login, logout, password recovery, etc.)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth event:', event);
 
@@ -40,18 +40,9 @@ export default function App() {
         const currentUser = await authService.getCurrentUser();
         if (currentUser) {
           setUser(currentUser);
-          setViewState(event === 'PASSWORD_RECOVERY' ? 'FORGOT_PASSWORD' : 'DASHBOARD');
-          // If password recovery, we might want to show a specific "Reset Password" view, 
-          // but for now AuthLayout handles 'FORGOT_PASSWORD' as "send link". 
-          // Actually, if they are here via recovery link, they are logged in and should probably go to Dashboard 
-          // or a "Change Password" modal. 
-          // For the invite flow, event is SIGNED_IN.
-          if (event === 'PASSWORD_RECOVERY') {
-            // Ideally show a "Reset Password" modal. For now, let's go to Dashboard where they can change it?
-            // Or maybe we need a RESET_PASSWORD view. 
-            // Let's stick to Dashboard for now, assuming they can change password in profile.
-            setViewState('DASHBOARD');
-          }
+          // Si es recuperación de contraseña, mostrar el formulario de reset
+          // Si es login normal, ir al dashboard
+          setViewState(event === 'PASSWORD_RECOVERY' ? 'RESET_PASSWORD' : 'DASHBOARD');
         }
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
