@@ -643,7 +643,7 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
-                                <UserAvatar name={res.userName} size="sm" className="w-5 h-5 text-[10px]" />
+                                <UserAvatar name={res.userName} imageUrl={res.userAvatar} size="sm" className="w-5 h-5 text-[10px]" />
                                 <p className="text-xs font-medium text-zinc-900 dark:text-white">{res.userName}</p>
                               </div>
                               <p className="text-[10px] text-zinc-500 dark:text-zinc-400 mt-0.5 ml-7">
@@ -670,7 +670,7 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                                     <p className="text-[10px] text-zinc-600 dark:text-zinc-400 italic">
                                       {res.notes || 'Añadir nota...'}
                                     </p>
-                                    {(currentUser.id === res.userId || currentUser.role === 'ADMIN') && (
+                                    {currentUser.id === res.userId && (
                                       <button
                                         onClick={() => handleEditNote(res)}
                                         className="opacity-0 group-hover:opacity-100 text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 transition-opacity p-1"
@@ -775,7 +775,7 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                                     <p className="text-[10px] text-zinc-600 dark:text-zinc-400 italic">
                                       {res.notes || 'Sin notas'}
                                     </p>
-                                    {(currentUser.id === res.userId || currentUser.role === 'ADMIN') && (
+                                    {currentUser.id === res.userId && (
                                       <button
                                         onClick={() => handleEditNote(res)}
                                         className="opacity-0 group-hover:opacity-100 text-zinc-400 dark:text-zinc-500 hover:text-zinc-600 dark:hover:text-zinc-300 transition-opacity p-0.5"
@@ -959,7 +959,7 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
                               <div className="flex items-center gap-2">
-                                <UserAvatar name={res.userName} size="sm" className="w-5 h-5 text-[10px]" />
+                                <UserAvatar name={res.userName} imageUrl={res.userAvatar} size="sm" className="w-5 h-5 text-[10px]" />
                                 <p className="text-sm font-medium text-zinc-900 dark:text-white">{res.userName}</p>
                                 {res.status === 'CANCELLED' && (
                                   <span className="text-[10px] px-1.5 py-0.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded border border-red-100 dark:border-red-800">Cancelada</span>

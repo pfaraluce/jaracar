@@ -152,16 +152,19 @@ export const CarTimelineView: React.FC<CarTimelineViewProps> = ({
                                             return (
                                                 <div
                                                     key={reservation.id}
-                                                    className={`absolute top-2 bottom-2 rounded-md border text-[10px] flex items-center px-2 overflow-hidden whitespace-nowrap shadow-sm cursor-pointer hover:brightness-95 transition-all z-10
+                                                    className={`absolute top-2 bottom-2 rounded-md border text-[10px] flex flex-col justify-center px-2 overflow-hidden whitespace-nowrap shadow-sm cursor-pointer hover:brightness-95 transition-all z-10
                             ${isActive
                                                             ? 'bg-emerald-100 border-emerald-200 text-emerald-800'
                                                             : 'bg-blue-50 border-blue-200 text-blue-700'
                                                         }`}
                                                     style={style}
-                                                    title={`${reservation.userName} (${format(parseISO(reservation.startTime), 'HH:mm')} - ${format(parseISO(reservation.endTime), 'HH:mm')})`}
+                                                    title={`${reservation.userName} (${format(parseISO(reservation.startTime), 'HH:mm')} - ${format(parseISO(reservation.endTime), 'HH:mm')})${reservation.notes ? `\nNota: ${reservation.notes}` : ''}`}
                                                     onClick={() => onSelectCar(car)}
                                                 >
-                                                    <span className="font-medium truncate">{reservation.userName}</span>
+                                                    <span className="font-medium truncate w-full">{reservation.userName}</span>
+                                                    {reservation.notes && (
+                                                        <span className="text-[9px] opacity-80 truncate w-full leading-tight">{reservation.notes}</span>
+                                                    )}
                                                 </div>
                                             );
                                         })}

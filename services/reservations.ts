@@ -5,7 +5,7 @@ export const reservationService = {
     getReservations: async (carId?: string): Promise<Reservation[]> => {
         let query = supabase
             .from('reservations')
-            .select('*, user:profiles(full_name)');
+            .select('*, user:profiles(full_name, avatar_url)');
 
         if (carId) {
             query = query.eq('car_id', carId);
@@ -19,6 +19,7 @@ export const reservationService = {
             carId: res.car_id,
             userId: res.user_id,
             userName: res.user?.full_name || 'Usuario',
+            userAvatar: res.user?.avatar_url,
             startTime: res.start_time,
             endTime: res.end_time,
             status: res.status,

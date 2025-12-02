@@ -39,6 +39,7 @@ export interface Reservation {
   endTime: string; // ISO
   status: 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
   notes?: string;
+  userAvatar?: string;
 }
 
 export interface ActivityLog {
@@ -49,6 +50,7 @@ export interface ActivityLog {
   action: 'RESERVE' | 'CANCEL' | 'COMMENT' | 'RETURN';
   timestamp: string;
   details?: string;
+  userAvatar?: string;
 }
 
 export type ViewState = 'LOGIN' | 'SIGNUP' | 'FORGOT_PASSWORD' | 'RESET_PASSWORD' | 'INVITE_SIGNUP' | 'DASHBOARD';

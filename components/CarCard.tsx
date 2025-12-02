@@ -124,7 +124,7 @@ export const CarCard: React.FC<CarCardProps> = ({ car, reservations, isFavorite,
       return (
         <div className="flex flex-col items-end">
           <span className="text-xs font-medium text-blue-600 dark:text-blue-400 flex items-center gap-1">
-            <UserAvatar name={currentReservation.userName} size="sm" className="w-4 h-4 text-[8px]" />
+            <UserAvatar name={currentReservation.userName} imageUrl={currentReservation.userAvatar} size="sm" className="w-4 h-4 text-[8px]" />
             {currentReservation.userName}
           </span>
           <span className="text-[10px] text-blue-400 dark:text-blue-300/70">
@@ -199,7 +199,7 @@ export const CarCard: React.FC<CarCardProps> = ({ car, reservations, isFavorite,
             <div className={`text-[10px] p-2 rounded-lg border flex gap-2 items-start pr-6 ${messageReservation.status === 'COMPLETED' ? 'bg-zinc-50 dark:bg-zinc-800/50 border-zinc-100 dark:border-zinc-700 text-zinc-500 dark:text-zinc-400' : 'bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800 text-blue-700 dark:text-blue-300'
               }`}>
               <div className="shrink-0 mt-0.5">
-                <UserAvatar name={messageReservation.userName} size="sm" className="w-4 h-4 text-[8px]" />
+                <UserAvatar name={messageReservation.userName} imageUrl={messageReservation.userAvatar} size="sm" className="w-4 h-4 text-[8px]" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-medium truncate">{messageReservation.userName}</p>
