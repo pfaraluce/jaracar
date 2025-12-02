@@ -1,11 +1,12 @@
 @import "tailwindcss";
+@variant dark (&:where(.dark, .dark *));
 
 @layer base {
     body {
         @apply bg-zinc-50 text-zinc-900 transition-colors duration-300;
     }
 
-    :root[class~="dark"] body {
+    .dark body {
         @apply bg-black text-zinc-100;
     }
 }
