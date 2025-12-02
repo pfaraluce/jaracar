@@ -88,9 +88,34 @@ export const CarListView: React.FC<CarListViewProps> = ({
                                         </span>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(car.status)}`}>
-                                            {getStatusLabel(car.status)}
-                                        </span>
+                                        <div className="flex flex-col items-start gap-1">
+                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(car.status)}`}>
+                                                {getStatusLabel(car.status)}
+                                            </span>
+                                            {car.status === CarStatus.BOOKED && (() => {
+                                                const currentRes = reservations.find(r =>
+                                                    r.carId === car.id &&
+                                                    r.status === 'ACTIVE' &&
+                                                    new Date() >= new Date(r.startTime) &&
+                                                    new Date() <= new Date(r.endTime)
+                                                );
+                                                if (currentRes) {
+                                                    return (
+                                                        <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                                                            {currentRes.isForGuest ? (
+                                                                <div className="flex flex-col">
+                                                                    <span><span className="font-medium">{currentRes.guestName}</span> <span className="text-[10px] opacity-70">(Inv.)</span></span>
+                                                                    <span className="text-[10px] opacity-75">Por: {currentRes.userName}</span>
+                                                                </div>
+                                                            ) : (
+                                                                <span>{currentRes.userName}</span>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                }
+                                                return null;
+                                            })()}
+                                        </div>
                                     </td>
                                     <td className="px-6 py-4">
                                         {car.nextServiceDate ? (

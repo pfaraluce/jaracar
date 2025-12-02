@@ -198,16 +198,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
               </button>
             </div>
 
-            <div className="h-6 w-px bg-zinc-200 dark:bg-zinc-800 mx-1" />
+            {user.role === 'ADMIN' && (
+              <>
+                <div className="h-6 w-px bg-zinc-200 dark:bg-zinc-800 mx-1" />
 
-            <button
-              onClick={handleAddCar}
-              className="group h-8 px-3 flex items-center gap-1.5 bg-zinc-900 dark:bg-white text-white dark:text-black rounded-lg hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors text-xs font-medium"
-              title="Añadir Vehículo"
-            >
-              <Plus size={14} />
-              <span className="hidden sm:inline">Añadir</span>
-            </button>
+                <button
+                  onClick={handleAddCar}
+                  className="group h-8 px-3 flex items-center gap-1.5 bg-zinc-900 dark:bg-white text-white dark:text-black rounded-lg hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors text-xs font-medium"
+                  title="Añadir Vehículo"
+                >
+                  <Plus size={14} />
+                  <span className="hidden sm:inline">Añadir</span>
+                </button>
+              </>
+            )}
           </div>
         </div>
 

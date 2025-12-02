@@ -158,10 +158,12 @@ export const CarTimelineView: React.FC<CarTimelineViewProps> = ({
                                                             : 'bg-blue-50 border-blue-200 text-blue-700'
                                                         }`}
                                                     style={style}
-                                                    title={`${reservation.userName} (${format(parseISO(reservation.startTime), 'HH:mm')} - ${format(parseISO(reservation.endTime), 'HH:mm')})${reservation.notes ? `\nNota: ${reservation.notes}` : ''}`}
+                                                    title={`${reservation.isForGuest ? `${reservation.guestName} (Invitado) - Por: ${reservation.userName}` : reservation.userName} (${format(parseISO(reservation.startTime), 'HH:mm')} - ${format(parseISO(reservation.endTime), 'HH:mm')})${reservation.notes ? `\nNota: ${reservation.notes}` : ''}`}
                                                     onClick={() => onSelectCar(car)}
                                                 >
-                                                    <span className="font-medium truncate w-full">{reservation.userName}</span>
+                                                    <span className="font-medium truncate w-full">
+                                                        {reservation.isForGuest ? `${reservation.guestName} (Inv.)` : reservation.userName}
+                                                    </span>
                                                     {reservation.notes && (
                                                         <span className="text-[9px] opacity-80 truncate w-full leading-tight">{reservation.notes}</span>
                                                     )}

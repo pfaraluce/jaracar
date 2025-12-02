@@ -4,8 +4,8 @@ import { addHours, addDays, subHours, isWithinInterval, parseISO } from 'date-fn
 // --- MOCK DATA ---
 
 const MOCK_USERS: User[] = [
-  { id: '1', email: 'alex@jara.com', name: 'Alex Director', role: UserRole.ADMIN, avatarUrl: 'https://picsum.photos/id/64/100/100' },
-  { id: '2', email: 'sarah@jara.com', name: 'Sarah Engineer', role: UserRole.USER, avatarUrl: 'https://picsum.photos/id/65/100/100' },
+  { id: '1', email: 'alex@jara.com', name: 'Alex Director', role: UserRole.ADMIN, status: 'APPROVED', avatarUrl: 'https://picsum.photos/id/64/100/100' },
+  { id: '2', email: 'sarah@jara.com', name: 'Sarah Engineer', role: UserRole.USER, status: 'APPROVED', avatarUrl: 'https://picsum.photos/id/65/100/100' },
 ];
 
 const MOCK_CARS: Car[] = [
@@ -15,7 +15,8 @@ const MOCK_CARS: Car[] = [
     plate: 'JARA-001',
     imageUrl: 'https://images.unsplash.com/photo-1560958089-b8a1929cea89?auto=format&fit=crop&q=80&w=800',
     status: CarStatus.AVAILABLE,
-    location: 'Parking A1'
+    fuelType: 'electric',
+    inWorkshop: false
   },
   {
     id: 'c2',
@@ -23,7 +24,8 @@ const MOCK_CARS: Car[] = [
     plate: 'JARA-002',
     imageUrl: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?auto=format&fit=crop&q=80&w=800',
     status: CarStatus.AVAILABLE,
-    location: 'Parking A2'
+    fuelType: 'diesel',
+    inWorkshop: false
   },
   {
     id: 'c3',
@@ -32,7 +34,8 @@ const MOCK_CARS: Car[] = [
     imageUrl: 'https://images.unsplash.com/photo-1623869634636-9b5003ef76e2?auto=format&fit=crop&q=80&w=800',
     status: CarStatus.MAINTENANCE,
     nextServiceDate: addDays(new Date(), 2).toISOString(),
-    location: 'Parking B1'
+    fuelType: 'gasoline',
+    inWorkshop: false
   },
   {
     id: 'c4',
@@ -40,7 +43,8 @@ const MOCK_CARS: Car[] = [
     plate: 'JARA-004',
     imageUrl: 'https://images.unsplash.com/photo-1596898160538-232185d97f6c?auto=format&fit=crop&q=80&w=800',
     status: CarStatus.WORKSHOP,
-    location: 'Official Ford Workshop'
+    fuelType: 'diesel',
+    inWorkshop: true
   }
 ];
 
@@ -89,9 +93,9 @@ const MOCK_ACTIVITY: ActivityLog[] = [
 ];
 
 function subDays(date: Date, amount: number): Date {
-    const result = new Date(date);
-    result.setDate(result.getDate() - amount);
-    return result;
+  const result = new Date(date);
+  result.setDate(result.getDate() - amount);
+  return result;
 }
 
 // --- SERVICE LAYER ---
@@ -111,14 +115,15 @@ export const authService = {
       id: Math.random().toString(),
       email,
       name,
-      role: UserRole.USER
+      role: UserRole.USER,
+      status: 'PENDING'
     }), 800));
   }
 };
 
 export const dataService = {
   getCars: async () => MOCK_CARS,
-  
+
   getReservations: async (carId?: string) => {
     if (carId) return MOCK_RESERVATIONS.filter(r => r.carId === carId && r.status !== 'CANCELLED');
     return MOCK_RESERVATIONS.filter(r => r.status !== 'CANCELLED');
@@ -130,40 +135,40 @@ export const dataService = {
 
   createReservation: async (res: Omit<Reservation, 'id' | 'status' | 'userName'>) => {
     const newRes: Reservation = {
-        ...res,
-        id: Math.random().toString(),
-        status: 'ACTIVE',
-        userName: MOCK_USERS.find(u => u.id === res.userId)?.name || 'Unknown'
+      ...res,
+      id: Math.random().toString(),
+      status: 'ACTIVE',
+      userName: MOCK_USERS.find(u => u.id === res.userId)?.name || 'Unknown'
     };
     MOCK_RESERVATIONS.push(newRes);
-    
+
     // Log activity
     MOCK_ACTIVITY.unshift({
-        id: Math.random().toString(),
-        carId: res.carId,
-        userId: res.userId,
-        userName: newRes.userName,
-        action: 'RESERVE',
-        timestamp: new Date().toISOString(),
-        details: res.notes
+      id: Math.random().toString(),
+      carId: res.carId,
+      userId: res.userId,
+      userName: newRes.userName,
+      action: 'RESERVE',
+      timestamp: new Date().toISOString(),
+      details: res.notes
     });
-    
+
     return newRes;
   },
 
   cancelReservation: async (reservationId: string, userId: string) => {
-     const idx = MOCK_RESERVATIONS.findIndex(r => r.id === reservationId);
-     if (idx >= 0) {
-         MOCK_RESERVATIONS[idx].status = 'CANCELLED';
-         MOCK_ACTIVITY.unshift({
-            id: Math.random().toString(),
-            carId: MOCK_RESERVATIONS[idx].carId,
-            userId: userId,
-            userName: 'User', // Simplified
-            action: 'CANCEL',
-            timestamp: new Date().toISOString(),
-         });
-     }
+    const idx = MOCK_RESERVATIONS.findIndex(r => r.id === reservationId);
+    if (idx >= 0) {
+      MOCK_RESERVATIONS[idx].status = 'CANCELLED';
+      MOCK_ACTIVITY.unshift({
+        id: Math.random().toString(),
+        carId: MOCK_RESERVATIONS[idx].carId,
+        userId: userId,
+        userName: 'User', // Simplified
+        action: 'CANCEL',
+        timestamp: new Date().toISOString(),
+      });
+    }
   },
 
   addCar: async (car: Omit<Car, 'id'>) => {

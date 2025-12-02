@@ -23,7 +23,9 @@ export const reservationService = {
             startTime: res.start_time,
             endTime: res.end_time,
             status: res.status,
-            notes: res.notes
+            notes: res.notes,
+            isForGuest: res.is_for_guest || false,
+            guestName: res.guest_name
         }));
     },
 
@@ -36,7 +38,9 @@ export const reservationService = {
                 start_time: res.startTime,
                 end_time: res.endTime,
                 status: 'ACTIVE',
-                notes: res.notes
+                notes: res.notes,
+                is_for_guest: res.isForGuest || false,
+                guest_name: res.guestName || null
             })
             .select()
             .single();
@@ -51,7 +55,9 @@ export const reservationService = {
             startTime: data.start_time,
             endTime: data.end_time,
             status: data.status,
-            notes: data.notes
+            notes: data.notes,
+            isForGuest: data.is_for_guest,
+            guestName: data.guest_name
         };
     },
 
@@ -101,5 +107,23 @@ export const reservationService = {
             .eq('id', reservationId);
 
         if (error) throw new Error(error.message);
+    },
+
+    getGuestNameSuggestions: async (): Promise<string[]> => {
+        const { data, error } = await supabase
+            .from('reservations')
+            .select('guest_name')
+            .eq('is_for_guest', true)
+            .not('guest_name', 'is', null)
+            .order('guest_name');
+
+        if (error) {
+            console.error('Error fetching guest names:', error);
+            return [];
+        }
+
+        // Get unique guest names
+        const uniqueNames = [...new Set(data.map(r => r.guest_name).filter(Boolean))] as string[];
+        return uniqueNames.sort();
     }
 };

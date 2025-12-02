@@ -31,6 +31,15 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
   const [showCustomTime, setShowCustomTime] = useState(false);
   const [selectedDuration, setSelectedDuration] = useState<'LUNCH' | 'DINNER' | 'CUSTOM' | null>(null);
 
+  // Guest Reservation State
+  const [isForGuest, setIsForGuest] = useState(false);
+  const [guestName, setGuestName] = useState('');
+  const [guestSuggestions, setGuestSuggestions] = useState<string[]>([]);
+  const [filteredSuggestions, setFilteredSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
+  const guestInputRef = React.useRef<HTMLInputElement>(null);
+
   // View State
   const [currentView, setCurrentView] = useState<'DETAILS' | 'EDIT' | 'ACTIVITY'>('DETAILS');
 
@@ -68,6 +77,34 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
     startDate: '',
     endDate: ''
   });
+
+  // Load guest name suggestions on mount
+  React.useEffect(() => {
+    const loadSuggestions = async () => {
+      try {
+        const suggestions = await reservationService.getGuestNameSuggestions();
+        setGuestSuggestions(suggestions);
+      } catch (error) {
+        console.error('Failed to load guest suggestions:', error);
+      }
+    };
+    loadSuggestions();
+  }, []);
+
+  // Filter suggestions based on input
+  React.useEffect(() => {
+    if (guestName.trim().length > 0) {
+      const filtered = guestSuggestions.filter(name =>
+        name.toLowerCase().includes(guestName.toLowerCase())
+      );
+      setFilteredSuggestions(filtered);
+      setShowSuggestions(filtered.length > 0);
+    } else {
+      setFilteredSuggestions([]);
+      setShowSuggestions(false);
+    }
+    setSelectedSuggestionIndex(-1);
+  }, [guestName, guestSuggestions]);
 
   // Check if next service is within 1 week
   const isServiceDueSoon = useMemo(() => {
@@ -181,7 +218,9 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
           userId: currentUser.id,
           startTime: start.toISOString(),
           endTime: end.toISOString(),
-          notes: ''
+          notes: '',
+          isForGuest,
+          guestName: isForGuest ? guestName : undefined
         });
         showToast('Reserva creada con éxito', 'success');
       }
@@ -189,7 +228,6 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
       onUpdate();
       if (!editingReservationId) onClose(); // Only close on create, maybe keep open on edit? User preference. Let's close.
       else onClose();
-
     } catch (e) {
       showToast('Error al guardar reserva: ' + (e as Error).message, 'error');
     } finally {
@@ -303,8 +341,6 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
   }, [nextReservation]);
 
   const activeReservations = useMemo(() => {
-    // Ensure we are comparing correctly. Using new Date() directly might have ms differences.
-    // We want reservations where endTime is strictly in the future.
     const nowTime = new Date().getTime();
     return reservations
       .filter(res => {
@@ -324,19 +360,14 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
       .sort((a, b) => parseISO(b.startTime).getTime() - parseISO(a.startTime).getTime());
   }, [reservations]);
 
-  // Filter reservations for Activity View
   const historyReservations = useMemo(() => {
     let filtered = [...reservations];
-
-    // Filter by date range if set
     if (activityFilter.startDate) {
       filtered = filtered.filter(res => isAfter(parseISO(res.startTime), startOfDay(parseISO(activityFilter.startDate))));
     }
     if (activityFilter.endDate) {
       filtered = filtered.filter(res => isBefore(parseISO(res.startTime), endOfDay(parseISO(activityFilter.endDate))));
     }
-
-    // Sort by date desc
     return filtered.sort((a, b) => parseISO(b.startTime).getTime() - parseISO(a.startTime).getTime());
   }, [reservations, activityFilter]);
 
@@ -450,7 +481,6 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                         <span className="text-sm text-zinc-500 dark:text-zinc-400 font-mono">{car.plate}</span>
                         <StatusIndicator />
                       </div>
-                      {/* Service Warning */}
                       {isServiceDueSoon && !car.inWorkshop && (
                         <div className="mt-2 flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 font-medium">
                           <AlertTriangle size={12} />
@@ -615,6 +645,83 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                         </div>
                       )}
 
+                      {/* Guest Reservation Toggle */}
+                      <div className="flex items-center gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                        <input
+                          type="checkbox"
+                          id="isForGuest"
+                          checked={isForGuest}
+                          onChange={(e) => {
+                            setIsForGuest(e.target.checked);
+                            if (!e.target.checked) setGuestName('');
+                          }}
+                          className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 text-zinc-900 dark:text-white focus:ring-zinc-900 dark:focus:ring-white bg-white dark:bg-zinc-700"
+                        />
+                        <label htmlFor="isForGuest" className="text-xs text-zinc-700 dark:text-zinc-300 cursor-pointer select-none">
+                          ¿Reserva para otra persona?
+                        </label>
+                      </div>
+
+                      {/* Guest Name Input with Autocomplete */}
+                      <AnimatePresence>
+                        {isForGuest && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="pt-2 relative">
+                              <label className="block text-[10px] font-medium text-zinc-500 dark:text-zinc-400 mb-1">
+                                Nombre del conductor invitado
+                              </label>
+                              <div className="relative">
+                                <input
+                                  ref={guestInputRef}
+                                  type="text"
+                                  value={guestName}
+                                  onChange={(e) => setGuestName(e.target.value)}
+                                  onFocus={() => {
+                                    if (guestName.trim().length > 0) setShowSuggestions(true);
+                                  }}
+                                  onBlur={() => {
+                                    // Delay hiding suggestions to allow clicking on them
+                                    setTimeout(() => setShowSuggestions(false), 200);
+                                  }}
+                                  className="w-full text-xs py-1.5 px-2 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white rounded-lg focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/10 outline-none"
+                                  placeholder="Nombre completo del invitado"
+                                />
+
+                                {/* Autocomplete Suggestions */}
+                                <AnimatePresence>
+                                  {showSuggestions && filteredSuggestions.length > 0 && (
+                                    <motion.div
+                                      initial={{ opacity: 0, y: -10 }}
+                                      animate={{ opacity: 1, y: 0 }}
+                                      exit={{ opacity: 0, y: -10 }}
+                                      className="absolute z-50 w-full mt-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg max-h-40 overflow-y-auto"
+                                    >
+                                      {filteredSuggestions.map((suggestion, index) => (
+                                        <button
+                                          key={index}
+                                          className={`w-full text-left px-3 py-2 text-xs hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors ${index === selectedSuggestionIndex ? 'bg-zinc-100 dark:bg-zinc-700' : ''
+                                            }`}
+                                          onClick={() => {
+                                            setGuestName(suggestion);
+                                            setShowSuggestions(false);
+                                          }}
+                                        >
+                                          {suggestion}
+                                        </button>
+                                      ))}
+                                    </motion.div>
+                                  )}
+                                </AnimatePresence>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                       <button
                         onClick={handleBook}
                         disabled={loading}

@@ -71,8 +71,8 @@ export const AuthLayout: React.FC<AuthProps> = ({ setViewState, setUser, current
   // Si estamos en el flujo de reset password, mostrar ese componente
   if (isReset) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-zinc-50 p-4">
-        <div className="w-full max-w-sm bg-white p-8 rounded-xl border border-zinc-200 shadow-sm">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-zinc-50 dark:bg-black p-4 transition-colors duration-300">
+        <div className="w-full max-w-sm bg-white dark:bg-zinc-900 p-8 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm transition-colors duration-300">
           <div className="mb-8 text-center">
             <div className="flex justify-center mb-2">
               <Logo size="md" />
@@ -87,10 +87,12 @@ export const AuthLayout: React.FC<AuthProps> = ({ setViewState, setUser, current
   // Si estamos en el flujo de invitación, mostrar el componente de invite signup
   if (isInvite && inviteEmail) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-zinc-50 p-4">
-        <div className="w-full max-w-sm bg-white p-8 rounded-xl border border-zinc-200 shadow-sm">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-zinc-50 dark:bg-black p-4 transition-colors duration-300">
+        <div className="w-full max-w-sm bg-white dark:bg-zinc-900 p-8 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm transition-colors duration-300">
           <div className="mb-8 text-center">
-            <div className="flex justify-center mb-2">`n              <Logo size="md" />`n            </div>
+            <div className="flex justify-center mb-2">
+              <Logo size="md" />
+            </div>
           </div>
           <InviteSignup inviteEmail={inviteEmail} onSuccess={() => setViewState('DASHBOARD')} />
         </div>
@@ -99,11 +101,13 @@ export const AuthLayout: React.FC<AuthProps> = ({ setViewState, setUser, current
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-zinc-50 p-4">
-      <div className="w-full max-w-sm bg-white p-8 rounded-xl border border-zinc-200 shadow-sm">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-zinc-50 dark:bg-black p-4 transition-colors duration-300">
+      <div className="w-full max-w-sm bg-white dark:bg-zinc-900 p-8 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm transition-colors duration-300">
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 mb-2">JaraCar</h1>
-          <p className="text-sm text-zinc-500">
+          <div className="flex justify-center mb-4">
+            <Logo size="lg" />
+          </div>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
             {isLogin ? 'Inicia sesión en tu cuenta' : isSignup ? 'Crea una nueva cuenta' : 'Restablece tu contraseña'}
           </p>
         </div>
@@ -111,11 +115,11 @@ export const AuthLayout: React.FC<AuthProps> = ({ setViewState, setUser, current
         <form onSubmit={handleSubmit} className="space-y-4">
           {isSignup && (
             <div>
-              <label className="block text-xs font-medium text-zinc-700 mb-1">Nombre Completo</label>
+              <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">Nombre Completo</label>
               <input
                 type="text"
                 required
-                className="w-full h-9 px-3 rounded-md border border-zinc-200 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                className="w-full h-9 px-3 rounded-md border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:focus:ring-zinc-100"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
@@ -123,11 +127,11 @@ export const AuthLayout: React.FC<AuthProps> = ({ setViewState, setUser, current
           )}
 
           <div>
-            <label className="block text-xs font-medium text-zinc-700 mb-1">Correo electrónico</label>
+            <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">Correo electrónico</label>
             <input
               type="email"
               required
-              className="w-full h-9 px-3 rounded-md border border-zinc-200 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900"
+              className="w-full h-9 px-3 rounded-md border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:focus:ring-zinc-100"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
@@ -139,11 +143,11 @@ export const AuthLayout: React.FC<AuthProps> = ({ setViewState, setUser, current
 
           {!isForgot && (
             <div>
-              <label className="block text-xs font-medium text-zinc-700 mb-1">Contraseña</label>
+              <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">Contraseña</label>
               <input
                 type="password"
                 required
-                className="w-full h-9 px-3 rounded-md border border-zinc-200 text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                className="w-full h-9 px-3 rounded-md border border-zinc-200 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white text-sm focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:focus:ring-zinc-100"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
@@ -152,8 +156,8 @@ export const AuthLayout: React.FC<AuthProps> = ({ setViewState, setUser, current
 
           {error && <p className="text-xs text-rose-500">{error}</p>}
           {success && (
-            <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-lg">
-              <p className="text-xs text-emerald-700 text-center">{success}</p>
+            <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 rounded-lg">
+              <p className="text-xs text-emerald-700 dark:text-emerald-400 text-center">{success}</p>
             </div>
           )}
 
@@ -165,10 +169,10 @@ export const AuthLayout: React.FC<AuthProps> = ({ setViewState, setUser, current
             <>
               <div className="relative my-4">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-zinc-200"></div>
+                  <div className="w-full border-t border-zinc-200 dark:border-zinc-700"></div>
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-white px-2 text-zinc-500">O continúa con</span>
+                  <span className="bg-white dark:bg-zinc-900 px-2 text-zinc-500 dark:text-zinc-400">O continúa con</span>
                 </div>
               </div>
 
@@ -185,7 +189,7 @@ export const AuthLayout: React.FC<AuthProps> = ({ setViewState, setUser, current
                     }
                   }
                 }}
-                className="w-full flex items-center justify-center gap-2 bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50 h-9 px-3 rounded-md text-sm transition-colors focus:outline-none focus:ring-1 focus:ring-zinc-900"
+                className="w-full flex items-center justify-center gap-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 h-9 px-3 rounded-md text-sm transition-colors focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:focus:ring-zinc-100"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24">
                   <path
@@ -214,21 +218,21 @@ export const AuthLayout: React.FC<AuthProps> = ({ setViewState, setUser, current
         <div className="mt-6 text-center space-y-2">
           {isLogin && (
             <>
-              <p className="text-xs text-zinc-500 hover:text-zinc-800 cursor-pointer" onClick={() => setViewState('FORGOT_PASSWORD')}>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 cursor-pointer" onClick={() => setViewState('FORGOT_PASSWORD')}>
                 ¿Olvidaste tu contraseña?
               </p>
-              <p className="text-xs text-zinc-500">
-                ¿No tienes cuenta? <span className="text-zinc-900 font-medium cursor-pointer" onClick={() => setViewState('SIGNUP')}>Regístrate</span>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                ¿No tienes cuenta? <span className="text-zinc-900 dark:text-white font-medium cursor-pointer" onClick={() => setViewState('SIGNUP')}>Regístrate</span>
               </p>
             </>
           )}
           {isSignup && (
-            <p className="text-xs text-zinc-500">
-              ¿Ya tienes cuenta? <span className="text-zinc-900 font-medium cursor-pointer" onClick={() => setViewState('LOGIN')}>Inicia sesión</span>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              ¿Ya tienes cuenta? <span className="text-zinc-900 dark:text-white font-medium cursor-pointer" onClick={() => setViewState('LOGIN')}>Inicia sesión</span>
             </p>
           )}
           {isForgot && (
-            <p className="text-xs text-zinc-500 cursor-pointer hover:text-zinc-800" onClick={() => setViewState('LOGIN')}>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 cursor-pointer hover:text-zinc-800 dark:hover:text-zinc-200" onClick={() => setViewState('LOGIN')}>
               Volver al inicio de sesión
             </p>
           )}

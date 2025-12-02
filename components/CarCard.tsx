@@ -125,8 +125,17 @@ export const CarCard: React.FC<CarCardProps> = ({ car, reservations, isFavorite,
         <div className="flex flex-col items-end">
           <span className="text-xs font-medium text-blue-600 dark:text-blue-400 flex items-center gap-1">
             <UserAvatar name={currentReservation.userName} imageUrl={currentReservation.userAvatar} size="sm" className="w-4 h-4 text-[8px]" />
-            {currentReservation.userName}
+            {currentReservation.isForGuest ? (
+              <span>{currentReservation.guestName} <span className="opacity-70 text-[10px] font-normal">(Inv.)</span></span>
+            ) : (
+              currentReservation.userName
+            )}
           </span>
+          {currentReservation.isForGuest && (
+            <span className="text-[9px] text-blue-500 dark:text-blue-300/80 -mt-0.5 mb-0.5">
+              Por: {currentReservation.userName}
+            </span>
+          )}
           <span className="text-[10px] text-blue-400 dark:text-blue-300/70">
             Libre en {hours > 0 ? `${hours}h ` : ''}{mins}m
           </span>

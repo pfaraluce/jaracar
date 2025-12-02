@@ -40,6 +40,8 @@ export interface Reservation {
   status: 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
   notes?: string;
   userAvatar?: string;
+  isForGuest?: boolean; // Indicates if reservation is for an external guest
+  guestName?: string; // Name of the guest driver
 }
 
 export interface ActivityLog {
