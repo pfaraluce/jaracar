@@ -12,6 +12,7 @@ import { ProfileModal } from './ProfileModal';
 import { WelcomeModal } from './WelcomeModal';
 import { TutorialOverlay } from './TutorialOverlay';
 import { AnimatePresence } from 'framer-motion';
+import { Logo } from './Logo';
 import { Plus, LogOut, LayoutGrid, List, CalendarRange } from 'lucide-react';
 
 interface DashboardProps {
@@ -130,10 +131,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
       <header className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-30 transition-colors duration-300">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="h-6 w-6 bg-zinc-900 dark:bg-white rounded-md flex items-center justify-center">
-              <span className="text-white dark:text-black text-xs font-bold">J</span>
-            </div>
-            <h1 className="font-semibold text-zinc-900 dark:text-white tracking-tight">JaraCar</h1>
+            <Logo size="sm" />
+
           </div>
 
           <div className="flex items-center gap-4">

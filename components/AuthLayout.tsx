@@ -7,6 +7,7 @@ import { Car, Mail, Lock, User as UserIcon, ArrowRight, Loader2 } from 'lucide-r
 import { ForgotPassword } from './ForgotPassword';
 import { ResetPassword } from './ResetPassword';
 import { InviteSignup } from './InviteSignup';
+import { Logo } from './Logo';
 
 interface AuthProps {
   setViewState: (view: ViewState) => void;
@@ -73,7 +74,9 @@ export const AuthLayout: React.FC<AuthProps> = ({ setViewState, setUser, current
       <div className="min-h-screen flex flex-col items-center justify-center bg-zinc-50 p-4">
         <div className="w-full max-w-sm bg-white p-8 rounded-xl border border-zinc-200 shadow-sm">
           <div className="mb-8 text-center">
-            <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 mb-2">JaraCar</h1>
+            <div className="flex justify-center mb-2">
+              <Logo size="md" />
+            </div>
           </div>
           <ResetPassword onSuccess={() => setViewState('DASHBOARD')} />
         </div>
@@ -87,7 +90,7 @@ export const AuthLayout: React.FC<AuthProps> = ({ setViewState, setUser, current
       <div className="min-h-screen flex flex-col items-center justify-center bg-zinc-50 p-4">
         <div className="w-full max-w-sm bg-white p-8 rounded-xl border border-zinc-200 shadow-sm">
           <div className="mb-8 text-center">
-            <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 mb-2">JaraCar</h1>
+            <div className="flex justify-center mb-2">`n              <Logo size="md" />`n            </div>
           </div>
           <InviteSignup inviteEmail={inviteEmail} onSuccess={() => setViewState('DASHBOARD')} />
         </div>
