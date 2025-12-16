@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { MealOrder, MealTemplate } from '../types';
 import { mealService } from '../services/meals';
-import { kitchenService, DailyLock } from '../services/kitchen';
-import { ChevronLeft, ChevronRight, ShoppingBag } from 'lucide-react';
+import { kitchenService, DailyLock, KitchenConfig } from '../services/kitchen';
+import { ChevronLeft, ChevronRight, ShoppingBag, AlertCircle } from 'lucide-react';
 import { format, subDays, addDays } from 'date-fns';
 
 interface DailyOrderManagerProps {
@@ -19,8 +19,19 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId }) 
     const [currentDate, setCurrentDate] = useState(new Date());
     const [orders, setOrders] = useState<MealOrder[]>([]);
     const [templates, setTemplates] = useState<MealTemplate[]>([]);
-    const [locks, setLocks] = useState<DailyLock[]>([]); // New: Store effective locks
+    const [locks, setLocks] = useState<DailyLock[]>([]);
+    const [kitchenConfig, setKitchenConfig] = useState<KitchenConfig | null>(null);
     const [loading, setLoading] = useState(true);
+
+    // Prep change confirmation modal
+    const [showPrepWarning, setShowPrepWarning] = useState(false);
+    const [pendingMealChange, setPendingMealChange] = useState<{
+        date: Date;
+        mealType: string;
+        option: string;
+        isBag: boolean;
+        currentOption: string;
+    } | null>(null);
 
     // Helper to get today (normalized)
     const getToday = () => {
@@ -75,15 +86,17 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId }) 
                     .then(isLocked => ({ date: format(day, 'yyyy-MM-dd'), isLocked }))
             );
 
-            const [ordersData, templatesData, locksData] = await Promise.all([
+            const [ordersData, templatesData, locksData, configData] = await Promise.all([
                 mealService.getMyOrders(startOfWeek.toISOString().split('T')[0], endOfWeek.toISOString().split('T')[0]),
                 mealService.getMyTemplates(),
-                Promise.all(locksPromises)
+                Promise.all(locksPromises),
+                kitchenService.getConfig()
             ]);
 
             setOrders(ordersData);
             setTemplates(templatesData);
-            setLocks(locksData as any); // Type cast simplified
+            setLocks(locksData as any);
+            setKitchenConfig(configData);
         } catch (e) {
             console.error(e);
         } finally {
@@ -104,17 +117,52 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId }) 
         return template ? { ...template, source: 'template', date: dateStr, status: 'pending' } : null;
     };
 
-    const isLocked = (date: Date, mealType: string, intendedOption?: string): boolean => {
+    const isDayTimeLocked = (targetDate: Date) => {
+        if (!kitchenConfig || !kitchenConfig.weekly_schedule) return false;
+
+        const now = new Date();
+        const dateStr = format(targetDate, 'yyyy-MM-dd');
+        const todayStr = format(now, 'yyyy-MM-dd');
+
+        // Past dates are ALWAYS locked
+        if (dateStr < todayStr) return true;
+
+        // Future dates are not time-locked (only DB locks apply)
+        if (dateStr > todayStr) return false;
+
+        // For TODAY: check if cutoff time has passed
+        const dayOfWeek = targetDate.getDay().toString();
+        const cutoffTime = kitchenConfig.weekly_schedule[dayOfWeek];
+        if (!cutoffTime) return false;
+
+        const [h, m] = cutoffTime.split(':').map(Number);
+        const deadline = new Date(now);
+        deadline.setHours(h, m, 0, 0);
+
+        return now >= deadline;
+    };
+
+    const isLocked = (date: Date, mealType: string, intendedOption?: string, currentOption?: string): boolean => {
         const dateStr = format(date, 'yyyy-MM-dd');
         const prevDay = new Date(date);
         prevDay.setDate(prevDay.getDate() - 1);
         const prevDateStr = format(prevDay, 'yyyy-MM-dd');
 
+        // EXCEPTION: Allow changing FROM tupper/bag TO standard options (with confirmation in handleUpdateOrder)
+        const isChangingFromPrep = (currentOption === 'tupper' || currentOption === 'bag') &&
+            (intendedOption !== 'tupper' && intendedOption !== 'bag');
+        if (isChangingFromPrep) return false;
+
         // 1. Check if Yesterday is Locked (Prep Cutoff)
-        const isPrevLocked = locks.find(l => l.date === prevDateStr)?.isLocked || false;
+        // Locked if explicit DB lock OR if Time passed on that day (if it's today)
+        const isPrevDbLocked = locks.find(l => l.date === prevDateStr)?.isLocked || false;
+        const isPrevTimeLocked = isDayTimeLocked(prevDay);
+        const isPrevLocked = isPrevDbLocked || isPrevTimeLocked;
 
         // 2. Check if Today is Locked (Service Cutoff)
-        const isTodayLocked = locks.find(l => l.date === dateStr)?.isLocked || false;
+        const isTodayDbLocked = locks.find(l => l.date === dateStr)?.isLocked || false;
+        const isTodayTimeLocked = isDayTimeLocked(date);
+        const isTodayLocked = isTodayDbLocked || isTodayTimeLocked;
 
         // --- RULES ---
 
@@ -149,26 +197,57 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId }) 
         if (optionValue === 'tupper' || optionValue === 'bag') {
             const prevDay = subDays(date, 1);
             const prevDateStr = format(prevDay, 'yyyy-MM-dd');
-            const isPrevLocked = locks.find(l => l.date === prevDateStr)?.isLocked;
-            if (isPrevLocked) return true;
+            const isPrevDbLocked = locks.find(l => l.date === prevDateStr)?.isLocked;
+            const isPrevTimeLocked = isDayTimeLocked(prevDay);
+            if (isPrevDbLocked || isPrevTimeLocked) return true;
         }
         return false;
     };
 
     const handleUpdateOrder = async (date: Date, mealType: string, option: string, isBag: boolean) => {
-        if (isLocked(date, mealType, option)) {
+        // Check if we're changing FROM a prep item (tupper/bag) to a standard option
+        const dateStr = format(date, 'yyyy-MM-dd');
+        const currentMeal = getMealForDate(date, mealType);
+        const currentOption = currentMeal?.option;
+
+        if (isLocked(date, mealType, option, currentOption)) {
             alert("El pedido está cerrado para esta opción (requiere antelación).");
             return;
         }
+
+        const isChangingFromPrep = (currentOption === 'tupper' || currentOption === 'bag') &&
+            (option !== 'tupper' && option !== 'bag');
+
+        if (isChangingFromPrep) {
+            // Show modal instead of window.confirm
+            setPendingMealChange({ date, mealType, option, isBag, currentOption: currentOption! });
+            setShowPrepWarning(true);
+            return;
+        }
+
         // Force isBag if option is 'bag'
-        const finalIsBag = option === 'bag' ? true : (option === 'tupper' ? false : isBag); // Reset bag flag if not bag
+        const finalIsBag = option === 'bag' ? true : (option === 'tupper' ? false : isBag);
 
-        // If option is 'bag', we store option='bag' AND isBag=true for consistency or just rely on option
-        // DB Schema has `option` and `is_bag`. 
-
-        const dateStr = format(date, 'yyyy-MM-dd');
         await mealService.upsertOrder(userId, dateStr, mealType, option, finalIsBag);
         loadData();
+    };
+
+    const confirmPrepChange = async () => {
+        if (!pendingMealChange) return;
+
+        const { date, mealType, option, isBag } = pendingMealChange;
+        const dateStr = format(date, 'yyyy-MM-dd');
+        const finalIsBag = option === 'bag' ? true : (option === 'tupper' ? false : isBag);
+
+        try {
+            await mealService.upsertOrder(userId, dateStr, mealType, option, finalIsBag);
+            loadData();
+        } catch (error) {
+            console.error("Failed to update meal", error);
+        } finally {
+            setShowPrepWarning(false);
+            setPendingMealChange(null);
+        }
     };
 
     const weekDays = [];
@@ -209,8 +288,9 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId }) 
                         <div className="space-y-4">
                             {MEALS.map(meal => {
                                 const data = getMealForDate(day, meal.id);
+                                const currentValue = data?.option || 'skip';
                                 // Check generic lock (for displaying "Locked" badge)
-                                const completelyLocked = isLocked(day, meal.id);
+                                const completelyLocked = isLocked(day, meal.id, undefined, currentValue);
 
                                 let options: { value: string; label: string }[] = [];
                                 if (meal.id === 'breakfast') {
@@ -235,8 +315,6 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId }) 
                                         { value: 'skip', label: 'No Ceno' }
                                     ];
                                 }
-
-                                const currentValue = data?.option || 'skip';
 
                                 return (
                                     <div key={meal.id} className="space-y-1">
@@ -278,6 +356,45 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId }) 
                     </div>
                 ))}
             </div>
+
+            {/* Prep Change Warning Modal */}
+            {showPrepWarning && pendingMealChange && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl max-w-md w-full p-6 border border-zinc-200 dark:border-zinc-800">
+                        <div className="flex items-start gap-4 mb-4">
+                            <div className="flex-shrink-0 w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                                <AlertCircle className="w-6 h-6 text-amber-600 dark:text-amber-500" />
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-1">
+                                    Cambiar pedido preparado
+                                </h3>
+                                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                                    Ya tienes {pendingMealChange.currentOption === 'tupper' ? 'preparado un' : 'preparada una'} <span className="font-medium text-zinc-900 dark:text-white">{pendingMealChange.currentOption === 'tupper' ? 'tupper' : 'bolsa'}</span>. ¿Quieres cambiarlo de todas formas?
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3 mt-6">
+                            <button
+                                onClick={() => {
+                                    setShowPrepWarning(false);
+                                    setPendingMealChange(null);
+                                }}
+                                className="flex-1 px-4 py-2.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 font-medium text-sm transition-colors"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={confirmPrepChange}
+                                className="flex-1 px-4 py-2.5 rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-100 font-medium text-sm transition-colors shadow-sm"
+                            >
+                                Confirmar cambio
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

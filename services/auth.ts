@@ -119,13 +119,23 @@ export const authService = {
 
             const isAdminEmail = email.toLowerCase() === 'pfaraluce@gmail.com';
 
+            if (!profile?.avatar_url && (user.user_metadata.avatar_url || user.user_metadata.picture)) {
+                const googleUrl = user.user_metadata.avatar_url || user.user_metadata.picture;
+                const newAvatarUrl = await authService._syncGoogleAvatar(user.id, googleUrl);
+                if (newAvatarUrl && profile) {
+                    profile.avatar_url = newAvatarUrl;
+                }
+                // If profile was null but we synced, 'profile?.avatar_url' below will still use the fetched null profile.
+                // But usually profile exists. Ideally we update the return object.
+            }
+
             return {
                 id: user.id,
                 email: email,
                 name: profile?.full_name || user.user_metadata.name || email.split('@')[0] || 'User',
                 role: profile?.role || (isAdminEmail ? UserRole.ADMIN : UserRole.USER),
                 status: isAdminEmail ? 'APPROVED' : (profile?.status || 'PENDING'),
-                avatarUrl: profile?.avatar_url,
+                avatarUrl: profile?.avatar_url || (user.user_metadata.avatar_url || user.user_metadata.picture), // Fallback to Google URL directly if sync failed or in progress
                 permissions: profile?.permissions
             };
         } catch (error) {
@@ -151,6 +161,44 @@ export const authService = {
             password: newPassword
         });
         if (error) throw new Error(error.message);
+    },
+
+    /**
+     * Helper to sync Google Avatar if profile doesn't have one
+     */
+    _syncGoogleAvatar: async (userId: string, googleAvatarUrl: string): Promise<string | null> => {
+        try {
+            console.log('[Auth] Syncing Google Avatar...');
+            // 1. Fetch the image from Google
+            const response = await fetch(googleAvatarUrl);
+            const blob = await response.blob();
+
+            // 2. Upload to Supabase Storage
+            const fileName = `${userId}/avatar_${Date.now()}.jpg`;
+            const { error: uploadError } = await supabase.storage
+                .from('avatars')
+                .upload(fileName, blob, { upsert: true });
+
+            if (uploadError) throw uploadError;
+
+            // 3. Get Public URL
+            const { data: { publicUrl } } = supabase.storage
+                .from('avatars')
+                .getPublicUrl(fileName);
+
+            // 4. Update Profile
+            const { error: updateError } = await supabase
+                .from('profiles')
+                .update({ avatar_url: publicUrl })
+                .eq('id', userId);
+
+            if (updateError) throw updateError;
+
+            return publicUrl;
+        } catch (error) {
+            console.error('[Auth] Error syncing Google avatar:', error);
+            return null;
+        }
     }
 
 };

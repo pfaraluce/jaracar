@@ -31,8 +31,6 @@ export function ThemeProvider({
 
     useEffect(() => {
         const root = window.document.documentElement;
-        console.log('[ThemeContext] useEffect triggered. Theme:', theme);
-        console.log('[ThemeContext] Current root classes before:', root.className);
 
         root.classList.remove('light', 'dark');
 
@@ -42,15 +40,13 @@ export function ThemeProvider({
                 ? 'dark'
                 : 'light';
 
-            console.log('[ThemeContext] System theme detected:', systemTheme);
+
             root.classList.add(systemTheme);
-            console.log('[ThemeContext] Added system theme. Classes now:', root.className);
             return;
         }
 
-        console.log('[ThemeContext] Adding theme class:', theme);
+
         root.classList.add(theme);
-        console.log('[ThemeContext] Classes after adding:', root.className);
     }, [theme]);
 
     // Listen for system theme changes when in system mode
@@ -72,12 +68,8 @@ export function ThemeProvider({
     const value = {
         theme,
         setTheme: (newTheme: Theme) => {
-            console.log('[ThemeContext] setTheme called with:', newTheme);
-            console.log('[ThemeContext] Current theme before change:', theme);
             localStorage.setItem(storageKey, newTheme);
-            console.log('[ThemeContext] Saved to localStorage:', localStorage.getItem(storageKey));
             setThemeState(newTheme);
-            console.log('[ThemeContext] State updated');
         },
     };
 

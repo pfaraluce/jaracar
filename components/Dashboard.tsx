@@ -11,7 +11,7 @@ import { VehiclesView } from './VehiclesView';
 import { MealsView } from './MealsView';
 import { MaintenanceView } from './MaintenanceView';
 import { CalendarView } from './CalendarView';
-import { CountdownTimer } from './CountdownTimer';
+
 import {
   LogOut,
   LayoutDashboard,
@@ -242,8 +242,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
         />
       )}
 
-      {/* Global Countdown Timer */}
-      <CountdownTimer />
     </div>
   );
 };

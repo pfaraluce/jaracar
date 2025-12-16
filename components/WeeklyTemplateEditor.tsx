@@ -123,24 +123,24 @@ export const WeeklyTemplateEditor: React.FC<WeeklyTemplateEditorProps> = ({ user
                                         let options: { value: string; label: string }[] = [];
                                         if (meal.id === 'breakfast') {
                                             options = [
-                                                { value: 'standard', label: 'Normal' },
+                                                { value: 'standard', label: 'Sí' },
                                                 { value: 'early', label: 'Pronto' },
-                                                { value: 'skip', label: 'No Desayuno' }
+                                                { value: 'skip', label: 'No' }
                                             ];
                                         } else if (meal.id === 'lunch') {
                                             options = [
-                                                { value: 'standard', label: 'Normal' },
+                                                { value: 'standard', label: 'Sí' },
                                                 { value: 'early', label: 'Pronto' },
                                                 { value: 'late', label: 'Tarde' },
                                                 { value: 'tupper', label: 'Tupper' },
-                                                { value: 'bag', label: 'Bolsa (Picnic)' },
-                                                { value: 'skip', label: 'No Como' }
+                                                { value: 'bag', label: 'Bolsa' },
+                                                { value: 'skip', label: 'No' }
                                             ];
                                         } else if (meal.id === 'dinner') {
                                             options = [
-                                                { value: 'standard', label: 'Normal' },
+                                                { value: 'standard', label: 'Sí' },
                                                 { value: 'late', label: 'Tarde' },
-                                                { value: 'skip', label: 'No Ceno' }
+                                                { value: 'skip', label: 'No' }
                                             ];
                                         }
 
