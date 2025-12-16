@@ -1,19 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { User, Car, Reservation, CarStatus, ActivityLog } from '../types';
-import { carService } from '../services/cars';
-import { reservationService } from '../services/reservations';
-import { AddCarModal } from './AddCarModal';
-import { CarCard } from './CarCard';
-import { CarDetail } from './CarDetail';
-import { CarListView } from './CarListView';
-import { CarTimelineView } from './CarTimelineView';
+import { User } from '../types';
+import { Logo } from './Logo';
 import { UserAvatar } from './UserAvatar';
 import { ProfileModal } from './ProfileModal';
 import { WelcomeModal } from './WelcomeModal';
 import { TutorialOverlay } from './TutorialOverlay';
-import { AnimatePresence } from 'framer-motion';
-import { Logo } from './Logo';
-import { Plus, LogOut, LayoutGrid, List, CalendarRange } from 'lucide-react';
+import { HomeView } from './HomeView';
+import { VehiclesView } from './VehiclesView';
+import { MealsView } from './MealsView';
+import { MaintenanceView } from './MaintenanceView';
+import { CalendarView } from './CalendarView';
+import {
+  LogOut,
+  LayoutDashboard,
+  Car,
+  UtensilsCrossed,
+  Wrench,
+  Calendar,
+  Menu,
+  X
+} from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+
+type DashboardView = 'HOME' | 'VEHICLES' | 'MEALS' | 'MAINTENANCE' | 'CALENDAR';
 
 interface DashboardProps {
   user: User;
@@ -22,24 +31,11 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpdate }) => {
-  const [cars, setCars] = useState<Car[]>([]);
-  const [reservations, setReservations] = useState<Reservation[]>([]);
-  const [favorites, setFavorites] = useState<string[]>([]);
-  const [selectedCar, setSelectedCar] = useState<Car | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [currentView, setCurrentView] = useState<DashboardView>('HOME');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
-  const [viewMode, setViewMode] = useState<'GRID' | 'LIST' | 'TIMELINE'>(() => {
-    const saved = localStorage.getItem('jaracar_view_mode');
-    return (saved as 'GRID' | 'LIST' | 'TIMELINE') || 'GRID';
-  });
-
-  useEffect(() => {
-    localStorage.setItem('jaracar_view_mode', viewMode);
-  }, [viewMode]);
 
   // Check if user is new (first time login)
   useEffect(() => {
@@ -48,59 +44,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
       setShowWelcome(true);
     }
   }, []);
-
-  const fetchData = async () => {
-    try {
-      const [c, r] = await Promise.all([
-        carService.getCars(),
-        reservationService.getReservations()
-      ]);
-      setCars(c);
-      setReservations(r);
-
-      // Try to fetch favorites, but don't crash if table doesn't exist
-      try {
-        const f = await carService.getFavorites(user.id);
-        setFavorites(f);
-      } catch (favError) {
-        console.warn('Favorites not available:', favError);
-        setFavorites([]);
-      }
-    } catch (e) {
-      console.error("Failed to load data", e);
-      setError((e as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 60000); // Auto refresh every minute
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleAddCar = async () => {
-    setIsAddModalOpen(true);
-  }
-
-  const handleToggleFavorite = async (carId: string) => {
-    try {
-      // Optimistic update
-      const isFav = favorites.includes(carId);
-      const newFavorites = isFav
-        ? favorites.filter(id => id !== carId)
-        : [...favorites, carId];
-
-      setFavorites(newFavorites);
-
-      await carService.toggleFavorite(carId, user.id);
-    } catch (e) {
-      // Revert on error
-      console.error("Error toggling favorite", e);
-      fetchData(); // Reload to be safe
-    }
-  };
 
   const handleWelcomeComplete = () => {
     localStorage.setItem('jaracar_welcome_seen', 'true');
@@ -117,183 +60,123 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
     setShowTutorial(false);
   };
 
-  const sortedCars = [...cars].sort((a, b) => {
-    const aFav = favorites.includes(a.id);
-    const bFav = favorites.includes(b.id);
-    if (aFav && !bFav) return -1;
-    if (!aFav && bFav) return 1;
-    return 0;
-  });
+  const NavItem = ({ view, icon: Icon, label }: { view: DashboardView; icon: any; label: string }) => (
+    <button
+      onClick={() => {
+        setCurrentView(view);
+        setIsSidebarOpen(false);
+      }}
+      className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${currentView === view
+        ? 'bg-zinc-900 dark:bg-white text-white dark:text-black'
+        : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+        }`}
+    >
+      <Icon size={20} />
+      <span className="font-medium">{label}</span>
+    </button>
+  );
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-black p-6 transition-colors duration-300">
-      {/* Header */}
-      <header className="bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-30 transition-colors duration-300">
-        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Logo size="sm" />
-
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2" data-tutorial="user-avatar">
-              <div className="flex items-center gap-2">
-                <button onClick={() => setIsProfileModalOpen(true)} className="hover:opacity-80 transition-opacity">
-                  <UserAvatar name={user.name} imageUrl={user.avatarUrl} size="md" />
-                </button>
-                <div className="hidden sm:block text-right">
-                  <p className="text-xs font-medium text-zinc-900 dark:text-white">{user.name}</p>
-                  <p className="text-[10px] text-zinc-500 dark:text-zinc-400">{user.email}</p>
-                </div>
-              </div>
-              <button
-                onClick={onLogout}
-                className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full text-zinc-400 hover:text-rose-500 transition-colors"
-                title="Cerrar sesión"
-              >
-                <LogOut size={16} />
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-6xl mx-auto px-4 py-8">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
-          <div>
-            <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">Todos los vehículos</h2>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">Reserva y gestiona tus viajes. Recuerda consultar.</p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {/* View Switcher */}
-            <div className="flex bg-zinc-100 dark:bg-zinc-900 p-1 rounded-lg border border-zinc-200 dark:border-zinc-800" data-tutorial="view-switcher">
-              <button
-                onClick={() => setViewMode('GRID')}
-                className={`p-1.5 rounded-md transition-all ${viewMode === 'GRID'
-                  ? 'bg-white dark:bg-zinc-800 shadow-sm text-zinc-900 dark:text-white'
-                  : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300'}`}
-                title="Vista Cuadrícula"
-              >
-                <LayoutGrid size={16} />
-              </button>
-              <button
-                onClick={() => setViewMode('LIST')}
-                className={`p-1.5 rounded-md transition-all ${viewMode === 'LIST'
-                  ? 'bg-white dark:bg-zinc-800 shadow-sm text-zinc-900 dark:text-white'
-                  : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300'}`}
-                title="Vista Lista"
-              >
-                <List size={16} />
-              </button>
-              <button
-                onClick={() => setViewMode('TIMELINE')}
-                className={`p-1.5 rounded-md transition-all ${viewMode === 'TIMELINE'
-                  ? 'bg-white dark:bg-zinc-800 shadow-sm text-zinc-900 dark:text-white'
-                  : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300'}`}
-                title="Vista Cronograma"
-              >
-                <CalendarRange size={16} />
-              </button>
-            </div>
-
-            {user.role === 'ADMIN' && (
-              <>
-                <div className="h-6 w-px bg-zinc-200 dark:bg-zinc-800 mx-1" />
-
-                <button
-                  onClick={handleAddCar}
-                  className="group h-8 px-3 flex items-center gap-1.5 bg-zinc-900 dark:bg-white text-white dark:text-black rounded-lg hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors text-xs font-medium"
-                  title="Añadir Vehículo"
-                >
-                  <Plus size={14} />
-                  <span className="hidden sm:inline">Añadir</span>
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-
-        {error && (
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg mb-6">
-            <p className="font-medium">Error cargando datos:</p>
-            <p className="text-sm">{error}</p>
-            <button
-              onClick={fetchData}
-              className="mt-2 text-sm font-medium underline hover:text-red-800 dark:hover:text-red-300"
-            >
-              Reintentar
-            </button>
-          </div>
-        )}
-
-        {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {[1, 2, 3, 4].map(i => (
-              <div key={i} className="h-64 bg-zinc-200/50 dark:bg-zinc-800/50 rounded-xl animate-pulse" />
-            ))}
-          </div>
-        ) : (
-          <>
-            {viewMode === 'GRID' && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {sortedCars.map((car, index) => (
-                  <div key={car.id} data-tutorial={index === 0 ? "car-card" : undefined}>
-                    <CarCard
-                      car={car}
-                      reservations={reservations.filter(r => r.carId === car.id)}
-                      isFavorite={favorites.includes(car.id)}
-                      onToggleFavorite={() => handleToggleFavorite(car.id)}
-                      onClick={() => setSelectedCar(car)}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {viewMode === 'LIST' && (
-              <CarListView
-                cars={sortedCars}
-                reservations={reservations}
-                favorites={favorites}
-                onToggleFavorite={handleToggleFavorite}
-                onSelectCar={setSelectedCar}
-              />
-            )}
-
-            {viewMode === 'TIMELINE' && (
-              <CarTimelineView
-                cars={sortedCars}
-                reservations={reservations}
-                onSelectCar={setSelectedCar}
-              />
-            )}
-          </>
-        )}
-      </main>
-
-      {/* Detail Overlay */}
+    <div className="min-h-screen bg-zinc-50 dark:bg-black transition-colors duration-300 flex">
+      {/* Mobile Sidebar Overlay */}
       <AnimatePresence>
-        {selectedCar && (
-          <CarDetail
-            car={selectedCar}
-            reservations={reservations.filter(r => r.carId === selectedCar.id)}
-            activity={[]}
-            currentUser={user}
-            onClose={() => setSelectedCar(null)}
-            onUpdate={fetchData}
+        {isSidebarOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsSidebarOpen(false)}
+            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           />
         )}
       </AnimatePresence>
 
-      <AddCarModal
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        onSuccess={fetchData}
-      />
+      {/* Sidebar Navigation */}
+      <aside
+        className={`fixed md:static inset-y-0 left-0 z-50 w-64 bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 transform transition-transform duration-300 md:transform-none ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+          }`}
+      >
+        <div className="h-full flex flex-col">
+          {/* Sidebar Header */}
+          <div className="h-16 px-6 flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800">
+            <Logo size="sm" />
+            <button
+              onClick={() => setIsSidebarOpen(false)}
+              className="md:hidden text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
+            >
+              <X size={20} />
+            </button>
+          </div>
 
-      {/* Profile Modal */}
+          {/* Navigation Links */}
+          <div className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+            <NavItem view="HOME" icon={LayoutDashboard} label="Inicio" />
+            <div className="pt-4 pb-2">
+              <p className="px-4 text-xs font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
+                Módulos
+              </p>
+            </div>
+            <NavItem view="VEHICLES" icon={Car} label="Vehículos" />
+            <NavItem view="MEALS" icon={UtensilsCrossed} label="Comidas" />
+            <NavItem view="MAINTENANCE" icon={Wrench} label="Mantenimiento" />
+            <NavItem view="CALENDAR" icon={Calendar} label="Calendario" />
+          </div>
+
+          {/* User Profile Footer */}
+          <div className="p-4 border-t border-zinc-200 dark:border-zinc-800">
+            <div className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
+              <button onClick={() => setIsProfileModalOpen(true)} className="flex items-center gap-3 flex-1 text-left">
+                <UserAvatar name={user.name} imageUrl={user.avatarUrl} size="sm" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-zinc-900 dark:text-white truncate">{user.name}</p>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">{user.email}</p>
+                </div>
+              </button>
+              <button
+                onClick={onLogout}
+                className="p-1.5 text-zinc-400 hover:text-rose-500 transition-colors"
+                title="Cerrar sesión"
+              >
+                <LogOut size={18} />
+              </button>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+        {/* Mobile Header */}
+        <header className="h-16 md:hidden flex items-center justify-between px-4 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
+          <button
+            onClick={() => setIsSidebarOpen(true)}
+            className="p-2 -ml-2 text-zinc-600 dark:text-zinc-400"
+          >
+            <Menu size={24} />
+          </button>
+          <Logo size="sm" />
+          <div className="w-10" /> {/* Spacer for centering */}
+        </header>
+
+        {/* Scrollable Content */}
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+          <div className="max-w-6xl mx-auto">
+            {currentView === 'HOME' && (
+              <HomeView user={user} onNavigate={(view) => setCurrentView(view)} />
+            )}
+
+            {currentView === 'VEHICLES' && <VehiclesView user={user} />}
+
+            {currentView === 'MEALS' && <MealsView user={user} />}
+
+            {currentView === 'MAINTENANCE' && <MaintenanceView user={user} />}
+
+            {currentView === 'CALENDAR' && <CalendarView user={user} />}
+          </div>
+        </main>
+      </div>
+
+      {/* Global Modals */}
       <ProfileModal
         user={user}
         isOpen={isProfileModalOpen}
@@ -302,7 +185,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
         onRestartTutorial={handleStartTutorial}
       />
 
-      {/* Welcome Modal */}
       {showWelcome && (
         <WelcomeModal
           userName={user.name}
@@ -311,7 +193,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
         />
       )}
 
-      {/* Tutorial Overlay */}
       {showTutorial && (
         <TutorialOverlay
           onComplete={handleTutorialComplete}

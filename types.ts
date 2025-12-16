@@ -55,4 +55,35 @@ export interface ActivityLog {
   userAvatar?: string;
 }
 
+export interface MealTemplate {
+  id: string;
+  userId: string;
+  dayOfWeek: number; // 1=Monday, 7=Sunday
+  mealType: 'breakfast' | 'lunch' | 'dinner';
+  option: string;
+  isBag: boolean;
+}
+
+export interface MealOrder {
+  id: string;
+  userId: string;
+  date: string; // ISO Date YYYY-MM-DD
+  mealType: 'breakfast' | 'lunch' | 'dinner';
+  option: string;
+  isBag: boolean;
+  status: 'pending' | 'confirmed' | 'cancelled';
+}
+
+export interface MaintenanceTicket {
+  id: string;
+  title: string;
+  description: string;
+  status: 'open' | 'in_progress' | 'resolved' | 'closed';
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  reporterId: string;
+  location?: string;
+  imageUrl?: string;
+  createdAt: string;
+}
+
 export type ViewState = 'LOGIN' | 'SIGNUP' | 'FORGOT_PASSWORD' | 'RESET_PASSWORD' | 'INVITE_SIGNUP' | 'DASHBOARD';
