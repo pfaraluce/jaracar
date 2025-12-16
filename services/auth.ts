@@ -23,7 +23,7 @@ export const authService = {
         // Try to get profile data
         const { data: profile, error: profileError } = await supabase
             .from('profiles')
-            .select('full_name, role, status, avatar_url')
+            .select('full_name, role, status, avatar_url, permissions')
             .eq('id', data.user.id)
             .single();
 
@@ -43,7 +43,8 @@ export const authService = {
             name: name,
             role: role,
             status: status,
-            avatarUrl: profile?.avatar_url
+            avatarUrl: profile?.avatar_url,
+            permissions: profile?.permissions
         };
     },
 
@@ -108,7 +109,7 @@ export const authService = {
             // Try to get profile data
             const { data: profile, error: profileError } = await supabase
                 .from('profiles')
-                .select('full_name, role, status, avatar_url')
+                .select('full_name, role, status, avatar_url, permissions')
                 .eq('id', user.id)
                 .single();
 
@@ -124,7 +125,8 @@ export const authService = {
                 name: profile?.full_name || user.user_metadata.name || email.split('@')[0] || 'User',
                 role: profile?.role || (isAdminEmail ? UserRole.ADMIN : UserRole.USER),
                 status: isAdminEmail ? 'APPROVED' : (profile?.status || 'PENDING'),
-                avatarUrl: profile?.avatar_url
+                avatarUrl: profile?.avatar_url,
+                permissions: profile?.permissions
             };
         } catch (error) {
             console.error('[AUTH] getCurrentUser: Error', error);

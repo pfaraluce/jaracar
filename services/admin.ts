@@ -24,7 +24,8 @@ export const adminService = {
             name: profile.full_name || 'Sin nombre',
             role: profile.role || 'USER',
             status: profile.status || 'PENDING',
-            avatarUrl: profile.avatar_url
+            avatarUrl: profile.avatar_url,
+            permissions: profile.permissions || {}
         }));
     },
 
@@ -41,6 +42,15 @@ export const adminService = {
         const { error } = await supabase.rpc('admin_update_profile', {
             target_user_id: userId,
             new_role: role
+        });
+
+        if (error) throw new Error(error.message);
+    },
+
+    updateUserPermissions: async (userId: string, permissions: any) => {
+        const { error } = await supabase.rpc('admin_update_profile', {
+            target_user_id: userId,
+            new_permissions: permissions
         });
 
         if (error) throw new Error(error.message);

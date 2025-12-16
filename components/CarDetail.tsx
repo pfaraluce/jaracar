@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { hasAdminAccess } from '../utils/permissions';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Car, CarStatus, Reservation, User, ActivityLog } from '../types';
 import { X, ArrowLeft, Pencil, AlertTriangle, CheckCircle, Wrench, Car as CarIcon, MessageSquare, History } from 'lucide-react';
@@ -223,9 +224,9 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
 
                 {currentView === 'DETAILS' && (
                   <div
-                    className={`relative group ${currentUser.role === 'ADMIN' ? 'cursor-pointer' : ''}`}
+                    className={`relative group ${hasAdminAccess(currentUser, 'vehicles') ? 'cursor-pointer' : ''}`}
                     onClick={() => {
-                      if (currentUser.role === 'ADMIN') setCurrentView('EDIT');
+                      if (hasAdminAccess(currentUser, 'vehicles')) setCurrentView('EDIT');
                     }}
                   >
                     <motion.img
@@ -234,7 +235,7 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                       alt={car.name}
                       className="w-24 h-16 object-cover rounded-lg"
                     />
-                    {currentUser.role === 'ADMIN' && (
+                    {hasAdminAccess(currentUser, 'vehicles') && (
                       <div className="absolute inset-0 bg-black/50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <Pencil className="text-white" size={16} />
                       </div>
@@ -286,7 +287,7 @@ export const CarDetail: React.FC<CarDetailProps> = ({ car, reservations, activit
                       <p className="text-xs text-zinc-500 dark:text-zinc-400 max-w-xs mx-auto mb-4">
                         Este coche no se puede reservar hasta que salga del taller.
                       </p>
-                      {currentUser.role === 'ADMIN' && (
+                      {hasAdminAccess(currentUser, 'vehicles') && (
                         <p className="text-xs text-zinc-400 dark:text-zinc-500">
                           Edita el coche y desmarca la casilla "En taller" para volver a habilitarlo.
                         </p>

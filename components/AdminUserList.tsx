@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { User, UserRole } from '../types';
 import { adminService } from '../services/admin';
 import { UserAvatar } from './UserAvatar';
-import { Check, X, Shield, ShieldOff, Search, Mail, CheckCircle, AlertTriangle, MessageSquare } from 'lucide-react';
+import { Check, X, Shield, ShieldOff, Search, Mail, CheckCircle, AlertTriangle, MessageSquare, Lock } from 'lucide-react';
 
 export const AdminUserList: React.FC = () => {
     const [users, setUsers] = useState<User[]>([]);
@@ -16,12 +16,50 @@ export const AdminUserList: React.FC = () => {
     const [inviteEmail, setInviteEmail] = useState('');
     const [inviting, setInviting] = useState(false);
 
-    // Toast State
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+    const [permissionUser, setPermissionUser] = useState<User | null>(null);
 
     const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
         setToast({ message, type });
         setTimeout(() => setToast(null), 3000);
+    };
+
+    const handlePermissionChange = (module: string, type: 'view' | 'admin', checked: boolean) => {
+        if (!permissionUser) return;
+
+        const currentPerms = permissionUser.permissions || {};
+        const modulePerms = currentPerms[module as keyof typeof currentPerms] || { view: true, admin: false };
+
+        // If giving admin rights, ensure view rights are also given
+        const newModulePerms = { ...modulePerms, [type]: checked };
+        if (type === 'admin' && checked) {
+            newModulePerms.view = true;
+        }
+        // If removing view rights, ensure admin rights are also removed
+        if (type === 'view' && !checked) {
+            newModulePerms.admin = false;
+        }
+
+        setPermissionUser({
+            ...permissionUser,
+            permissions: {
+                ...currentPerms,
+                [module]: newModulePerms
+            }
+        });
+    };
+
+    const savePermissions = async () => {
+        if (!permissionUser) return;
+        try {
+            await adminService.updateUserPermissions(permissionUser.id, permissionUser.permissions);
+            showToast('Permisos actualizados correctamente', 'success');
+            setPermissionUser(null);
+            fetchUsers(); // Refresh list
+        } catch (error) {
+            console.error('Error updating permissions:', error);
+            showToast('Error al actualizar permisos', 'error');
+        }
     };
 
     const handleInviteUser = async () => {
@@ -209,6 +247,14 @@ export const AdminUserList: React.FC = () => {
                                                 <div className="w-px h-4 bg-zinc-200 dark:bg-zinc-700 mx-1" />
 
                                                 <button
+                                                    onClick={() => setPermissionUser(user)}
+                                                    className="p-1.5 text-zinc-400 hover:text-blue-600 dark:text-zinc-500 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+                                                    title="Permisos Granulares"
+                                                >
+                                                    <Lock size={16} />
+                                                </button>
+
+                                                <button
                                                     onClick={() => handleRoleChange(user.id, user.role === UserRole.ADMIN ? UserRole.USER : UserRole.ADMIN)}
                                                     className={`p-1.5 rounded transition-colors ${user.role === UserRole.ADMIN
                                                         ? 'text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20'
@@ -227,6 +273,80 @@ export const AdminUserList: React.FC = () => {
                     </table>
                 </div>
             </div>
+            {/* Permissions Modal */}
+            {permissionUser && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setPermissionUser(null)} />
+                    <div className="relative w-full max-w-md bg-white dark:bg-zinc-900 rounded-xl shadow-2xl p-6 overflow-hidden border border-zinc-200 dark:border-zinc-800">
+                        <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-1">Permisos Granulares</h3>
+                        <p className="text-sm text-zinc-500 mb-4">Configura el acceso para {permissionUser.name}</p>
+
+                        <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                            {['vehicles', 'meals', 'maintenance', 'calendar'].map(module => {
+                                const currentPerms = permissionUser.permissions?.[module as keyof typeof permissionUser.permissions] || { view: true, admin: false };
+
+                                const getLabel = (m: string) => {
+                                    switch (m) {
+                                        case 'vehicles': return 'Vehículos';
+                                        case 'meals': return 'Comidas';
+                                        case 'maintenance': return 'Mantenimiento';
+                                        case 'calendar': return 'Calendario';
+                                        default: return m;
+                                    }
+                                };
+
+                                return (
+                                    <div key={module} className="bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-lg border border-zinc-100 dark:border-zinc-800">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="font-medium text-zinc-900 dark:text-white capitalize flex items-center gap-2">
+                                                {getLabel(module)}
+                                            </span>
+                                        </div>
+                                        <div className="flex gap-6">
+                                            <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                                                <input
+                                                    type="checkbox"
+                                                    className="rounded border-zinc-300 dark:border-zinc-600 text-zinc-900 focus:ring-zinc-900"
+                                                    checked={currentPerms.view}
+                                                    onChange={e => handlePermissionChange(module, 'view', e.target.checked)}
+                                                />
+                                                <span className="text-zinc-600 dark:text-zinc-400">Ver</span>
+                                            </label>
+                                            <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                                                <input
+                                                    type="checkbox"
+                                                    className="rounded border-zinc-300 dark:border-zinc-600 text-purple-600 focus:ring-purple-600"
+                                                    checked={currentPerms.admin}
+                                                    onChange={e => handlePermissionChange(module, 'admin', e.target.checked)}
+                                                />
+                                                <span className="text-zinc-600 dark:text-zinc-400 flex items-center gap-1">
+                                                    Admin <Shield size={10} className="text-purple-500" />
+                                                </span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                            <button
+                                onClick={() => setPermissionUser(null)}
+                                className="px-4 py-2 text-sm font-medium text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={savePermissions}
+                                className="px-4 py-2 text-sm font-medium text-white bg-zinc-900 dark:bg-white dark:text-black hover:bg-zinc-800 rounded-lg"
+                            >
+                                Guardar Permisos
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Invite Modal */}
             {showInviteModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">

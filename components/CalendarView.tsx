@@ -211,7 +211,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ user }) => {
     };
 
     return (
-        <div className="h-[calc(100vh-140px)] flex flex-col gap-6">
+        <div className="h-auto lg:h-[calc(100vh-140px)] flex flex-col gap-6">
             <div className="flex justify-between items-center shrink-0">
                 <div>
                     <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">Calendario Unificado</h2>
@@ -312,9 +312,26 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ user }) => {
                 </div>
             )}
 
-            <div className="flex-1 flex flex-col lg:flex-row gap-6 overflow-hidden">
+            <div className="flex-1 flex flex-col lg:flex-row gap-6 overflow-visible lg:overflow-hidden">
+                {/* Main Content Grid */}
+                <div className="h-[65vh] lg:h-auto flex-1 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden flex flex-col relative order-first">
+                    <CalendarGrid events={allEvents} />
+
+                    {/* Loading Overlay */}
+                    {(loadingEvents || isSyncing) && (
+                        <div className="absolute inset-0 bg-white/60 dark:bg-zinc-900/60 z-10 flex items-center justify-center backdrop-blur-[1px]">
+                            <div className="bg-white dark:bg-zinc-800 px-4 py-2 rounded-full shadow-lg border border-zinc-100 dark:border-zinc-700 flex items-center gap-3">
+                                <RefreshCw size={14} className="animate-spin text-blue-600" />
+                                <span className="text-xs font-medium">
+                                    {isSyncing ? 'Sincronizando con Google (puede tardar)...' : 'Cargando caché...'}
+                                </span>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
                 {/* Sidebar Controls */}
-                <div className="w-full lg:w-64 flex flex-col gap-4 overflow-y-auto shrink-0 pr-2 pb-4 border-r border-zinc-100 dark:border-zinc-800">
+                <div className="w-full lg:w-64 flex flex-col gap-4 overflow-y-auto shrink-0 pl-2 pb-4 border-l border-zinc-100 dark:border-zinc-800 order-last">
                     <div className="flex items-center justify-between">
                         <h3 className="font-semibold text-zinc-900 dark:text-white text-sm">Mis Calendarios</h3>
                         <button
@@ -375,23 +392,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ user }) => {
                             <strong>Sistema Caché:</strong> Los eventos cargan rápido desde nuestra BD. Si ves que faltan datos, dale al botón 🔄 para descargar los nuevos desde la fuente.
                         </div>
                     </div>
-                </div>
-
-                {/* Main Content Grid */}
-                <div className="flex-1 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden flex flex-col relative">
-                    <CalendarGrid events={allEvents} />
-
-                    {/* Loading Overlay */}
-                    {(loadingEvents || isSyncing) && (
-                        <div className="absolute inset-0 bg-white/60 dark:bg-zinc-900/60 z-10 flex items-center justify-center backdrop-blur-[1px]">
-                            <div className="bg-white dark:bg-zinc-800 px-4 py-2 rounded-full shadow-lg border border-zinc-100 dark:border-zinc-700 flex items-center gap-3">
-                                <RefreshCw size={14} className="animate-spin text-blue-600" />
-                                <span className="text-xs font-medium">
-                                    {isSyncing ? 'Sincronizando con Google (puede tardar)...' : 'Cargando caché...'}
-                                </span>
-                            </div>
-                        </div>
-                    )}
                 </div>
             </div>
         </div>

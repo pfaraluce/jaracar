@@ -1,6 +1,16 @@
 import { supabase } from './supabase';
 
 export const profileService = {
+    getAllProfiles: async () => {
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .in('status', ['APPROVED', 'PENDING']); // Fetch all active users
+
+        if (error) throw new Error(error.message);
+        return data;
+    },
+
     getProfile: async (userId: string) => {
         const { data, error } = await supabase
             .from('profiles')

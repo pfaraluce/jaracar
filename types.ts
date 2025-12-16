@@ -3,6 +3,18 @@ export enum UserRole {
   USER = 'USER',
 }
 
+export interface PermissionLevel {
+  view: boolean;
+  admin: boolean;
+}
+
+export interface UserPermissions {
+  vehicles?: PermissionLevel;
+  meals?: PermissionLevel;
+  maintenance?: PermissionLevel;
+  calendar?: PermissionLevel;
+}
+
 export interface User {
   id: string;
   email: string;
@@ -10,6 +22,7 @@ export interface User {
   role: UserRole;
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   avatarUrl?: string;
+  permissions?: UserPermissions;
 }
 
 export enum CarStatus {

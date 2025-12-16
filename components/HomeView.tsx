@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { User, Car, Reservation, MealTemplate, MealOrder } from '../types';
+import { hasAccess } from '../utils/permissions';
 import { carService } from '../services/cars';
 import { reservationService } from '../services/reservations';
 import { mealService } from '../services/meals';
 import { useCalendarEvents } from '../hooks/useCalendarEvents';
+import { SugarPacket } from './SugarPacket';
 import {
     Car as CarIcon,
     Utensils,
@@ -26,7 +28,7 @@ interface HomeViewProps {
 export const HomeView: React.FC<HomeViewProps> = ({ user, onNavigate }) => {
     // Data State
     const [stats, setStats] = useState({ availableCars: 0, totalCars: 0 });
-    const [nextMeal, setNextMeal] = useState<{ ordered: boolean, type: string, description: string } | null>(null);
+    const [nextMeal, setNextMeal] = useState<{ ordered: boolean, type: string, description: string, optionLabel: string } | null>(null);
     const { events, loading: eventsLoading } = useCalendarEvents();
 
     // Quick Fleet State
@@ -69,20 +71,37 @@ export const HomeView: React.FC<HomeViewProps> = ({ user, onNavigate }) => {
             const order = orders.find(o => o.mealType === relevantType);
             const template = templates.find(t => t.dayOfWeek === dayOfWeek && t.mealType === relevantType);
 
+            const getOptionLabel = (opt: string) => {
+                const map: Record<string, string> = {
+                    'standard': 'Estándar',
+                    'early': 'Pronto',
+                    'late': 'Tarde',
+                    'tupper': 'Tupper',
+                    'bag': 'Bolsa',
+                    'skip': 'No Asisto'
+                };
+                return map[opt] || opt;
+            };
+
+            // Readable Titles
+            const typeLabel = relevantType === 'lunch' ? 'Comida' : 'Cena';
+
             if (order) {
                 setNextMeal({
                     ordered: true,
-                    type: relevantType === 'lunch' ? 'Comida' : 'Cena',
-                    description: `Opción ${order.option}`
+                    type: typeLabel,
+                    description: order.option === 'skip' ? 'No asistirás' : 'Pedido Confirmado',
+                    optionLabel: getOptionLabel(order.option)
                 });
             } else if (template) {
                 setNextMeal({
                     ordered: false,
-                    type: relevantType === 'lunch' ? 'Comida' : 'Cena',
-                    description: `Disponible: Opción ${template.option}`
+                    type: typeLabel,
+                    description: 'Planificado (Plantilla)',
+                    optionLabel: `Predeterminado: ${getOptionLabel(template.option)}`
                 });
             } else {
-                setNextMeal(null); // No service today
+                setNextMeal(null); // No service today/active
             }
 
         } catch (error) {
@@ -102,110 +121,129 @@ export const HomeView: React.FC<HomeViewProps> = ({ user, onNavigate }) => {
                 </p>
             </header>
 
+
+
+
             {/* Quick Widgets Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
                 {/* 1. Fleet Availability Widget */}
-                <div
-                    onClick={() => onNavigate('VEHICLES')}
-                    className="group bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 hover:shadow-lg transition-all cursor-pointer relative overflow-hidden"
-                >
-                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <CarIcon size={64} />
-                    </div>
-
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-blue-600 dark:text-blue-400">
-                            <CarIcon size={20} />
+                {hasAccess(user, 'vehicles') && (
+                    <div
+                        onClick={() => onNavigate('VEHICLES')}
+                        className="group bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 hover:shadow-lg transition-all cursor-pointer relative overflow-hidden"
+                    >
+                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                            <CarIcon size={64} />
                         </div>
-                        <h3 className="font-semibold text-zinc-900 dark:text-white">Flota</h3>
-                    </div>
 
-                    <div className="space-y-1 z-10 relative">
-                        <div className="text-3xl font-bold text-zinc-900 dark:text-white">
-                            {stats.availableCars} <span className="text-sm font-normal text-zinc-500">libres</span>
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-blue-600 dark:text-blue-400">
+                                <CarIcon size={20} />
+                            </div>
+                            <h3 className="font-semibold text-zinc-900 dark:text-white">Flota</h3>
                         </div>
-                        <p className="text-xs text-zinc-500">de {stats.totalCars} vehículos en total</p>
-                    </div>
 
-                    <div className="mt-6 flex items-center gap-2 text-sm font-medium text-blue-600 dark:text-blue-400">
-                        Reservar ahora <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                        <div className="space-y-1 z-10 relative">
+                            <div className="text-3xl font-bold text-zinc-900 dark:text-white">
+                                {stats.availableCars} <span className="text-sm font-normal text-zinc-500">libres</span>
+                            </div>
+                            <p className="text-xs text-zinc-500">de {stats.totalCars} vehículos en total</p>
+                        </div>
+
+                        <div className="mt-6 flex items-center gap-2 text-sm font-medium text-blue-600 dark:text-blue-400">
+                            Reservar ahora <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                        </div>
                     </div>
-                </div>
+                )}
 
                 {/* 2. Meals Widget */}
-                <div
-                    onClick={() => onNavigate('MEALS')}
-                    className="group bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 hover:shadow-lg transition-all cursor-pointer relative overflow-hidden"
-                >
-                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <Utensils size={64} />
-                    </div>
-
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg text-emerald-600 dark:text-emerald-400">
-                            <Utensils size={20} />
+                {hasAccess(user, 'meals') && (
+                    <div
+                        onClick={() => onNavigate('MEALS')}
+                        className="group bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 hover:shadow-lg transition-all cursor-pointer relative overflow-hidden"
+                    >
+                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                            <Utensils size={64} />
                         </div>
-                        <h3 className="font-semibold text-zinc-900 dark:text-white">Comidas</h3>
-                    </div>
 
-                    <div className="z-10 relative">
-                        {nextMeal ? (
-                            <div className="space-y-2">
-                                <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full ${nextMeal.ordered ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'}`}>
-                                    {nextMeal.ordered ? <CheckCircle2 size={12} /> : <Clock size={12} />}
-                                    {nextMeal.ordered ? 'Pedido Confirmado' : 'Pendiente'}
-                                </span>
-                                <div className="text-xl font-bold text-zinc-900 dark:text-white">
-                                    {nextMeal.type}
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg text-emerald-600 dark:text-emerald-400">
+                                <Utensils size={20} />
+                            </div>
+                            <h3 className="font-semibold text-zinc-900 dark:text-white">Próxima Comida</h3>
+                        </div>
+
+                        <div className="z-10 relative">
+                            {nextMeal ? (
+                                <div className="space-y-2">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <div className="text-xl font-bold text-zinc-900 dark:text-white capitalize">
+                                                {nextMeal.type}
+                                            </div>
+                                            <div className="text-xs font-medium text-zinc-500 mt-1 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-md inline-block">
+                                                {nextMeal.optionLabel}
+                                            </div>
+                                        </div>
+                                        <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full ${nextMeal.ordered
+                                                ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
+                                                : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
+                                            }`}>
+                                            {nextMeal.ordered ? <CheckCircle2 size={10} /> : <Clock size={10} />}
+                                            {nextMeal.ordered ? 'Confirmado' : 'Pendiente'}
+                                        </span>
+                                    </div>
                                 </div>
-                                <p className="text-sm text-zinc-500 line-clamp-1">{nextMeal.description}</p>
-                            </div>
-                        ) : (
-                            <div className="text-zinc-500 py-2">
-                                <p className="font-medium text-zinc-900 dark:text-white">Sin servicio</p>
-                                <p className="text-xs">No hay comidas programadas ahora.</p>
-                            </div>
-                        )}
-                    </div>
+                            ) : (
+                                <div className="text-zinc-500 py-2">
+                                    <p className="font-medium text-zinc-900 dark:text-white">Sin servicio</p>
+                                    <p className="text-xs">No hay comidas programadas ahora.</p>
+                                </div>
+                            )}
+                        </div>
 
-                    <div className="mt-6 flex items-center gap-2 text-sm font-medium text-emerald-600 dark:text-emerald-400">
-                        Ver menú <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                        <div className="mt-6 flex items-center gap-2 text-sm font-medium text-emerald-600 dark:text-emerald-400">
+                            Ver menú <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                        </div>
                     </div>
-                </div>
+                )}
 
                 {/* 3. Maintenance Shortcut */}
-                <div
-                    onClick={() => onNavigate('MAINTENANCE')}
-                    className="group bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 hover:shadow-lg transition-all cursor-pointer relative overflow-hidden"
-                >
-                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <Wrench size={64} />
-                    </div>
-
-                    <div className="flex items-center gap-3 mb-4">
-                        <div className="p-2 bg-amber-50 dark:bg-amber-900/20 rounded-lg text-amber-600 dark:text-amber-400">
-                            <Wrench size={20} />
+                {hasAccess(user, 'maintenance') && (
+                    <div
+                        onClick={() => onNavigate('MAINTENANCE')}
+                        className="group bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 hover:shadow-lg transition-all cursor-pointer relative overflow-hidden"
+                    >
+                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                            <Wrench size={64} />
                         </div>
-                        <h3 className="font-semibold text-zinc-900 dark:text-white">Mantenimiento</h3>
-                    </div>
 
-                    <div className="space-y-2 z-10 relative">
-                        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                            ¿Algo no funciona? Reporta incidencias en el hogar o vehículos.
-                        </p>
-                        <div className="flex items-center gap-2 text-xs text-zinc-500 pt-2">
-                            <AlertCircle size={14} />
-                            <span>Respuesta media: 24h</span>
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="p-2 bg-amber-50 dark:bg-amber-900/20 rounded-lg text-amber-600 dark:text-amber-400">
+                                <Wrench size={20} />
+                            </div>
+                            <h3 className="font-semibold text-zinc-900 dark:text-white">Mantenimiento</h3>
+                        </div>
+
+                        <div className="space-y-2 z-10 relative">
+                            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                                ¿Algo no funciona? Reporta incidencias en el hogar o vehículos.
+                            </p>
+                            <div className="flex items-center gap-2 text-xs text-zinc-500 pt-2">
+                                <AlertCircle size={14} />
+                                <span>Respuesta media: 24h</span>
+                            </div>
+                        </div>
+
+                        <div className="mt-6 flex items-center gap-2 text-sm font-medium text-amber-600 dark:text-amber-400">
+                            Crear Ticket <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
                         </div>
                     </div>
-
-                    <div className="mt-6 flex items-center gap-2 text-sm font-medium text-amber-600 dark:text-amber-400">
-                        Crear Ticket <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
-                    </div>
-                </div>
+                )}
 
             </div>
+
 
             {/* Today's Agenda Section */}
             <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-6">
@@ -282,6 +320,11 @@ export const HomeView: React.FC<HomeViewProps> = ({ user, onNavigate }) => {
                         )
                     )}
                 </div>
+            </div>
+
+            {/* Sugar Packet Quote Widget (Moved to bottom) */}
+            <div className="w-full pb-8">
+                <SugarPacket />
             </div>
         </div>
     );

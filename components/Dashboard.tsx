@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User } from '../types';
+import { hasAccess } from '../utils/permissions';
 import { Logo } from './Logo';
 import { UserAvatar } from './UserAvatar';
 import { ProfileModal } from './ProfileModal';
@@ -10,6 +11,7 @@ import { VehiclesView } from './VehiclesView';
 import { MealsView } from './MealsView';
 import { MaintenanceView } from './MaintenanceView';
 import { CalendarView } from './CalendarView';
+import { CountdownTimer } from './CountdownTimer';
 import {
   LogOut,
   LayoutDashboard,
@@ -31,11 +33,36 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpdate }) => {
-  const [currentView, setCurrentView] = useState<DashboardView>('HOME');
+  // Determine if user is "Restricted" (has permissions object AND is not ADMIN)
+  const isRestricted = user.role !== 'ADMIN' && !!user.permissions && Object.keys(user.permissions).length > 0;
+
+  // Determine standard start view
+  const getInitialView = (): DashboardView => {
+    if (!isRestricted) return 'HOME'; // Standard / Admin users start at Home
+
+    if (hasAccess(user, 'vehicles')) return 'VEHICLES';
+    if (hasAccess(user, 'meals')) return 'MEALS';
+    if (hasAccess(user, 'maintenance')) return 'MAINTENANCE';
+    if (hasAccess(user, 'calendar')) return 'CALENDAR';
+
+    return 'HOME';
+  };
+
+  const [currentView, setCurrentView] = useState<DashboardView>(getInitialView);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
+
+  // Force redirect if user is on HOME but shouldn't be
+  useEffect(() => {
+    if (isRestricted && currentView === 'HOME') {
+      const newView = getInitialView();
+      if (newView !== 'HOME') {
+        setCurrentView(newView);
+      }
+    }
+  }, [user, isRestricted, currentView]);
 
   // Check if user is new (first time login)
   useEffect(() => {
@@ -110,16 +137,31 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
 
           {/* Navigation Links */}
           <div className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-            <NavItem view="HOME" icon={LayoutDashboard} label="Inicio" />
+            {!isRestricted && (
+              <NavItem view="HOME" icon={LayoutDashboard} label="Inicio" />
+            )}
+
             <div className="pt-4 pb-2">
               <p className="px-4 text-xs font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
                 Módulos
               </p>
             </div>
-            <NavItem view="VEHICLES" icon={Car} label="Vehículos" />
-            <NavItem view="MEALS" icon={UtensilsCrossed} label="Comidas" />
-            <NavItem view="MAINTENANCE" icon={Wrench} label="Mantenimiento" />
-            <NavItem view="CALENDAR" icon={Calendar} label="Calendario" />
+
+            {hasAccess(user, 'vehicles') && (
+              <NavItem view="VEHICLES" icon={Car} label="Vehículos" />
+            )}
+
+            {hasAccess(user, 'meals') && (
+              <NavItem view="MEALS" icon={UtensilsCrossed} label="Comidas" />
+            )}
+
+            {hasAccess(user, 'maintenance') && (
+              <NavItem view="MAINTENANCE" icon={Wrench} label="Mantenimiento" />
+            )}
+
+            {hasAccess(user, 'calendar') && (
+              <NavItem view="CALENDAR" icon={Calendar} label="Calendario" />
+            )}
           </div>
 
           {/* User Profile Footer */}
@@ -145,7 +187,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 h-full min-h-screen lg:h-screen lg:overflow-hidden">
         {/* Mobile Header */}
         <header className="h-16 md:hidden flex items-center justify-between px-4 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
           <button
@@ -159,9 +201,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
         </header>
 
         {/* Scrollable Content */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+        <main className="flex-1 lg:overflow-y-auto p-4 sm:p-6 lg:p-8">
           <div className="max-w-6xl mx-auto">
-            {currentView === 'HOME' && (
+            {!isRestricted && currentView === 'HOME' && (
               <HomeView user={user} onNavigate={(view) => setCurrentView(view)} />
             )}
 
@@ -199,6 +241,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
           onSkip={handleTutorialComplete}
         />
       )}
+
+      {/* Global Countdown Timer */}
+      <CountdownTimer />
     </div>
   );
 };

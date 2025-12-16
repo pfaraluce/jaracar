@@ -10,10 +10,12 @@ import {
     isSameDay,
     addMonths,
     subMonths,
-    isToday
+    isToday,
+    addDays,
+    subDays
 } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, MapPin, Clock, BookOpen, MessageCircle, FileText, Palette, Scroll, Flower2, Sun, ExternalLink, AlertCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, MapPin, Clock, BookOpen, MessageCircle, FileText, Palette, Scroll, Flower2, Sun, ExternalLink, AlertCircle, List, HandHelping } from 'lucide-react';
 import { CalendarEvent, EpactaMetadata } from '../services/icalParser';
 
 interface CalendarGridProps {
@@ -34,8 +36,29 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({ events }) => {
 
     const weekDays = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
-    const prevMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
-    const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
+    const handlePrev = () => {
+        if (selectedDate) {
+            const newDate = subDays(selectedDate, 1);
+            setSelectedDate(newDate);
+            if (!isSameMonth(newDate, currentMonth)) {
+                setCurrentMonth(newDate);
+            }
+        } else {
+            setCurrentMonth(subMonths(currentMonth, 1));
+        }
+    };
+
+    const handleNext = () => {
+        if (selectedDate) {
+            const newDate = addDays(selectedDate, 1);
+            setSelectedDate(newDate);
+            if (!isSameMonth(newDate, currentMonth)) {
+                setCurrentMonth(newDate);
+            }
+        } else {
+            setCurrentMonth(addMonths(currentMonth, 1));
+        }
+    };
 
     const getEventsForDay = (day: Date) => {
         return events.filter(e => isSameDay(e.start, day));
@@ -113,18 +136,6 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({ events }) => {
                     )}
                 </div>
 
-                {/* Alerts [Bracketed Text & Consagrar Viril] */}
-                {meta.alerts && meta.alerts.length > 0 && (
-                    <div className="flex flex-col gap-2">
-                        {meta.alerts.map((alert, i) => (
-                            <div key={i} className="flex gap-2 text-xs bg-orange-50 dark:bg-orange-900/20 text-orange-800 dark:text-orange-200 p-2 rounded border border-orange-100 dark:border-orange-900/30">
-                                <AlertCircle size={14} className="shrink-0 mt-0.5" />
-                                <span className="font-medium"><FormattedText text={alert} /></span>
-                            </div>
-                        ))}
-                    </div>
-                )}
-
                 {/* Misal */}
                 {meta.misal && (
                     <div className="flex gap-2 text-xs text-zinc-700 dark:text-zinc-300">
@@ -143,21 +154,17 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({ events }) => {
 
                 {/* Prefacio & Plegaria */}
                 {(meta.prefacio || meta.plegaria) && (
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-2">
                         {meta.prefacio && (
-                            <div className="bg-amber-50 dark:bg-amber-900/10 p-2 rounded border border-amber-100 dark:border-amber-900/30">
-                                <span className="block text-[9px] font-bold text-amber-700 dark:text-amber-500 uppercase mb-1">Prefacio</span>
-                                <span className="text-xs text-amber-900 dark:text-amber-200 leading-tight block">
-                                    <FormattedText text={meta.prefacio} />
-                                </span>
+                            <div className="flex gap-2 text-xs text-zinc-700 dark:text-zinc-300">
+                                <List size={14} className="shrink-0 mt-0.5 text-zinc-400" />
+                                <span className="leading-relaxed"><FormattedText text={meta.prefacio} /></span>
                             </div>
                         )}
                         {meta.plegaria && (
-                            <div className="bg-amber-50 dark:bg-amber-900/10 p-2 rounded border border-amber-100 dark:border-amber-900/30">
-                                <span className="block text-[9px] font-bold text-amber-700 dark:text-amber-500 uppercase mb-1">Plegaria</span>
-                                <span className="text-xs text-amber-900 dark:text-amber-200 leading-tight block">
-                                    <FormattedText text={meta.plegaria} />
-                                </span>
+                            <div className="flex gap-2 text-xs text-zinc-700 dark:text-zinc-300">
+                                <HandHelping size={14} className="shrink-0 mt-0.5 text-zinc-400" />
+                                <span className="leading-relaxed"><FormattedText text={meta.plegaria} /></span>
                             </div>
                         )}
                     </div>
@@ -191,6 +198,18 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({ events }) => {
                         ))}
                     </div>
                 )}
+
+                {/* Alerts [Bracketed Text & Consagrar Viril] - MOVED TO BOTTOM */}
+                {meta.alerts && meta.alerts.length > 0 && (
+                    <div className="flex flex-col gap-2 pt-2">
+                        {meta.alerts.map((alert, i) => (
+                            <div key={i} className="flex gap-2 text-xs bg-orange-50 dark:bg-orange-900/20 text-orange-800 dark:text-orange-200 p-2 rounded border border-orange-100 dark:border-orange-900/30">
+                                <AlertCircle size={14} className="shrink-0 mt-0.5" />
+                                <span className="font-medium"><FormattedText text={alert} /></span>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
         );
     };
@@ -200,16 +219,16 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({ events }) => {
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-zinc-200 dark:border-zinc-800">
                 <h3 className="text-lg font-bold text-zinc-900 dark:text-white capitalize">
-                    {format(currentMonth, 'MMMM yyyy', { locale: es })}
+                    {format(selectedDate || currentMonth, selectedDate ? 'EEEE d, MMMM' : 'MMMM yyyy', { locale: es })}
                 </h3>
                 <div className="flex items-center gap-2">
-                    <button onClick={prevMonth} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full">
+                    <button onClick={handlePrev} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full">
                         <ChevronLeft size={20} className="text-zinc-600 dark:text-zinc-400" />
                     </button>
-                    <button onClick={() => setCurrentMonth(new Date())} className="px-3 py-1 text-xs font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 rounded-md">
+                    <button onClick={() => { setCurrentMonth(new Date()); setSelectedDate(null); }} className="px-3 py-1 text-xs font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 rounded-md">
                         Hoy
                     </button>
-                    <button onClick={nextMonth} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full">
+                    <button onClick={handleNext} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full">
                         <ChevronRight size={20} className="text-zinc-600 dark:text-zinc-400" />
                     </button>
                 </div>
@@ -317,15 +336,30 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({ events }) => {
                                             </div>
 
                                             {/* RENDER EPACTA SPECIFIC DETAILS OR FALLBACK */}
-                                            {ev.metadata && Object.keys(ev.metadata).length > 0 ? (
-                                                renderEpactaDetails(ev.metadata)
-                                            ) : (
-                                                ev.description && (
-                                                    <div className="mt-2 text-xs text-zinc-600 dark:text-zinc-400 border-t border-zinc-200 dark:border-zinc-700 pt-2 line-clamp-4">
-                                                        {ev.description}
-                                                    </div>
-                                                )
-                                            )}
+                                            {(() => {
+                                                const isSuplemento = ev.title?.toLowerCase().includes('suplementos');
+
+                                                if (!isSuplemento && ev.metadata && Object.keys(ev.metadata).length > 0) {
+                                                    return renderEpactaDetails(ev.metadata);
+                                                }
+
+                                                if (ev.description) {
+                                                    if (isSuplemento) {
+                                                        return (
+                                                            <div
+                                                                className="mt-2 text-xs text-zinc-600 dark:text-zinc-400 border-t border-zinc-200 dark:border-zinc-700 pt-2 prose prose-xs dark:prose-invert max-w-none [&>a]:text-blue-600 [&>a]:underline"
+                                                                dangerouslySetInnerHTML={{ __html: ev.description }}
+                                                            />
+                                                        );
+                                                    }
+                                                    return (
+                                                        <div className="mt-2 text-xs text-zinc-600 dark:text-zinc-400 border-t border-zinc-200 dark:border-zinc-700 pt-2 line-clamp-4">
+                                                            {ev.description}
+                                                        </div>
+                                                    );
+                                                }
+                                                return null;
+                                            })()}
                                         </div>
                                     ))}
                                 </div>

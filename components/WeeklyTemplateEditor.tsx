@@ -148,7 +148,7 @@ export const WeeklyTemplateEditor: React.FC<WeeklyTemplateEditorProps> = ({ user
                                             <td key={meal.id} className="px-6 py-4">
                                                 <div className="space-y-2">
                                                     <select
-                                                        value={current?.option || 'standard'}
+                                                        value={current?.option || 'skip'}
                                                         onChange={(e) => handleChange(day.id, meal.id, 'option', e.target.value)}
                                                         className="w-full px-3 py-2 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-sm text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white appearance-none"
                                                     >

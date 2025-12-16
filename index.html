@@ -1,52 +1,60 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>JaraCar - Gestión de Vehículos</title>
-    
-    <!-- Favicons -->
-    <link rel="icon" type="image/svg+xml" href="/jaracar-favicon.svg" media="(prefers-color-scheme: light)" />
-    <link rel="icon" type="image/svg+xml" href="/jaracar-favicon-white.svg" media="(prefers-color-scheme: dark)" />
-    <link rel="icon" type="image/png" href="/jaracar-favicon.png" />
-    
-    <!-- OpenGraph Meta Tags -->
-    <meta property="og:title" content="JaraCar - Gestión de Vehículos" />
-    <meta property="og:description" content="Sistema de gestión y reservas de vehículos" />
-    <meta property="og:image" content="/jaracar-og.png" />
-    <meta property="og:type" content="website" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <style>
-      :root {
-        --background: 0 0% 100%;
-        --foreground: 240 10% 3.9%;
-        --border: 240 5.9% 90%;
-        --input: 240 5.9% 90%;
-        --ring: 240 5% 64.9%;
-        --radius: 0.5rem;
-      }
-      body {
-        background-color: #fafafa; /* Very light gray for depth */
-        color: #18181b;
-        -webkit-font-smoothing: antialiased;
-      }
-      /* Custom Scrollbar for sleekness */
-      ::-webkit-scrollbar {
-        width: 6px;
-      }
-      ::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #e4e4e7;
-        border-radius: 3px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #d4d4d8;
-      }
-    </style>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JaraCar - Gestión de Vehículos</title>
+
+  <!-- Favicons -->
+  <link rel="icon" type="image/svg+xml" href="/jaracar-favicon.svg" media="(prefers-color-scheme: light)" />
+  <link rel="icon" type="image/svg+xml" href="/jaracar-favicon-white.svg" media="(prefers-color-scheme: dark)" />
+  <link rel="icon" type="image/png" href="/jaracar-favicon.png" />
+
+  <!-- OpenGraph Meta Tags -->
+  <meta property="og:title" content="JaraCar - Gestión de Vehículos" />
+  <meta property="og:description" content="Sistema de gestión y reservas de vehículos" />
+  <meta property="og:image" content="/jaracar-og.png" />
+  <meta property="og:type" content="website" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Parisienne&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --background: 0 0% 100%;
+      --foreground: 240 10% 3.9%;
+      --border: 240 5.9% 90%;
+      --input: 240 5.9% 90%;
+      --ring: 240 5% 64.9%;
+      --radius: 0.5rem;
+    }
+
+    body {
+      background-color: #fafafa;
+      /* Very light gray for depth */
+      color: #18181b;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Custom Scrollbar for sleekness */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #e4e4e7;
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #d4d4d8;
+    }
+  </style>
   <script type="importmap">
 {
   "imports": {
@@ -61,8 +69,10 @@
 }
 </script>
 </head>
-  <body>
-    <div id="root"></div>
+
+<body>
+  <div id="root"></div>
   <script type="module" src="/index.tsx"></script>
 </body>
+
 </html>

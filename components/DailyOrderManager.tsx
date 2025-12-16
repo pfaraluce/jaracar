@@ -1,29 +1,38 @@
 import React, { useState, useEffect } from 'react';
 import { MealOrder, MealTemplate } from '../types';
 import { mealService } from '../services/meals';
+import { kitchenService, DailyLock } from '../services/kitchen';
 import { ChevronLeft, ChevronRight, ShoppingBag } from 'lucide-react';
+import { format, subDays, addDays } from 'date-fns';
 
 interface DailyOrderManagerProps {
     userId: string;
 }
 
 const MEALS = [
-    { id: 'breakfast', name: 'Desayuno', cutoffHour: 10 }, // Example cutoff: 10AM (actually user said night before, simplifying for now)
-    { id: 'lunch', name: 'Comida', cutoffHour: 10 },    // User said: 10am same day?? Need to clarify but will implement basic check
-    { id: 'dinner', name: 'Cena', cutoffHour: 17 }      // User said: send to kitchen at X.
+    { id: 'breakfast', name: 'Desayuno' },
+    { id: 'lunch', name: 'Comida' },
+    { id: 'dinner', name: 'Cena' }
 ];
 
 export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId }) => {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [orders, setOrders] = useState<MealOrder[]>([]);
     const [templates, setTemplates] = useState<MealTemplate[]>([]);
+    const [locks, setLocks] = useState<DailyLock[]>([]); // New: Store effective locks
     const [loading, setLoading] = useState(true);
 
-    // Helper to get start of week
+    // Helper to get today (normalized)
+    const getToday = () => {
+        const d = new Date();
+        d.setHours(0, 0, 0, 0);
+        return d;
+    };
+
     const getStartOfWeek = (date: Date) => {
         const d = new Date(date);
         const day = d.getDay();
-        const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+        const diff = d.getDate() - day + (day === 0 ? -6 : 1);
         return new Date(d.setDate(diff));
     };
 
@@ -38,12 +47,43 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId }) 
             const endOfWeek = new Date(startOfWeek);
             endOfWeek.setDate(endOfWeek.getDate() + 6);
 
-            const [ordersData, templatesData] = await Promise.all([
+            // Fetch Locks for the week AND the previous day (for prep check on Monday)
+            // Ideally we need locks for [startOfWeek-1 to endOfWeek]
+            // For now, simpler: we fetch locks for this range.
+            // If user navigates, we re-fetch.
+
+            // To properly check "Yesterday's Lock" for Monday, we need Sunday's lock status.
+            // The `kitchenService.getLocks(date)` fetches for a single day usually?
+            // Actually `getLocks` in implementation returns `DailyLock[]` for ONE day.
+            // We need a range fetch or loop.
+            // Let's implement a batch fetch or just simpler logic: 
+            // Fetch locks for every day of the week + previous day.
+            // Optimization: `kitchenService` doesn't have a range fetch yet. 
+            // Ideally we add `getLocksRange(start, end)`. 
+            // For now, I'll parallel fetch 8 days (dumb but works for small scale).
+
+            const daysToFetch = [];
+            const d = new Date(startOfWeek);
+            d.setDate(d.getDate() - 1); // Start from day before
+            for (let i = 0; i < 8; i++) {
+                daysToFetch.push(new Date(d));
+                d.setDate(d.getDate() + 1);
+            }
+
+            const locksPromises = daysToFetch.map(day =>
+                kitchenService.getDailyLockStatus(format(day, 'yyyy-MM-dd'))
+                    .then(isLocked => ({ date: format(day, 'yyyy-MM-dd'), isLocked }))
+            );
+
+            const [ordersData, templatesData, locksData] = await Promise.all([
                 mealService.getMyOrders(startOfWeek.toISOString().split('T')[0], endOfWeek.toISOString().split('T')[0]),
-                mealService.getMyTemplates()
+                mealService.getMyTemplates(),
+                Promise.all(locksPromises)
             ]);
+
             setOrders(ordersData);
             setTemplates(templatesData);
+            setLocks(locksData as any); // Type cast simplified
         } catch (e) {
             console.error(e);
         } finally {
@@ -52,13 +92,11 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId }) 
     };
 
     const getMealForDate = (date: Date, mealType: string) => {
-        const dateStr = date.toISOString().split('T')[0];
+        const dateStr = format(date, 'yyyy-MM-dd');
         const existingOrder = orders.find(o => o.date === dateStr && o.mealType === mealType);
 
         if (existingOrder) return { ...existingOrder, source: 'order' };
 
-        // Fallback to template
-        // JS getDay(): 0=Sun, 1=Mon. DB: 1=Mon, 7=Sun
         let dayOfWeek = date.getDay();
         if (dayOfWeek === 0) dayOfWeek = 7;
 
@@ -66,38 +104,71 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId }) 
         return template ? { ...template, source: 'template', date: dateStr, status: 'pending' } : null;
     };
 
-    const isLocked = (date: Date, mealType: string) => {
-        const now = new Date();
-        const mealDate = new Date(date);
+    const isLocked = (date: Date, mealType: string, intendedOption?: string): boolean => {
+        const dateStr = format(date, 'yyyy-MM-dd');
+        const prevDay = new Date(date);
+        prevDay.setDate(prevDay.getDate() - 1);
+        const prevDateStr = format(prevDay, 'yyyy-MM-dd');
 
-        // Simple logic based on User Request:
-        // "after update time... cannot modify today's lunch/dinner, nor tomorrow breakfast"
-        // Let's assume Cutoff is 10:00 AM for Lunch/Dinner of TODAY
-        // And 20:00 PM for Breakfast of TOMORROW
-        // This is a Placeholder logic to be refined.
+        // 1. Check if Yesterday is Locked (Prep Cutoff)
+        const isPrevLocked = locks.find(l => l.date === prevDateStr)?.isLocked || false;
 
-        // If day is in past, locked.
-        const todayStr = now.toISOString().split('T')[0];
-        const targetStr = mealDate.toISOString().split('T')[0];
+        // 2. Check if Today is Locked (Service Cutoff)
+        const isTodayLocked = locks.find(l => l.date === dateStr)?.isLocked || false;
 
-        if (targetStr < todayStr) return true;
+        // --- RULES ---
 
-        // TODO: Implement precise hour checks
+        // RULE A: Breakfast is ALWAYS Prep. Controlled by Yesterday.
+        if (mealType === 'breakfast') {
+            if (isPrevLocked) return true;
+        }
+
+        // RULE B: Lunch/Dinner Tuppers/Bags are Prep. Controlled by Yesterday.
+        if (intendedOption === 'tupper' || intendedOption === 'bag') {
+            if (isPrevLocked) return true;
+        }
+
+        // RULE C: If switching TO Tupper/Bag, we need Yesterday Open.
+        // We handle this in UI (disable specific options).
+        // Here we return general lock status for the meal row.
+
+        // RULE D: Regular Lunch/Dinner (Standard, Early, Late) controlled by Today.
+        if (mealType !== 'breakfast') {
+            if (isTodayLocked) return true;
+        }
+
+        // Safety: Cannot edit past days
+        if (date < getToday()) return true;
+
+        return false;
+    };
+
+    // New helper to detect if specific options should be disabled
+    const isOptionDisabled = (date: Date, mealType: string, optionValue: string) => {
+        // If it's a Prep option (Tupper/Bag), needs YESTERDAY open.
+        if (optionValue === 'tupper' || optionValue === 'bag') {
+            const prevDay = subDays(date, 1);
+            const prevDateStr = format(prevDay, 'yyyy-MM-dd');
+            const isPrevLocked = locks.find(l => l.date === prevDateStr)?.isLocked;
+            if (isPrevLocked) return true;
+        }
         return false;
     };
 
     const handleUpdateOrder = async (date: Date, mealType: string, option: string, isBag: boolean) => {
-        if (isLocked(date, mealType)) {
-            alert("El periodo de modificación ha cerrado para esta comida.");
+        if (isLocked(date, mealType, option)) {
+            alert("El pedido está cerrado para esta opción (requiere antelación).");
             return;
         }
+        // Force isBag if option is 'bag'
+        const finalIsBag = option === 'bag' ? true : (option === 'tupper' ? false : isBag); // Reset bag flag if not bag
 
-        const dateStr = date.toISOString().split('T')[0];
+        // If option is 'bag', we store option='bag' AND isBag=true for consistency or just rely on option
+        // DB Schema has `option` and `is_bag`. 
 
-        // Optimistic UI could go here
-
-        await mealService.upsertOrder(userId, dateStr, mealType, option, isBag);
-        loadData(); // Refresh to confirm
+        const dateStr = format(date, 'yyyy-MM-dd');
+        await mealService.upsertOrder(userId, dateStr, mealType, option, finalIsBag);
+        loadData();
     };
 
     const weekDays = [];
@@ -127,7 +198,7 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId }) 
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {weekDays.map(day => (
-                    <div key={day.toISOString()} className={`p-4 rounded-xl border ${day.toISOString().split('T')[0] === new Date().toISOString().split('T')[0]
+                    <div key={day.toISOString()} className={`p-4 rounded-xl border ${format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')
                         ? 'bg-zinc-50 dark:bg-zinc-800/80 border-zinc-300 dark:border-zinc-700 ring-1 ring-zinc-300 dark:ring-zinc-700'
                         : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800'
                         }`}>
@@ -138,7 +209,8 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId }) 
                         <div className="space-y-4">
                             {MEALS.map(meal => {
                                 const data = getMealForDate(day, meal.id);
-                                const locked = isLocked(day, meal.id);
+                                // Check generic lock (for displaying "Locked" badge)
+                                const completelyLocked = isLocked(day, meal.id);
 
                                 let options: { value: string; label: string }[] = [];
                                 if (meal.id === 'breakfast') {
@@ -164,18 +236,18 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId }) 
                                     ];
                                 }
 
-                                const currentValue = data?.option || 'standard';
+                                const currentValue = data?.option || 'skip';
 
                                 return (
                                     <div key={meal.id} className="space-y-1">
                                         <div className="flex justify-between items-center text-xs">
                                             <span className="font-medium text-zinc-500 dark:text-zinc-400">{meal.name}</span>
-                                            {locked && <span className="text-amber-600 text-[10px]">Cerrado</span>}
+                                            {completelyLocked && <span className="text-amber-600 text-[10px] font-bold">Cerrado</span>}
                                         </div>
 
                                         <div className="flex gap-2">
                                             <select
-                                                disabled={locked}
+
                                                 value={currentValue}
                                                 onChange={(e) => handleUpdateOrder(day, meal.id, e.target.value, false)}
                                                 className={`w-full px-2 py-1.5 text-sm rounded-md border ${data?.source === 'template'
@@ -183,9 +255,20 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId }) 
                                                     : 'border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-white'
                                                     } focus:outline-none focus:ring-1 focus:ring-zinc-900`}
                                             >
-                                                {options.map(opt => (
-                                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                                                ))}
+                                                {options.map(opt => {
+                                                    // Individual option disabling
+                                                    // If main meal is closed (e.g. today lunch locked), everything disabled? 
+                                                    // OR specific options disabled?
+                                                    // If completelyLocked, everything is disabled via logic in handleUpdateOrder, 
+                                                    // but for UX let's mark/disable items.
+
+                                                    const disabled = isOptionDisabled(day, meal.id, opt.value) || (completelyLocked && opt.value !== currentValue); // Can't change to others if locked, but can keep current? Actually if locked, cant change period.
+
+                                                    // If completely Locked, the whole SELECT should be disabled?
+                                                    // YES.
+
+                                                    return <option key={opt.value} value={opt.value} disabled={disabled}>{opt.label} {disabled ? '(Cerrado)' : ''}</option>
+                                                })}
                                             </select>
                                         </div>
                                     </div>

@@ -1,4 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { hasAdminAccess } from '../utils/permissions';
+
+// ... (existing imports, but wait, look at the file content)
+// I need to add the import at the top.
+// And replace line 134.
+
+// I will do two replacements in one go if I can? replace_file_content only does one contiguous block.
+// I will start with the Import.
 import { User, Car, Reservation } from '../types';
 import { carService } from '../services/cars';
 import { reservationService } from '../services/reservations';
@@ -131,7 +139,7 @@ export const VehiclesView: React.FC<VehiclesViewProps> = ({ user }) => {
                         </button>
                     </div>
 
-                    {user.role === 'ADMIN' && (
+                    {hasAdminAccess(user, 'vehicles') && (
                         <>
                             <div className="h-6 w-px bg-zinc-200 dark:bg-zinc-800 mx-1" />
 
