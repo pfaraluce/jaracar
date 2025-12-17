@@ -94,7 +94,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
   );
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-black transition-colors duration-300 flex">
+    <div className="min-h-[100dvh] bg-zinc-50 dark:bg-black transition-colors duration-300 flex">
       {/* Mobile Sidebar Overlay */}
       <AnimatePresence>
         {isSidebarOpen && (
@@ -176,7 +176,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 h-full min-h-screen lg:h-screen lg:overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 lg:h-screen lg:overflow-hidden">
         {/* Mobile Header */}
         <header className="h-16 md:hidden flex items-center justify-between px-4 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
           <button

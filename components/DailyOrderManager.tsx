@@ -441,7 +441,7 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId, cu
             {/* Edit Modal */}
             {
                 editingMeal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200 min-h-[100dvh]">
                         <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl max-w-md w-full border border-zinc-200 dark:border-zinc-800 animate-in zoom-in-95 duration-200">
                             {/* Header */}
                             <div className="p-6 border-b border-zinc-200 dark:border-zinc-800">
