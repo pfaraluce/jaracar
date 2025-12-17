@@ -19,8 +19,6 @@ import {
   UtensilsCrossed,
   Wrench,
   Calendar,
-  Menu,
-  X
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -33,28 +31,17 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpdate }) => {
-  // Determine if user is "Restricted" (has permissions object AND is not ADMIN)
   const isRestricted = user.role !== 'ADMIN' && !!user.permissions && Object.keys(user.permissions).length > 0;
 
-  // Determine standard start view
   const getInitialView = (): DashboardView => {
-    // Allows ANYONE to start at HOME now, regardless of permissions
     return 'HOME';
   };
 
   const [currentView, setCurrentView] = useState<DashboardView>(getInitialView);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
 
-  // Force redirect if user is on HOME but shouldn't be
-  // Force redirect logic REMOVED - Restricted users can now see HOME
-  useEffect(() => {
-    // Keep this effect for future redirect logic if needed, but for now empty
-  }, [user, isRestricted, currentView]);
-
-  // Check if user is new (first time login)
   useEffect(() => {
     const hasSeenWelcome = localStorage.getItem('jaracar_welcome_seen');
     if (!hasSeenWelcome) {
@@ -79,10 +66,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
 
   const NavItem = ({ view, icon: Icon, label }: { view: DashboardView; icon: any; label: string }) => (
     <button
-      onClick={() => {
-        setCurrentView(view);
-        setIsSidebarOpen(false);
-      }}
+      onClick={() => setCurrentView(view)}
       className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${currentView === view
         ? 'bg-zinc-900 dark:bg-white text-white dark:text-black'
         : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'
@@ -93,41 +77,36 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
     </button>
   );
 
-  return (
-    <div className="min-h-[100dvh] bg-zinc-50 dark:bg-black transition-colors duration-300 flex">
-      {/* Mobile Sidebar Overlay */}
-      <AnimatePresence>
-        {isSidebarOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setIsSidebarOpen(false)}
-            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          />
-        )}
-      </AnimatePresence>
+  const MobileNavItem = ({ view, icon: Icon, label, isActive }: { view?: DashboardView; icon: any; label: string; isActive: boolean }) => (
+    <button
+      onClick={() => view && setCurrentView(view)}
+      className={`flex items-center justify-center p-3 transition-colors ${isActive
+        ? 'text-zinc-900 dark:text-white'
+        : 'text-zinc-400 dark:text-zinc-500'
+        }`}
+      aria-label={label}
+    >
+      <div className={`p-2 rounded-xl transition-all ${isActive ? 'bg-zinc-100 dark:bg-zinc-800' : ''}`}>
+        <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
+      </div>
+    </button>
+  );
 
-      {/* Sidebar Navigation */}
-      <aside
-        className={`fixed md:static inset-y-0 left-0 z-50 w-64 bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 transform transition-transform duration-300 md:transform-none ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-          }`}
-      >
+  return (
+    <div className="min-h-[100dvh] bg-zinc-50 dark:bg-black transition-colors duration-300 flex flex-col lg:flex-row">
+
+      {/* Desktop Sidebar Navigation (Hidden on Mobile) */}
+      <aside className="hidden lg:flex flex-col w-64 h-screen sticky top-0 bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800">
         <div className="h-full flex flex-col">
           {/* Sidebar Header */}
-          <div className="h-16 px-6 flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800">
-            <Logo size="lg" />
-            <button
-              onClick={() => setIsSidebarOpen(false)}
-              className="md:hidden text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
-            >
-              <X size={20} />
-            </button>
+          <div className="h-16 px-6 flex items-center border-b border-zinc-200 dark:border-zinc-800">
+            <div onClick={() => setCurrentView('HOME')} className="cursor-pointer hover:opacity-80 transition-opacity">
+              <Logo size="lg" />
+            </div>
           </div>
 
           {/* Navigation Links */}
           <div className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-            {/* Always show HOME link permissions permitting (now allowed for all) */}
             <NavItem view="HOME" icon={LayoutDashboard} label="Inicio" />
 
             <div className="pt-4 pb-2">
@@ -139,15 +118,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
             {hasAccess(user, 'vehicles') && (
               <NavItem view="VEHICLES" icon={Car} label="Vehículos" />
             )}
-
             {hasAccess(user, 'meals') && (
               <NavItem view="MEALS" icon={UtensilsCrossed} label="Comidas" />
             )}
-
             {hasAccess(user, 'maintenance') && (
               <NavItem view="MAINTENANCE" icon={Wrench} label="Mantenimiento" />
             )}
-
             {hasAccess(user, 'calendar') && (
               <NavItem view="CALENDAR" icon={Calendar} label="Calendario" />
             )}
@@ -176,35 +152,54 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 lg:h-screen lg:overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         {/* Mobile Header */}
-        <header className="h-16 md:hidden flex items-center justify-between px-4 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
-          <button
-            onClick={() => setIsSidebarOpen(true)}
-            className="p-2 -ml-2 text-zinc-600 dark:text-zinc-400"
-          >
-            <Menu size={24} />
-          </button>
-          <Logo size="lg" />
-          <div className="w-10" /> {/* Spacer for centering */}
+        <header className="h-16 lg:hidden flex items-center justify-center px-4 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 shrink-0 sticky top-0 z-20">
+          <div onClick={() => setCurrentView('HOME')} className="cursor-pointer active:scale-95 transition-transform">
+            <Logo size="lg" />
+          </div>
         </header>
 
         {/* Scrollable Content */}
-        <main className="flex-1 lg:overflow-y-auto p-4 sm:p-6 lg:p-8">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 pb-20 lg:pb-8">
           <div className="max-w-6xl mx-auto">
             {currentView === 'HOME' && (
               <HomeView user={user} onNavigate={(view) => setCurrentView(view)} />
             )}
-
             {currentView === 'VEHICLES' && <VehiclesView user={user} />}
-
             {currentView === 'MEALS' && <MealsView user={user} />}
-
             {currentView === 'MAINTENANCE' && <MaintenanceView user={user} />}
-
             {currentView === 'CALENDAR' && <CalendarView user={user} />}
           </div>
         </main>
+
+        {/* Mobile Bottom Navigation */}
+        <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 pb-safe lg:hidden z-30">
+          <div className="flex items-center justify-around p-2">
+            {hasAccess(user, 'vehicles') && (
+              <MobileNavItem view="VEHICLES" icon={Car} label="Coches" isActive={currentView === 'VEHICLES'} />
+            )}
+            {hasAccess(user, 'meals') && (
+              <MobileNavItem view="MEALS" icon={UtensilsCrossed} label="Comidas" isActive={currentView === 'MEALS'} />
+            )}
+            {hasAccess(user, 'maintenance') && (
+              <MobileNavItem view="MAINTENANCE" icon={Wrench} label="Reparar" isActive={currentView === 'MAINTENANCE'} />
+            )}
+            {hasAccess(user, 'calendar') && (
+              <MobileNavItem view="CALENDAR" icon={Calendar} label="Agenda" isActive={currentView === 'CALENDAR'} />
+            )}
+
+            <button
+              onClick={() => setIsProfileModalOpen(true)}
+              className="flex items-center justify-center p-3"
+              aria-label="Perfil"
+            >
+              <div className={`p-0.5 rounded-full border-2 ${isProfileModalOpen ? 'border-zinc-900 dark:border-white' : 'border-transparent'}`}>
+                <UserAvatar name={user.name} imageUrl={user.avatarUrl} size="sm" className="w-5 h-5" />
+              </div>
+            </button>
+          </div>
+        </nav>
       </div>
 
       {/* Global Modals */}
@@ -214,6 +209,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
         onClose={() => setIsProfileModalOpen(false)}
         onUpdate={onUserUpdate}
         onRestartTutorial={handleStartTutorial}
+        onLogout={onLogout}
       />
 
       {showWelcome && (

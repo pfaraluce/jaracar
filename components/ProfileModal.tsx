@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { User, UserRole, DietFile } from '../types';
-import { X, Camera, Shield, Mail, User as UserIcon, Loader2, Moon, Sun, Monitor, Edit2, Check, Calendar, Hash, Utensils, Upload, FileText, Trash2 } from 'lucide-react';
+import { X, Camera, Shield, Mail, User as UserIcon, Loader2, Moon, Sun, Monitor, Edit2, Check, Calendar, Hash, Utensils, Upload, FileText, Trash2, LogOut } from 'lucide-react';
 import { UserAvatar } from './UserAvatar';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../services/supabase';
@@ -15,9 +15,10 @@ interface ProfileModalProps {
     onClose: () => void;
     onUpdate: () => void;
     onRestartTutorial?: () => void;
+    onLogout: () => void;
 }
 
-export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClose, onUpdate, onRestartTutorial }) => {
+export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClose, onUpdate, onRestartTutorial, onLogout }) => {
     const [activeTab, setActiveTab] = useState<'PROFILE' | 'ADMIN'>('PROFILE');
     const [uploading, setUploading] = useState(false);
     const [isEditingName, setIsEditingName] = useState(false);
@@ -517,6 +518,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClos
                                     )}
                                 </button>
 
+
                                 {/* Tutorial Reset */}
                                 <div className="flex justify-center pt-2">
                                     <button
@@ -527,6 +529,17 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClos
                                         className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
                                     >
                                         Volver a ver el tutorial de inicio
+                                    </button>
+                                </div>
+
+                                {/* Logout Button */}
+                                <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                                    <button
+                                        onClick={onLogout}
+                                        className="w-full flex items-center justify-center gap-2 py-3 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-xl transition-colors font-medium"
+                                    >
+                                        <LogOut size={18} />
+                                        Cerrar sesión
                                     </button>
                                 </div>
                             </div>
