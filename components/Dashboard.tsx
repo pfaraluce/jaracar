@@ -98,13 +98,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
   const MobileNavItem = ({ view, icon: Icon, label, isActive }: { view?: DashboardView; icon: any; label: string; isActive: boolean }) => (
     <button
       onClick={() => view && handleNavigate(view)}
-      className={`flex items-center justify-center p-1 transition-colors ${isActive
+      className={`flex items-center justify-center p-2 transition-colors ${isActive
         ? 'text-zinc-900 dark:text-white'
         : 'text-zinc-400 dark:text-zinc-500'
         }`}
       aria-label={label}
     >
-      <div className={`p-1 rounded-xl transition-all ${isActive ? 'bg-zinc-100 dark:bg-zinc-800' : ''}`}>
+      <div className={`p-2 rounded-xl transition-all ${isActive ? 'bg-zinc-100 dark:bg-zinc-800' : ''}`}>
         <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
       </div>
     </button>
@@ -196,7 +196,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
 
         {/* Mobile Bottom Navigation */}
         <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 pb-safe lg:hidden z-30">
-          <div className="flex items-center justify-around">
+          <div className="flex items-center justify-around py-2">
             {hasAccess(user, 'vehicles') && (
               <MobileNavItem view="VEHICLES" icon={Car} label="Coches" isActive={currentView === 'VEHICLES'} />
             )}
@@ -212,7 +212,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
 
             <button
               onClick={() => setIsProfileModalOpen(true)}
-              className="flex items-center justify-center p-1"
+              className="flex items-center justify-center p-2"
               aria-label="Perfil"
             >
               <div className={`p-0.5 rounded-full border-2 ${isProfileModalOpen ? 'border-zinc-900 dark:border-white' : 'border-transparent'}`}>
