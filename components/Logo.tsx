@@ -37,7 +37,7 @@ export const Logo: React.FC<LogoProps> = ({ className = '', size = 'md' }) => {
         : systemTheme === 'dark';
 
     const logoSrc = isDark
-        ? '/logo-quang-white.svg'
+        ? '/logo-quango-white.svg'
         : '/logo-quango-black.svg';
 
     // Size mappings
