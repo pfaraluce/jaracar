@@ -84,7 +84,7 @@ export interface MealOrder {
   mealType: 'breakfast' | 'lunch' | 'dinner';
   option: string;
   isBag: boolean;
-  status: 'pending' | 'confirmed' | 'cancelled';
+  status: 'pending' | 'confirmed' | 'cancelled' | 'template';
 }
 
 export interface MaintenanceTicket {

@@ -33,6 +33,17 @@ interface HomeViewProps {
     onNavigate: (view: 'HOME' | 'VEHICLES' | 'MEALS' | 'MAINTENANCE' | 'CALENDAR') => void;
 }
 
+// Color configuration matching DailyOrderManager
+const OPTION_CONFIG: Record<string, { label: string; color: string; textColor: string }> = {
+    skip: { label: 'NO', color: 'bg-rose-500', textColor: 'text-white' },
+    standard: { label: 'SÍ', color: 'bg-emerald-500', textColor: 'text-white' },
+    early: { label: '1T', color: 'bg-yellow-400', textColor: 'text-zinc-900' },
+    late: { label: '2T', color: 'bg-emerald-700', textColor: 'text-white' },
+    tupper: { label: 'TP', color: 'bg-amber-800', textColor: 'text-white' },
+    bag: { label: 'B', color: 'bg-blue-600', textColor: 'text-white' },
+};
+
+
 export const HomeView: React.FC<HomeViewProps> = ({ user, onNavigate }) => {
     // Data State
     const [stats, setStats] = useState({ availableCars: 0, totalCars: 0 });
@@ -316,207 +327,193 @@ export const HomeView: React.FC<HomeViewProps> = ({ user, onNavigate }) => {
 
                 {/* 1. Fleet Availability Widget - CONDENSED LIST */}
                 {hasAccess(user, 'vehicles') && (
-                    <div className="group bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 hover:shadow-lg transition-all relative overflow-hidden flex flex-col h-full">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-blue-600 dark:text-blue-400">
-                                    <CarIcon size={20} />
+                    <div className="group bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 hover:shadow-xl hover:border-zinc-300 dark:hover:border-zinc-700 transition-all relative overflow-hidden flex flex-col justify-between min-h-[180px]">
+                        {/* Background Icon */}
+                        <div className="absolute -bottom-4 -right-4 text-zinc-100 dark:text-zinc-800/50 transition-transform group-hover:scale-110 duration-500">
+                            <CarIcon size={120} strokeWidth={1} />
+                        </div>
+
+                        <div>
+                            <div className="flex items-center gap-3 mb-2">
+                                <div className="p-2 bg-blue-100 dark:bg-blue-800 rounded-full text-blue-600 dark:text-blue-400">
+                                    <CarIcon size={18} />
                                 </div>
                                 <h3 className="font-semibold text-zinc-900 dark:text-white">Coches Disponibles</h3>
                             </div>
-                            <button
-                                onClick={() => onNavigate('VEHICLES')}
-                                className="text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors"
-                            >
-                                Ver todos
-                            </button>
-                        </div>
 
-                        {/* List of Available Cars */}
-                        <div className="flex-1 space-y-2">
-                            {quickCars.length > 0 ? (
-                                quickCars.map(car => (
-                                    <button
-                                        key={car.id}
-                                        onClick={() => setSelectedCar(car)}
-                                        className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors text-left group/car"
-                                    >
-                                        <div className="relative w-10 h-10 rounded-md overflow-hidden bg-zinc-100 dark:bg-zinc-800 shrink-0">
-                                            <img src={car.imageUrl} alt={car.name} className="w-full h-full object-cover" />
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="font-medium text-sm text-zinc-900 dark:text-white truncate">
-                                                {car.name}
+                            {/* List of Available Cars */}
+                            <div className="mt-4 space-y-2 relative z-10">
+                                {quickCars.length > 0 ? (
+                                    quickCars.slice(0, 3).map(car => (
+                                        <button
+                                            key={car.id}
+                                            onClick={() => setSelectedCar(car)}
+                                            className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors text-left group/car"
+                                        >
+                                            <div className="relative w-8 h-8 rounded-md overflow-hidden bg-zinc-100 dark:bg-zinc-800 shrink-0">
+                                                <img src={car.imageUrl} alt={car.name} className="w-full h-full object-cover" />
                                             </div>
-                                            <div className="text-xs text-zinc-500 dark:text-zinc-400 font-mono truncate">
-                                                {car.plate}
-                                            </div>
-                                        </div>
-                                        <div className="text-xs font-medium text-blue-600 dark:text-blue-400 opacity-0 group-hover/car:opacity-100 transition-opacity">
-                                            Reservar
-                                        </div>
-                                    </button>
-                                ))
-                            ) : (
-                                <div className="text-center py-6 text-zinc-400 text-sm">
-                                    No hay coches disponibles ahora mismo.
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
-
-                {/* 2. Meals Widget */}
-                {hasAccess(user, 'meals') && (
-                    <div
-                        onClick={() => onNavigate('MEALS')}
-                        className="group bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 hover:shadow-lg transition-all cursor-pointer relative overflow-hidden"
-                    >
-                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                            <Utensils size={64} />
-                        </div>
-
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="p-2 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg text-emerald-600 dark:text-emerald-400">
-                                <Utensils size={20} />
-                            </div>
-                            <h3 className="font-semibold text-zinc-900 dark:text-white">Menú de Hoy</h3>
-                        </div>
-
-                        <div className="z-10 relative space-y-4">
-                            {/* Timer Section */}
-                            {timeLeft ? (
-                                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${isClosingSoon
-                                    ? 'bg-rose-50 dark:bg-rose-900/20 border-rose-100 dark:border-rose-900/50 text-rose-600 dark:text-rose-400'
-                                    : 'bg-zinc-50 dark:bg-zinc-800/50 border-zinc-100 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400'
-                                    }`}>
-                                    <Clock size={16} className={isClosingSoon ? "animate-pulse" : ""} />
-                                    <div className="flex flex-col">
-                                        <span className="text-[10px] uppercase font-bold tracking-wider opacity-70">Cierre de pedidos</span>
-                                        <span className="font-mono font-bold leading-none">{timeLeft}</span>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 text-zinc-400">
-                                    <Lock size={16} />
-                                    <span className="text-xs font-medium">Pedidos cerrados para hoy</span>
-                                </div>
-                            )}
-
-                            {/* Meals List */}
-                            <div className="space-y-2">
-                                {[
-                                    { key: 'breakfast', label: 'Desayuno', options: ['standard', 'early', 'skip'], data: dailyMeals.breakfast },
-                                    { key: 'lunch', label: 'Comida', options: ['standard', 'early', 'late', 'tupper', 'bag', 'skip'], data: dailyMeals.lunch },
-                                    { key: 'dinner', label: 'Cena', options: ['standard', 'late', 'skip'], data: dailyMeals.dinner }
-                                ].map((meal) => {
-                                    if (!meal.data) return null;
-
-                                    const isConfirmed = (meal.data as any).status !== 'template';
-                                    const currentOption = meal.data.option;
-                                    const isLocked = !timeLeft;
-                                    const isExpanded = expandedMeal === meal.key;
-
-                                    // Prep items (breakfast, tupper, bag) are locked after midnight (yesterday's cutoff passed)
-                                    const isPrepLocked = meal.key === 'breakfast'; // Breakfast is ALWAYS prep
-
-                                    const getLabel = (opt: string) => {
-                                        const map: Record<string, string> = {
-                                            standard: 'Sí',
-                                            skip: 'No',
-                                            early: 'Pronto',
-                                            late: 'Tarde',
-                                            tupper: 'Tupper',
-                                            bag: 'Bolsa',
-                                            diet: 'Dieta'
-                                        };
-                                        return map[opt] || opt;
-                                    };
-
-                                    const isOptionDisabled = (opt: string) => {
-                                        // Tupper and Bag are prep items - locked after yesterday's cutoff (always locked after midnight)
-                                        if (opt === 'tupper' || opt === 'bag') return true;
-                                        return false;
-                                    };
-
-                                    return (
-                                        <div key={meal.key} className="relative">
-                                            <div
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    if (!isLocked && !isPrepLocked) setExpandedMeal(isExpanded ? null : meal.key);
-                                                }}
-                                                className={`flex items-center justify-between p-3 rounded-xl transition-all ${isPrepLocked || isLocked ? 'opacity-60' : 'cursor-pointer'} ${isExpanded ? 'bg-zinc-100 dark:bg-zinc-800' : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/50'
-                                                    }`}
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <div className={`w-2 h-2 rounded-full ${currentOption === 'skip' ? 'bg-zinc-300 dark:bg-zinc-600' : 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]'}`} />
-                                                    <div className="flex flex-col">
-                                                        <span className="font-medium text-zinc-900 dark:text-white">{meal.label}</span>
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex items-center gap-2">
-                                                    <span className={`text-sm font-medium ${currentOption === 'skip' ? 'text-zinc-400' : 'text-zinc-900 dark:text-white'
-                                                        }`}>
-                                                        {getLabel(currentOption)}
-                                                    </span>
-                                                    {!isLocked && !isPrepLocked && (
-                                                        <ChevronRight size={14} className={`text-zinc-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
-                                                    )}
+                                            <div className="flex-1 min-w-0">
+                                                <div className="font-medium text-sm text-zinc-900 dark:text-white truncate">
+                                                    {car.name}
                                                 </div>
                                             </div>
-
-                                            {/* Expanded Options */}
-                                            {isExpanded && !isLocked && !isPrepLocked && (
-                                                <div className="grid grid-cols-3 gap-2 p-3 pt-0 bg-zinc-100 dark:bg-zinc-800 rounded-b-xl mb-2 animate-in slide-in-from-top-2 duration-200">
-                                                    {meal.options.map((opt) => {
-                                                        const disabled = isOptionDisabled(opt);
-                                                        return (
-                                                            <button
-                                                                key={opt}
-                                                                disabled={disabled}
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    handleMealUpdate(meal.key as any, opt, false);
-                                                                    setExpandedMeal(null);
-                                                                }}
-                                                                className={`px-2 py-2 rounded-lg text-xs font-medium transition-colors ${disabled
-                                                                    ? 'opacity-40 cursor-not-allowed bg-zinc-200 dark:bg-zinc-700/50 text-zinc-400'
-                                                                    : currentOption === opt
-                                                                        ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm ring-1 ring-black/5 dark:ring-white/10'
-                                                                        : 'text-zinc-500 dark:text-zinc-400 hover:bg-white/50 dark:hover:bg-zinc-700/50 hover:text-zinc-900 dark:hover:text-zinc-200'
-                                                                    }`}
-                                                            >
-                                                                {getLabel(opt)}
-                                                            </button>
-                                                        );
-                                                    })}
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-
-                                {!dailyMeals.breakfast && !dailyMeals.lunch && !dailyMeals.dinner && (
-                                    <div className="text-center py-2 text-zinc-400 text-xs">
-                                        No hay comidas planificadas para hoy.
+                                            <div className="text-xs font-medium text-blue-600 dark:text-blue-400 opacity-0 group-hover/car:opacity-100 transition-opacity">
+                                                Reservar
+                                            </div>
+                                        </button>
+                                    ))
+                                ) : (
+                                    <div className="text-center py-4 text-zinc-400 text-sm">
+                                        No hay coches disponibles
                                     </div>
                                 )}
                             </div>
                         </div>
 
-                        <div className="mt-6 flex items-center gap-2 text-sm font-medium text-emerald-600 dark:text-emerald-400">
-                            Ver menú <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                        {/* Bottom Link */}
+                        <button
+                            onClick={() => onNavigate('VEHICLES')}
+                            className="mt-4 relative z-10 text-left"
+                        >
+                            <span className="inline-flex items-center gap-2 text-sm font-medium text-zinc-900 dark:text-white group-hover:gap-3 transition-all">
+                                Ver todos <ChevronRight size={16} />
+                            </span>
+                        </button>
+                    </div>
+                )}
+
+                {/* 2. Meals Widget */}
+                {hasAccess(user, 'meals') && (
+                    <div className="group bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 hover:shadow-xl hover:border-zinc-300 dark:hover:border-zinc-700 transition-all relative overflow-hidden flex flex-col justify-between min-h-[180px]">
+                        {/* Background Icon */}
+                        <div className="absolute -bottom-4 -right-4 text-zinc-100 dark:text-zinc-800/50 transition-transform group-hover:scale-110 duration-500">
+                            <Utensils size={120} strokeWidth={1} />
+                        </div>
+
+                        <div>
+                            <div className="flex items-center gap-3 mb-2">
+                                <div className="p-2 bg-emerald-100 dark:bg-emerald-800 rounded-full text-emerald-600 dark:text-emerald-400">
+                                    <Utensils size={18} />
+                                </div>
+                                <h3 className="font-semibold text-zinc-900 dark:text-white">Dónde como</h3>
+                            </div>
+
+                            <div className="mt-4 relative z-10">
+                                {/* Timer Section */}
+                                {timeLeft && (
+                                    <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border mb-3 ${isClosingSoon
+                                        ? 'bg-rose-50 dark:bg-rose-900/20 border-rose-100 dark:border-rose-900/50 text-rose-600 dark:text-rose-400'
+                                        : 'bg-zinc-50 dark:bg-zinc-800/50 border-zinc-100 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400'
+                                        }`}>
+                                        <Clock size={14} className={isClosingSoon ? "animate-pulse" : ""} />
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] uppercase font-bold tracking-wider opacity-70">Tiempo para cambios</span>
+                                            <span className="text-xs font-mono font-bold leading-none">{timeLeft}</span>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Meals List - Color Coded */}
+                                <div className="space-y-1">
+                                    {[
+                                        { key: 'breakfast', label: 'Desayuno', options: ['standard', 'early', 'skip'], data: dailyMeals.breakfast },
+                                        { key: 'lunch', label: 'Comida', options: ['standard', 'early', 'late', 'skip'], data: dailyMeals.lunch },
+                                        { key: 'dinner', label: 'Cena', options: ['standard', 'late', 'skip'], data: dailyMeals.dinner }
+                                    ].map((meal) => {
+                                        if (!meal.data) return null;
+
+                                        const currentOption = meal.data.option;
+                                        const config = OPTION_CONFIG[currentOption] || OPTION_CONFIG.standard;
+                                        const isLocked = !timeLeft;
+                                        const isPrepLocked = meal.key === 'breakfast';
+                                        const isExpanded = expandedMeal === meal.key;
+
+                                        return (
+                                            <div key={meal.key} className="relative">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        if (!isLocked && !isPrepLocked) {
+                                                            setExpandedMeal(isExpanded ? null : meal.key);
+                                                        }
+                                                    }}
+                                                    disabled={isLocked || isPrepLocked}
+                                                    className={`w-full flex items-center justify-between py-2 px-2 rounded-lg transition-colors ${isLocked || isPrepLocked
+                                                        ? 'opacity-60 cursor-not-allowed'
+                                                        : isExpanded
+                                                            ? 'bg-zinc-50 dark:bg-zinc-800/50'
+                                                            : 'hover:bg-zinc-50 dark:hover:bg-zinc-800/50 cursor-pointer'
+                                                        }`}
+                                                >
+                                                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{meal.label}</span>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className={`px-3 py-1 rounded-lg ${config.color} ${config.textColor} font-semibold text-xs`}>
+                                                            {config.label}
+                                                        </div>
+                                                        {!isLocked && !isPrepLocked && (
+                                                            <ChevronRight size={14} className={`text-zinc-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                                                        )}
+                                                    </div>
+                                                </button>
+
+                                                {/* Inline Dropdown */}
+                                                {isExpanded && (
+                                                    <div className="mt-1 p-2 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-zinc-200 dark:border-zinc-700 animate-in slide-in-from-top-2 duration-200">
+                                                        <div className="grid grid-cols-3 gap-1">
+                                                            {meal.options.map(opt => {
+                                                                const optConfig = OPTION_CONFIG[opt] || OPTION_CONFIG.standard;
+                                                                const isSelected = currentOption === opt;
+                                                                return (
+                                                                    <button
+                                                                        key={opt}
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            handleMealUpdate(meal.key as any, opt, false);
+                                                                            setExpandedMeal(null);
+                                                                        }}
+                                                                        className={`p-2 rounded-lg transition-all ${isSelected
+                                                                            ? 'bg-white dark:bg-zinc-700 ring-2 ring-zinc-900 dark:ring-white'
+                                                                            : 'bg-white/50 dark:bg-zinc-700/50 hover:bg-white dark:hover:bg-zinc-700'
+                                                                            }`}
+                                                                    >
+                                                                        <div className={`px-2 py-1 rounded ${optConfig.color} ${optConfig.textColor} font-semibold text-xs`}>
+                                                                            {optConfig.label}
+                                                                        </div>
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+
+                                    {!dailyMeals.breakfast && !dailyMeals.lunch && !dailyMeals.dinner && (
+                                        <div className="text-center py-2 text-zinc-400 text-xs">
+                                            No hay comidas planificadas
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Bottom Link */}
+                            <button
+                                onClick={() => onNavigate('MEALS')}
+                                className="mt-4 relative z-10 text-left"
+                            >
+                                <span className="inline-flex items-center gap-2 text-sm font-medium text-zinc-900 dark:text-white group-hover:gap-3 transition-all">
+                                    Pedidos diarios <ChevronRight size={16} />
+                                </span>
+                            </button>
                         </div>
                     </div>
                 )}
 
                 {/* 3. Maintenance Shortcut */}
                 {hasAccess(user, 'maintenance') && (
-                    <div
-                        onClick={() => onNavigate('MAINTENANCE')}
-                        className="group bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 hover:shadow-xl hover:border-zinc-300 dark:hover:border-zinc-700 transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between min-h-[180px]"
+                    <div className="group bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 hover:shadow-xl hover:border-zinc-300 dark:hover:border-zinc-700 transition-all relative overflow-hidden flex flex-col justify-between min-h-[180px]"
                     >
                         {/* Background Pattern/Icon */}
                         <div className="absolute -bottom-4 -right-4 text-zinc-100 dark:text-zinc-800/50 transition-transform group-hover:scale-110 duration-500">
@@ -541,11 +538,14 @@ export const HomeView: React.FC<HomeViewProps> = ({ user, onNavigate }) => {
                             </div>
                         </div>
 
-                        <div className="mt-4 relative z-10">
+                        <button
+                            onClick={() => onNavigate('MAINTENANCE')}
+                            className="mt-4 relative z-10 text-left"
+                        >
                             <span className="inline-flex items-center gap-2 text-sm font-medium text-zinc-900 dark:text-white group-hover:gap-3 transition-all">
                                 Reportar nueva <ChevronRight size={16} />
                             </span>
-                        </div>
+                        </button>
                     </div>
                 )}
 
@@ -554,21 +554,13 @@ export const HomeView: React.FC<HomeViewProps> = ({ user, onNavigate }) => {
 
             {/* Today's Agenda Section */}
             <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-6">
-                <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-violet-50 dark:bg-violet-900/20 rounded-lg text-violet-600 dark:text-violet-400">
-                            <CalendarIcon size={20} />
-                        </div>
-                        <h2 className="text-lg font-bold text-zinc-900 dark:text-white">
-                            Agenda de {viewDate.getDate() === new Date().getDate() ? 'Hoy' : 'Mañana'}
-                        </h2>
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="p-2 bg-violet-100 dark:bg-violet-800 rounded-full text-violet-600 dark:text-violet-400">
+                        <CalendarIcon size={18} />
                     </div>
-                    <button
-                        onClick={() => onNavigate('CALENDAR')}
-                        className="text-sm text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors"
-                    >
-                        Ver todo
-                    </button>
+                    <h2 className="font-semibold text-zinc-900 dark:text-white">
+                        Agenda de {viewDate.getDate() === new Date().getDate() ? 'Hoy' : 'Mañana'}
+                    </h2>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -631,6 +623,16 @@ export const HomeView: React.FC<HomeViewProps> = ({ user, onNavigate }) => {
                             })()
                         )}
                     </div>
+                </div>
+
+                {/* Bottom Link */}
+                <div className="mt-6 flex justify-end">
+                    <button
+                        onClick={() => onNavigate('CALENDAR')}
+                        className="text-sm font-medium text-zinc-900 dark:text-white hover:gap-3 transition-all inline-flex items-center gap-2"
+                    >
+                        Ver todo <ChevronRight size={16} />
+                    </button>
                 </div>
             </div>
 

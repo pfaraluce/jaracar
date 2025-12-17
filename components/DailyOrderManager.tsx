@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { MealOrder, MealTemplate } from '../types';
 import { mealService } from '../services/meals';
 import { kitchenService, DailyLock, KitchenConfig } from '../services/kitchen';
-import { ChevronLeft, ChevronRight, AlertCircle, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, AlertCircle, X, Clock } from 'lucide-react';
 import { format, subDays, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -33,6 +33,8 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId }) 
     const [locks, setLocks] = useState<DailyLock[]>([]);
     const [kitchenConfig, setKitchenConfig] = useState<KitchenConfig | null>(null);
     const [loading, setLoading] = useState(true);
+    const [timeLeft, setTimeLeft] = useState<string | null>(null);
+    const [isClosingSoon, setIsClosingSoon] = useState(false);
 
     // Edit modal state
     const [editingMeal, setEditingMeal] = useState<{
@@ -68,6 +70,42 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId }) 
     useEffect(() => {
         loadData();
     }, [currentDate]);
+
+    useEffect(() => {
+        updateCountdown();
+        const timer = setInterval(updateCountdown, 1000);
+        return () => clearInterval(timer);
+    }, [kitchenConfig]);
+
+    const updateCountdown = () => {
+        if (!kitchenConfig || !kitchenConfig.weekly_schedule) return;
+
+        const now = new Date();
+        const startDay = now.getDay().toString();
+        const cutoffTime = kitchenConfig.weekly_schedule[startDay];
+
+        if (!cutoffTime) {
+            setTimeLeft(null);
+            return;
+        }
+
+        const [h, m] = cutoffTime.split(':').map(Number);
+        const deadline = new Date(now);
+        deadline.setHours(h, m, 0, 0);
+
+        if (deadline <= now) {
+            setTimeLeft(null);
+            return;
+        }
+
+        const diff = deadline.getTime() - now.getTime();
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+        setTimeLeft(`${hours}h ${minutes}m ${seconds}s`);
+        setIsClosingSoon(diff < 3600000); // < 1 hour
+    };
 
     const loadData = async () => {
         try {
@@ -173,17 +211,26 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId }) 
         prevDay.setDate(prevDay.getDate() - 1);
         const prevDateStr = format(prevDay, 'yyyy-MM-dd');
 
+        // Check if the date itself is locked (past or deadline passed)
+        const isDateLocked = isDayTimeLocked(date);
+
+        // Allow changing from prep items even if date is locked, but only if not in the past
         const isChangingFromPrep = (currentOption === 'tupper' || currentOption === 'bag') &&
             (intendedOption !== 'tupper' && intendedOption !== 'bag');
-        if (isChangingFromPrep) return false;
+        if (isChangingFromPrep) {
+            // Still check if date is in the past (not just deadline passed today)
+            const now = new Date();
+            const todayStr = format(now, 'yyyy-MM-dd');
+            if (dateStr < todayStr) return true; // Can't change past dates
+            return false; // Allow change with warning for today
+        }
 
         const isPrevDbLocked = locks.find(l => l.date === prevDateStr)?.isLocked || false;
         const isPrevTimeLocked = isDayTimeLocked(prevDay);
         const isPrevLocked = isPrevDbLocked || isPrevTimeLocked;
 
         const isTodayDbLocked = locks.find(l => l.date === dateStr)?.isLocked || false;
-        const isTodayTimeLocked = isDayTimeLocked(date);
-        const isTodayLocked = isTodayDbLocked || isTodayTimeLocked;
+        const isTodayLocked = isTodayDbLocked || isDateLocked;
 
         if (mealType === 'breakfast') {
             if (isPrevLocked) return true;
@@ -196,8 +243,6 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId }) 
         if (mealType !== 'breakfast') {
             if (isTodayLocked) return true;
         }
-
-        if (date < getToday()) return true;
 
         return false;
     };
@@ -290,25 +335,41 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId }) 
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">Pedidos Diarios</h3>
-                <div className="flex items-center gap-3">
-                    <button
-                        onClick={() => setCurrentDate(new Date(currentDate.setDate(currentDate.getDate() - 7)))}
-                        className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
-                    >
-                        <ChevronLeft size={20} className="text-zinc-600 dark:text-zinc-400" />
-                    </button>
-                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300 min-w-[140px] text-center">
-                        {format(start, "d 'de' MMMM", { locale: es })}
-                    </span>
-                    <button
-                        onClick={() => setCurrentDate(new Date(currentDate.setDate(currentDate.getDate() + 7)))}
-                        className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
-                    >
-                        <ChevronRight size={20} className="text-zinc-600 dark:text-zinc-400" />
-                    </button>
-                </div>
+
+                {/* Countdown Timer */}
+                {timeLeft && (
+                    <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${isClosingSoon
+                        ? 'bg-rose-50 dark:bg-rose-900/20 border-rose-100 dark:border-rose-900/50 text-rose-600 dark:text-rose-400'
+                        : 'bg-zinc-50 dark:bg-zinc-800/50 border-zinc-100 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400'
+                        }`}>
+                        <Clock size={14} className={isClosingSoon ? "animate-pulse" : ""} />
+                        <div className="flex flex-col">
+                            <span className="text-[10px] uppercase font-bold tracking-wider opacity-70">Tiempo para pedidos de hoy</span>
+                            <span className="text-xs font-mono font-bold leading-none">{timeLeft}</span>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Date Navigation */}
+            <div className="flex items-center justify-center gap-3 mb-6">
+                <button
+                    onClick={() => setCurrentDate(new Date(currentDate.setDate(currentDate.getDate() - 7)))}
+                    className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                >
+                    <ChevronLeft size={20} className="text-zinc-600 dark:text-zinc-400" />
+                </button>
+                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300 min-w-[140px] text-center">
+                    {format(start, "d 'de' MMMM", { locale: es })}
+                </span>
+                <button
+                    onClick={() => setCurrentDate(new Date(currentDate.setDate(currentDate.getDate() + 7)))}
+                    className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                >
+                    <ChevronRight size={20} className="text-zinc-600 dark:text-zinc-400" />
+                </button>
             </div>
 
             {/* Matrix Table */}
