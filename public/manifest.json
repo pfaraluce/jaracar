@@ -1,0 +1,60 @@
+{
+    "name": "Quango - Gestión de Residencias",
+    "short_name": "Quango",
+    "description": "Sistema de gestión integral de comidas, arreglos, calendarios y reservas de vehículos",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#1e40af",
+    "orientation": "portrait-primary",
+    "icons": [
+        {
+            "src": "/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/apple-touch-icon.png",
+            "sizes": "180x180",
+            "type": "image/png"
+        }
+    ],
+    "categories": [
+        "productivity",
+        "utilities"
+    ],
+    "screenshots": [],
+    "shortcuts": [
+        {
+            "name": "Comidas",
+            "short_name": "Comidas",
+            "description": "Gestionar pedidos de comidas",
+            "url": "/?tab=meals",
+            "icons": [
+                {
+                    "src": "/icon-192.png",
+                    "sizes": "192x192"
+                }
+            ]
+        },
+        {
+            "name": "Vehículos",
+            "short_name": "Vehículos",
+            "description": "Reservar vehículos",
+            "url": "/?tab=cars",
+            "icons": [
+                {
+                    "src": "/icon-192.png",
+                    "sizes": "192x192"
+                }
+            ]
+        }
+    ]
+}

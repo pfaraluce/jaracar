@@ -6,6 +6,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Quango - Gestión Integral de Residencias</title>
 
+  <!-- PWA Meta Tags -->
+  <meta name="theme-color" content="#1e40af" />
+  <meta name="description"
+    content="Sistema de gestión integral de comidas, arreglos, calendarios y reservas de vehículos" />
+  <link rel="manifest" href="/manifest.json" />
+
+  <!-- Apple Touch Icon -->
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  <!-- iOS Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Quango" />
+
   <!-- Favicons -->
   <link rel="icon" type="image/svg+xml" href="/quango-favicon-black.svg" media="(prefers-color-scheme: light)" />
   <link rel="icon" type="image/svg+xml" href="/quango-favicon-white.svg" media="(prefers-color-scheme: dark)" />
@@ -38,6 +52,23 @@
 
     ::-webkit-scrollbar-thumb:hover {
       background: #d4d4d8;
+    }
+
+    /* PWA Update Notification Animation */
+    @keyframes slide-up {
+      from {
+        transform: translate(-50%, 100%);
+        opacity: 0;
+      }
+
+      to {
+        transform: translate(-50%, 0);
+        opacity: 1;
+      }
+    }
+
+    .animate-slide-up {
+      animation: slide-up 0.3s ease-out;
     }
   </style>
   <script type="importmap">

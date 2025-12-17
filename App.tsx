@@ -7,6 +7,7 @@ import { PendingApproval } from './components/PendingApproval';
 import { authService } from './services/auth';
 import { supabase } from './services/supabase';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { UpdateNotification, useServiceWorkerUpdate } from './components/UpdateNotification';
 
 export default function App() {
   // Simple state-based router for SPA feel without heavy routing libraries yet
@@ -14,6 +15,9 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [inviteEmail, setInviteEmail] = useState<string | undefined>(undefined);
+
+  // PWA update notification
+  const { showUpdateNotification, updateServiceWorker, dismissUpdate } = useServiceWorkerUpdate();
 
   useEffect(() => {
     // Check initial session
@@ -115,6 +119,14 @@ export default function App() {
           setViewState={setViewState}
           setUser={setUser}
           inviteEmail={inviteEmail}
+        />
+      )}
+
+      {/* PWA Update Notification */}
+      {showUpdateNotification && (
+        <UpdateNotification
+          onUpdate={updateServiceWorker}
+          onDismiss={dismissUpdate}
         />
       )}
     </ThemeProvider>
