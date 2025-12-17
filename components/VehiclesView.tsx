@@ -40,6 +40,23 @@ export const VehiclesView: React.FC<VehiclesViewProps> = ({ user }) => {
     }, [viewMode]);
 
     const fetchData = async () => {
+        const cacheKey = `vehicles-${user.id}`;
+
+        // Try to load from cache first
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+            try {
+                const { cars: cachedCars, reservations: cachedReservations, favorites: cachedFavorites } = JSON.parse(cached);
+                setCars(cachedCars);
+                setReservations(cachedReservations);
+                setFavorites(cachedFavorites || []);
+                setLoading(false); // Show cached data immediately
+            } catch (e) {
+                console.error('Cache parse error:', e);
+            }
+        }
+
+        // Fetch fresh data in background
         try {
             const [c, r] = await Promise.all([
                 carService.getCars(),
@@ -48,13 +65,21 @@ export const VehiclesView: React.FC<VehiclesViewProps> = ({ user }) => {
             setCars(c);
             setReservations(r);
 
+            let f: string[] = [];
             try {
-                const f = await carService.getFavorites(user.id);
+                f = await carService.getFavorites(user.id);
                 setFavorites(f);
             } catch (favError) {
                 console.warn('Favorites not available:', favError);
                 setFavorites([]);
             }
+
+            // Cache the fresh data
+            localStorage.setItem(cacheKey, JSON.stringify({
+                cars: c,
+                reservations: r,
+                favorites: f
+            }));
         } catch (e) {
             console.error("Failed to load data", e);
             setError((e as Error).message);

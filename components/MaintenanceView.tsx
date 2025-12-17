@@ -33,9 +33,27 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({ user }) => {
     }, []);
 
     const loadTickets = async () => {
+        const cacheKey = `maintenance-tickets`;
+
+        // Try to load from cache first
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+            try {
+                const cachedData = JSON.parse(cached);
+                setTickets(cachedData);
+                setLoading(false); // Show cached data immediately
+            } catch (e) {
+                console.error('Cache parse error:', e);
+            }
+        }
+
+        // Fetch fresh data in background
         try {
             const data = await maintenanceService.getTickets();
             setTickets(data);
+
+            // Cache the fresh data
+            localStorage.setItem(cacheKey, JSON.stringify(data));
         } catch (e) {
             console.error(e);
         } finally {

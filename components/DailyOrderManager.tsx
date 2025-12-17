@@ -2,18 +2,29 @@ import React, { useState, useEffect } from 'react';
 import { MealOrder, MealTemplate } from '../types';
 import { mealService } from '../services/meals';
 import { kitchenService, DailyLock, KitchenConfig } from '../services/kitchen';
-import { ChevronLeft, ChevronRight, ShoppingBag, AlertCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, AlertCircle, X } from 'lucide-react';
 import { format, subDays, addDays } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 interface DailyOrderManagerProps {
     userId: string;
 }
 
 const MEALS = [
-    { id: 'breakfast', name: 'Desayuno' },
-    { id: 'lunch', name: 'Comida' },
-    { id: 'dinner', name: 'Cena' }
+    { id: 'breakfast', name: 'Desayuno', short: 'D' },
+    { id: 'lunch', name: 'Comida', short: 'C' },
+    { id: 'dinner', name: 'Cena', short: 'Ce' }
 ];
+
+// Option configurations with colors
+const OPTION_CONFIG: Record<string, { label: string; color: string; textColor: string }> = {
+    skip: { label: 'NO', color: 'bg-rose-500', textColor: 'text-white' },
+    standard: { label: 'SÍ', color: 'bg-emerald-500', textColor: 'text-white' },
+    early: { label: '1T', color: 'bg-yellow-400', textColor: 'text-zinc-900' },
+    late: { label: '2T', color: 'bg-emerald-700', textColor: 'text-white' },
+    tupper: { label: 'TP', color: 'bg-amber-800', textColor: 'text-white' },
+    bag: { label: 'B', color: 'bg-blue-600', textColor: 'text-white' },
+};
 
 export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId }) => {
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -22,6 +33,14 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId }) 
     const [locks, setLocks] = useState<DailyLock[]>([]);
     const [kitchenConfig, setKitchenConfig] = useState<KitchenConfig | null>(null);
     const [loading, setLoading] = useState(true);
+
+    // Edit modal state
+    const [editingMeal, setEditingMeal] = useState<{
+        date: Date;
+        mealType: string;
+        currentOption: string;
+        isFromTemplate: boolean;
+    } | null>(null);
 
     // Prep change confirmation modal
     const [showPrepWarning, setShowPrepWarning] = useState(false);
@@ -33,7 +52,6 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId }) 
         currentOption: string;
     } | null>(null);
 
-    // Helper to get today (normalized)
     const getToday = () => {
         const d = new Date();
         d.setHours(0, 0, 0, 0);
@@ -52,30 +70,32 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId }) 
     }, [currentDate]);
 
     const loadData = async () => {
-        setLoading(true);
         try {
             const startOfWeek = getStartOfWeek(currentDate);
             const endOfWeek = new Date(startOfWeek);
             endOfWeek.setDate(endOfWeek.getDate() + 6);
 
-            // Fetch Locks for the week AND the previous day (for prep check on Monday)
-            // Ideally we need locks for [startOfWeek-1 to endOfWeek]
-            // For now, simpler: we fetch locks for this range.
-            // If user navigates, we re-fetch.
+            const cacheKey = `daily-orders-${userId}-${format(startOfWeek, 'yyyy-MM-dd')}`;
 
-            // To properly check "Yesterday's Lock" for Monday, we need Sunday's lock status.
-            // The `kitchenService.getLocks(date)` fetches for a single day usually?
-            // Actually `getLocks` in implementation returns `DailyLock[]` for ONE day.
-            // We need a range fetch or loop.
-            // Let's implement a batch fetch or just simpler logic: 
-            // Fetch locks for every day of the week + previous day.
-            // Optimization: `kitchenService` doesn't have a range fetch yet. 
-            // Ideally we add `getLocksRange(start, end)`. 
-            // For now, I'll parallel fetch 8 days (dumb but works for small scale).
+            // Try to load from cache first
+            const cached = localStorage.getItem(cacheKey);
+            if (cached) {
+                try {
+                    const { orders: cachedOrders, templates: cachedTemplates, locks: cachedLocks, config: cachedConfig } = JSON.parse(cached);
+                    setOrders(cachedOrders);
+                    setTemplates(cachedTemplates);
+                    setLocks(cachedLocks);
+                    setKitchenConfig(cachedConfig);
+                    setLoading(false); // Show cached data immediately
+                } catch (e) {
+                    console.error('Cache parse error:', e);
+                }
+            }
 
+            // Fetch fresh data in background
             const daysToFetch = [];
             const d = new Date(startOfWeek);
-            d.setDate(d.getDate() - 1); // Start from day before
+            d.setDate(d.getDate() - 1);
             for (let i = 0; i < 8; i++) {
                 daysToFetch.push(new Date(d));
                 d.setDate(d.getDate() + 1);
@@ -93,10 +113,19 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId }) 
                 kitchenService.getConfig()
             ]);
 
+            // Update with fresh data
             setOrders(ordersData);
             setTemplates(templatesData);
             setLocks(locksData as any);
             setKitchenConfig(configData);
+
+            // Cache the fresh data
+            localStorage.setItem(cacheKey, JSON.stringify({
+                orders: ordersData,
+                templates: templatesData,
+                locks: locksData,
+                config: configData
+            }));
         } catch (e) {
             console.error(e);
         } finally {
@@ -124,13 +153,9 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId }) 
         const dateStr = format(targetDate, 'yyyy-MM-dd');
         const todayStr = format(now, 'yyyy-MM-dd');
 
-        // Past dates are ALWAYS locked
         if (dateStr < todayStr) return true;
-
-        // Future dates are not time-locked (only DB locks apply)
         if (dateStr > todayStr) return false;
 
-        // For TODAY: check if cutoff time has passed
         const dayOfWeek = targetDate.getDay().toString();
         const cutoffTime = kitchenConfig.weekly_schedule[dayOfWeek];
         if (!cutoffTime) return false;
@@ -148,67 +173,56 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId }) 
         prevDay.setDate(prevDay.getDate() - 1);
         const prevDateStr = format(prevDay, 'yyyy-MM-dd');
 
-        // EXCEPTION: Allow changing FROM tupper/bag TO standard options (with confirmation in handleUpdateOrder)
         const isChangingFromPrep = (currentOption === 'tupper' || currentOption === 'bag') &&
             (intendedOption !== 'tupper' && intendedOption !== 'bag');
         if (isChangingFromPrep) return false;
 
-        // 1. Check if Yesterday is Locked (Prep Cutoff)
-        // Locked if explicit DB lock OR if Time passed on that day (if it's today)
         const isPrevDbLocked = locks.find(l => l.date === prevDateStr)?.isLocked || false;
         const isPrevTimeLocked = isDayTimeLocked(prevDay);
         const isPrevLocked = isPrevDbLocked || isPrevTimeLocked;
 
-        // 2. Check if Today is Locked (Service Cutoff)
         const isTodayDbLocked = locks.find(l => l.date === dateStr)?.isLocked || false;
         const isTodayTimeLocked = isDayTimeLocked(date);
         const isTodayLocked = isTodayDbLocked || isTodayTimeLocked;
 
-        // --- RULES ---
-
-        // RULE A: Breakfast is ALWAYS Prep. Controlled by Yesterday.
         if (mealType === 'breakfast') {
             if (isPrevLocked) return true;
         }
 
-        // RULE B: Lunch/Dinner Tuppers/Bags are Prep. Controlled by Yesterday.
         if (intendedOption === 'tupper' || intendedOption === 'bag') {
             if (isPrevLocked) return true;
         }
 
-        // RULE C: If switching TO Tupper/Bag, we need Yesterday Open.
-        // We handle this in UI (disable specific options).
-        // Here we return general lock status for the meal row.
-
-        // RULE D: Regular Lunch/Dinner (Standard, Early, Late) controlled by Today.
         if (mealType !== 'breakfast') {
             if (isTodayLocked) return true;
         }
 
-        // Safety: Cannot edit past days
         if (date < getToday()) return true;
 
         return false;
     };
 
-    // New helper to detect if specific options should be disabled
-    const isOptionDisabled = (date: Date, mealType: string, optionValue: string) => {
-        // If it's a Prep option (Tupper/Bag), needs YESTERDAY open.
-        if (optionValue === 'tupper' || optionValue === 'bag') {
-            const prevDay = subDays(date, 1);
-            const prevDateStr = format(prevDay, 'yyyy-MM-dd');
-            const isPrevDbLocked = locks.find(l => l.date === prevDateStr)?.isLocked;
-            const isPrevTimeLocked = isDayTimeLocked(prevDay);
-            if (isPrevDbLocked || isPrevTimeLocked) return true;
+    const handleCellClick = (date: Date, mealType: string) => {
+        const meal = getMealForDate(date, mealType);
+        const currentOption = meal?.option || 'skip';
+
+        if (isLocked(date, mealType, undefined, currentOption)) {
+            return; // Don't open modal if locked
         }
-        return false;
+
+        setEditingMeal({
+            date,
+            mealType,
+            currentOption,
+            isFromTemplate: meal?.source === 'template'
+        });
     };
 
-    const handleUpdateOrder = async (date: Date, mealType: string, option: string, isBag: boolean) => {
-        // Check if we're changing FROM a prep item (tupper/bag) to a standard option
-        const dateStr = format(date, 'yyyy-MM-dd');
-        const currentMeal = getMealForDate(date, mealType);
-        const currentOption = currentMeal?.option;
+    const handleOptionSelect = async (option: string) => {
+        if (!editingMeal) return;
+
+        const { date, mealType, currentOption } = editingMeal;
+        const isBag = option === 'bag';
 
         if (isLocked(date, mealType, option, currentOption)) {
             alert("El pedido está cerrado para esta opción (requiere antelación).");
@@ -219,17 +233,22 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId }) 
             (option !== 'tupper' && option !== 'bag');
 
         if (isChangingFromPrep) {
-            // Show modal instead of window.confirm
             setPendingMealChange({ date, mealType, option, isBag, currentOption: currentOption! });
             setShowPrepWarning(true);
+            setEditingMeal(null);
             return;
         }
 
-        // Force isBag if option is 'bag'
+        const dateStr = format(date, 'yyyy-MM-dd');
         const finalIsBag = option === 'bag' ? true : (option === 'tupper' ? false : isBag);
 
-        await mealService.upsertOrder(userId, dateStr, mealType, option, finalIsBag);
-        loadData();
+        try {
+            await mealService.upsertOrder(userId, dateStr, mealType, option, finalIsBag);
+            loadData();
+            setEditingMeal(null);
+        } catch (error) {
+            console.error("Failed to update meal", error);
+        }
     };
 
     const confirmPrepChange = async () => {
@@ -258,104 +277,183 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId }) 
         weekDays.push(d);
     }
 
+    const getAvailableOptions = (mealType: string) => {
+        if (mealType === 'breakfast') {
+            return ['standard', 'early', 'skip'];
+        } else if (mealType === 'lunch') {
+            return ['standard', 'early', 'late', 'tupper', 'bag', 'skip'];
+        } else {
+            return ['standard', 'late', 'skip'];
+        }
+    };
+
     return (
         <div className="space-y-6">
+            {/* Header */}
             <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium text-zinc-900 dark:text-white">Pedidos Diarios</h3>
-                <div className="flex items-center gap-4">
-                    <button onClick={() => setCurrentDate(new Date(currentDate.setDate(currentDate.getDate() - 7)))} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full">
+                <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">Pedidos Diarios</h3>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => setCurrentDate(new Date(currentDate.setDate(currentDate.getDate() - 7)))}
+                        className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                    >
                         <ChevronLeft size={20} className="text-zinc-600 dark:text-zinc-400" />
                     </button>
-                    <span className="text-sm font-medium text-zinc-900 dark:text-white">
-                        Semana del {start.toLocaleDateString()}
+                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300 min-w-[140px] text-center">
+                        {format(start, "d 'de' MMMM", { locale: es })}
                     </span>
-                    <button onClick={() => setCurrentDate(new Date(currentDate.setDate(currentDate.getDate() + 7)))} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full">
+                    <button
+                        onClick={() => setCurrentDate(new Date(currentDate.setDate(currentDate.getDate() + 7)))}
+                        className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                    >
                         <ChevronRight size={20} className="text-zinc-600 dark:text-zinc-400" />
                     </button>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {weekDays.map(day => (
-                    <div key={day.toISOString()} className={`p-4 rounded-xl border ${format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')
-                        ? 'bg-zinc-50 dark:bg-zinc-800/80 border-zinc-300 dark:border-zinc-700 ring-1 ring-zinc-300 dark:ring-zinc-700'
-                        : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800'
-                        }`}>
-                        <h4 className="font-medium text-zinc-900 dark:text-white mb-4 capitalize">
-                            {day.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric' })}
-                        </h4>
+            {/* Matrix Table */}
+            <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                    <table className="w-full">
+                        <thead>
+                            <tr className="border-b border-zinc-200 dark:border-zinc-800">
+                                <th className="text-left p-4 text-sm font-medium text-zinc-500 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-900/50">
+                                    Día
+                                </th>
+                                {MEALS.map(meal => (
+                                    <th key={meal.id} className="p-4 text-sm font-medium text-zinc-700 dark:text-zinc-300 bg-zinc-50 dark:bg-zinc-900/50">
+                                        {meal.name}
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {weekDays.map(day => {
+                                const isToday = format(day, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+                                return (
+                                    <tr
+                                        key={day.toISOString()}
+                                        className={`border-b border-zinc-100 dark:border-zinc-800/50 hover:bg-zinc-50/50 dark:hover:bg-zinc-800/30 transition-colors ${isToday ? 'bg-zinc-50 dark:bg-zinc-800/50' : ''
+                                            }`}
+                                    >
+                                        <td className="p-4">
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-medium text-zinc-900 dark:text-white capitalize">
+                                                    {format(day, 'EEEE', { locale: es })}
+                                                </span>
+                                                <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                                                    {format(day, 'd MMM', { locale: es })}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        {MEALS.map(meal => {
+                                            const data = getMealForDate(day, meal.id);
+                                            const option = data?.option || 'skip';
+                                            const config = OPTION_CONFIG[option];
+                                            const locked = isLocked(day, meal.id, undefined, option);
+                                            const isFromTemplate = data?.source === 'template';
 
-                        <div className="space-y-4">
-                            {MEALS.map(meal => {
-                                const data = getMealForDate(day, meal.id);
-                                const currentValue = data?.option || 'skip';
-                                // Check generic lock (for displaying "Locked" badge)
-                                const completelyLocked = isLocked(day, meal.id, undefined, currentValue);
+                                            return (
+                                                <td key={meal.id} className="p-4">
+                                                    <button
+                                                        onClick={() => handleCellClick(day, meal.id)}
+                                                        disabled={locked}
+                                                        className={`
+                                                            w-full px-4 py-2.5 rounded-xl font-semibold text-sm
+                                                            ${config.color} ${config.textColor}
+                                                            ${locked ? 'opacity-40 cursor-not-allowed' : 'hover:scale-105 cursor-pointer shadow-sm hover:shadow-md'}
+                                                            ${isFromTemplate ? 'ring-2 ring-zinc-300 dark:ring-zinc-600 ring-offset-2 dark:ring-offset-zinc-900' : ''}
+                                                            transition-all duration-200
+                                                        `}
+                                                    >
+                                                        {config.label}
+                                                    </button>
+                                                </td>
+                                            );
+                                        })}
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
 
-                                let options: { value: string; label: string }[] = [];
-                                if (meal.id === 'breakfast') {
-                                    options = [
-                                        { value: 'standard', label: 'Normal' },
-                                        { value: 'early', label: 'Pronto' },
-                                        { value: 'skip', label: 'No Desayuno' }
-                                    ];
-                                } else if (meal.id === 'lunch') {
-                                    options = [
-                                        { value: 'standard', label: 'Normal' },
-                                        { value: 'early', label: 'Pronto' },
-                                        { value: 'late', label: 'Tarde' },
-                                        { value: 'tupper', label: 'Tupper' },
-                                        { value: 'bag', label: 'Bolsa' },
-                                        { value: 'skip', label: 'No Como' }
-                                    ];
-                                } else if (meal.id === 'dinner') {
-                                    options = [
-                                        { value: 'standard', label: 'Normal' },
-                                        { value: 'late', label: 'Tarde' },
-                                        { value: 'skip', label: 'No Ceno' }
-                                    ];
-                                }
+            {/* Legend */}
+            <div className="flex flex-wrap gap-3 text-xs text-zinc-600 dark:text-zinc-400">
+                <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded border-2 border-zinc-300 dark:border-zinc-600"></div>
+                    <span>Desde plantilla</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded bg-zinc-200 dark:bg-zinc-700 opacity-40"></div>
+                    <span>Cerrado</span>
+                </div>
+            </div>
+
+            {/* Edit Modal */}
+            {editingMeal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl max-w-md w-full border border-zinc-200 dark:border-zinc-800 animate-in zoom-in-95 duration-200">
+                        {/* Header */}
+                        <div className="p-6 border-b border-zinc-200 dark:border-zinc-800">
+                            <div className="flex items-center justify-between mb-2">
+                                <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">
+                                    {MEALS.find(m => m.id === editingMeal.mealType)?.name}
+                                </h3>
+                                <button
+                                    onClick={() => setEditingMeal(null)}
+                                    className="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                                >
+                                    <X size={20} className="text-zinc-500" />
+                                </button>
+                            </div>
+                            <p className="text-sm text-zinc-600 dark:text-zinc-400 capitalize">
+                                {format(editingMeal.date, "EEEE, d 'de' MMMM", { locale: es })}
+                            </p>
+                        </div>
+
+                        {/* Options */}
+                        <div className="p-6 space-y-2">
+                            {getAvailableOptions(editingMeal.mealType).map(opt => {
+                                const config = OPTION_CONFIG[opt];
+                                const isSelected = editingMeal.currentOption === opt;
+                                const optionLocked = isLocked(editingMeal.date, editingMeal.mealType, opt, editingMeal.currentOption);
 
                                 return (
-                                    <div key={meal.id} className="space-y-1">
-                                        <div className="flex justify-between items-center text-xs">
-                                            <span className="font-medium text-zinc-500 dark:text-zinc-400">{meal.name}</span>
-                                            {completelyLocked && <span className="text-amber-600 text-[10px] font-bold">Cerrado</span>}
+                                    <button
+                                        key={opt}
+                                        onClick={() => handleOptionSelect(opt)}
+                                        disabled={optionLocked}
+                                        className={`
+                                            w-full flex items-center gap-3 p-4 rounded-xl border-2 transition-all
+                                            ${isSelected
+                                                ? 'border-zinc-900 dark:border-white bg-zinc-50 dark:bg-zinc-800'
+                                                : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
+                                            }
+                                            ${optionLocked ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}
+                                        `}
+                                    >
+                                        <div className={`w-3 h-3 rounded-full border-2 ${isSelected
+                                            ? 'border-zinc-900 dark:border-white bg-zinc-900 dark:bg-white'
+                                            : 'border-zinc-300 dark:border-zinc-600'
+                                            }`} />
+                                        <div className={`px-3 py-1 rounded-lg ${config.color} ${config.textColor} font-semibold text-sm min-w-[48px] text-center`}>
+                                            {config.label}
                                         </div>
-
-                                        <div className="flex gap-2">
-                                            <select
-
-                                                value={currentValue}
-                                                onChange={(e) => handleUpdateOrder(day, meal.id, e.target.value, false)}
-                                                className={`w-full px-2 py-1.5 text-sm rounded-md border ${data?.source === 'template'
-                                                    ? 'border-dashed border-zinc-300 dark:border-zinc-700 text-zinc-600 bg-transparent'
-                                                    : 'border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-white'
-                                                    } focus:outline-none focus:ring-1 focus:ring-zinc-900`}
-                                            >
-                                                {options.map(opt => {
-                                                    // Individual option disabling
-                                                    // If main meal is closed (e.g. today lunch locked), everything disabled? 
-                                                    // OR specific options disabled?
-                                                    // If completelyLocked, everything is disabled via logic in handleUpdateOrder, 
-                                                    // but for UX let's mark/disable items.
-
-                                                    const disabled = isOptionDisabled(day, meal.id, opt.value) || (completelyLocked && opt.value !== currentValue); // Can't change to others if locked, but can keep current? Actually if locked, cant change period.
-
-                                                    // If completely Locked, the whole SELECT should be disabled?
-                                                    // YES.
-
-                                                    return <option key={opt.value} value={opt.value} disabled={disabled}>{opt.label} {disabled ? '(Cerrado)' : ''}</option>
-                                                })}
-                                            </select>
-                                        </div>
-                                    </div>
+                                        <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                                            {opt === 'skip' ? 'No' : opt === 'standard' ? 'Normal' : opt === 'early' ? 'Temprano' : opt === 'late' ? 'Tarde' : opt === 'tupper' ? 'Tupper' : 'Bolsa'}
+                                        </span>
+                                        {optionLocked && (
+                                            <span className="ml-auto text-xs text-amber-600 dark:text-amber-500 font-medium">Cerrado</span>
+                                        )}
+                                    </button>
                                 );
                             })}
                         </div>
                     </div>
-                ))}
-            </div>
+                </div>
+            )}
 
             {/* Prep Change Warning Modal */}
             {showPrepWarning && pendingMealChange && (

@@ -11,6 +11,15 @@ interface MealsViewProps {
 
 export const MealsView: React.FC<MealsViewProps> = ({ user }) => {
     const [activeTab, setActiveTab] = useState<'daily' | 'template' | 'list'>('daily');
+    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+    const handleTabChange = (newTab: 'daily' | 'template' | 'list') => {
+        if (hasUnsavedChanges && activeTab === 'template') {
+            const confirmed = window.confirm('Tienes cambios sin guardar en la plantilla. ¿Quieres salir de todas formas?');
+            if (!confirmed) return;
+        }
+        setActiveTab(newTab);
+    };
 
     return (
         <div className="space-y-6">
@@ -22,7 +31,7 @@ export const MealsView: React.FC<MealsViewProps> = ({ user }) => {
 
                 <div className="flex p-1 bg-zinc-100 dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-800 overflow-x-auto max-w-full">
                     <button
-                        onClick={() => setActiveTab('daily')}
+                        onClick={() => handleTabChange('daily')}
                         className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all whitespace-nowrap ${activeTab === 'daily'
                             ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm'
                             : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'
@@ -32,7 +41,7 @@ export const MealsView: React.FC<MealsViewProps> = ({ user }) => {
                         Pedidos Diarios
                     </button>
                     <button
-                        onClick={() => setActiveTab('template')}
+                        onClick={() => handleTabChange('template')}
                         className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all whitespace-nowrap ${activeTab === 'template'
                             ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm'
                             : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'
@@ -42,26 +51,21 @@ export const MealsView: React.FC<MealsViewProps> = ({ user }) => {
                         Plantilla Semanal
                     </button>
                     <button
-                        onClick={() => setActiveTab('list')}
+                        onClick={() => handleTabChange('list')}
                         className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all whitespace-nowrap ${activeTab === 'list'
                             ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm'
                             : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300'
                             }`}
                     >
                         <ClipboardList size={16} />
-                        Listado Cocina
+                        Lista de Pedidos
                     </button>
                 </div>
             </div>
 
-            {activeTab === 'template' ? (
-                <WeeklyTemplateEditor userId={user.id} />
-            ) : activeTab === 'list' ? (
-                <DailyMealsList user={user} />
-            ) : (
-                <DailyOrderManager userId={user.id} />
-            )}
+            {activeTab === 'daily' && <DailyOrderManager userId={user.id} />}
+            {activeTab === 'template' && <WeeklyTemplateEditor userId={user.id} onUnsavedChanges={setHasUnsavedChanges} />}
+            {activeTab === 'list' && <DailyMealsList user={user} />}
         </div>
     );
 };
-

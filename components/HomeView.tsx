@@ -114,6 +114,27 @@ export const HomeView: React.FC<HomeViewProps> = ({ user, onNavigate }) => {
     };
 
     const loadDashboardData = async () => {
+        const cacheKey = `dashboard-${user.id}-${format(new Date(), 'yyyy-MM-dd')}`;
+
+        // Try to load from cache first
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+            try {
+                const cachedData = JSON.parse(cached);
+                setStats(cachedData.stats);
+                setQuickCars(cachedData.quickCars);
+                setDailyMeals(cachedData.dailyMeals);
+                setKitchenConfig(cachedData.kitchenConfig);
+                setViewDate(new Date(cachedData.viewDate));
+                setReservations(cachedData.reservations || []);
+                if (cachedData.activeTickets) setActiveTickets(cachedData.activeTickets);
+                // Don't cache gospel - always fetch fresh
+            } catch (e) {
+                console.error('Cache parse error:', e);
+            }
+        }
+
+        // Fetch fresh data in background
         try {
             // 1. Fleet Stats
             const cars = await carService.getCars();
@@ -129,7 +150,8 @@ export const HomeView: React.FC<HomeViewProps> = ({ user, onNavigate }) => {
             );
 
             const availableCount = cars.length - activeReservations.length;
-            setStats({ availableCars: availableCount, totalCars: cars.length });
+            const statsData = { availableCars: availableCount, totalCars: cars.length };
+            setStats(statsData);
 
             // Filter for available cars to show in widget
             // Cars that are NOT in activeReservations and NOT in Workshop
@@ -140,7 +162,8 @@ export const HomeView: React.FC<HomeViewProps> = ({ user, onNavigate }) => {
 
             // Prioritize available cars, fill with others if needed, but for "Available list" purely available is better.
             // User asked for "lista de coches disponibles".
-            setQuickCars(availableCarsList.slice(0, 5)); // Show top 5 available
+            const quickCarsData = availableCarsList.slice(0, 5);
+            setQuickCars(quickCarsData); // Show top 5 available
 
             // 2. Meal Status (Today)
             const todayStr = format(now, 'yyyy-MM-dd');
@@ -165,11 +188,12 @@ export const HomeView: React.FC<HomeViewProps> = ({ user, onNavigate }) => {
                 return undefined; // No service/plan
             };
 
-            setDailyMeals({
+            const mealsData = {
                 breakfast: resolveMeal('breakfast'),
                 lunch: resolveMeal('lunch'),
                 dinner: resolveMeal('dinner')
-            });
+            };
+            setDailyMeals(mealsData);
 
             // 3. Determine View Date (Today vs Tomorrow)
             // If it's 18:00 or later, show tomorrow's agenda
@@ -181,11 +205,24 @@ export const HomeView: React.FC<HomeViewProps> = ({ user, onNavigate }) => {
             gospelService.getGospel(now).then(setGospel);
 
             // 5. Maintenance Stats
+            let ticketsData = [];
             if (hasAccess(user, 'maintenance')) {
                 const tickets = await maintenanceService.getTickets();
                 const active = tickets.filter(t => t.status === 'open' || t.status === 'in_progress');
+                ticketsData = active;
                 setActiveTickets(active);
             }
+
+            // Cache the fresh data (except gospel which is always fresh)
+            localStorage.setItem(cacheKey, JSON.stringify({
+                stats: statsData,
+                quickCars: quickCarsData,
+                dailyMeals: mealsData,
+                kitchenConfig: config,
+                viewDate: agendaDate,
+                reservations: res,
+                activeTickets: ticketsData
+            }));
 
         } catch (error) {
             console.error("Dashboard load failed", error);
