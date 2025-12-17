@@ -25,36 +25,5 @@
             "sizes": "180x180",
             "type": "image/png"
         }
-    ],
-    "categories": [
-        "productivity",
-        "utilities"
-    ],
-    "screenshots": [],
-    "shortcuts": [
-        {
-            "name": "Comidas",
-            "short_name": "Comidas",
-            "description": "Gestionar pedidos de comidas",
-            "url": "/?tab=meals",
-            "icons": [
-                {
-                    "src": "/icon-192.png",
-                    "sizes": "192x192"
-                }
-            ]
-        },
-        {
-            "name": "Vehículos",
-            "short_name": "Vehículos",
-            "description": "Reservar vehículos",
-            "url": "/?tab=cars",
-            "icons": [
-                {
-                    "src": "/icon-192.png",
-                    "sizes": "192x192"
-                }
-            ]
-        }
     ]
 }

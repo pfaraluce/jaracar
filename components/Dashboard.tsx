@@ -34,6 +34,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
   const isRestricted = user.role !== 'ADMIN' && !!user.permissions && Object.keys(user.permissions).length > 0;
 
   const getInitialView = (): DashboardView => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab');
+
+    if (tab === 'cars') return 'VEHICLES';
+    if (tab === 'meals') return 'MEALS';
+
     return 'HOME';
   };
 
