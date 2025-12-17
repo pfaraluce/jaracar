@@ -133,7 +133,7 @@ export const AdminUserList: React.FC = () => {
         fetchUsers();
     }, []);
 
-    const handleStatusChange = async (userId: string, newStatus: 'APPROVED' | 'REJECTED') => {
+    const handleStatusChange = async (userId: string, newStatus: 'APPROVED' | 'REJECTED' | 'PENDING') => {
         try {
             // Optimistic update
             setUsers(users.map(u => u.id === userId ? { ...u, status: newStatus } : u));
@@ -161,12 +161,20 @@ export const AdminUserList: React.FC = () => {
         }
     };
 
+    const [showRejected, setShowRejected] = useState(false);
+
     const filteredUsers = users.filter(user => {
+        if (user.status === 'REJECTED') return false; // Hide rejected from main list
         const matchesFilter = filter === 'ALL' || user.status === 'PENDING';
         const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             user.email.toLowerCase().includes(searchTerm.toLowerCase());
         return matchesFilter && matchesSearch;
     });
+
+    const rejectedUsers = users.filter(user => user.status === 'REJECTED' && (
+        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchTerm.toLowerCase())
+    ));
 
     if (loading) {
         return <div className="text-center py-8 text-zinc-500 dark:text-zinc-400">Cargando usuarios...</div>;
@@ -216,7 +224,7 @@ export const AdminUserList: React.FC = () => {
                 </div>
             </div>
 
-            {/* List */}
+            {/* Main List (Approved/Pending) */}
             <div className="border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left">
@@ -232,7 +240,7 @@ export const AdminUserList: React.FC = () => {
                             {filteredUsers.length === 0 ? (
                                 <tr>
                                     <td colSpan={4} className="px-4 py-8 text-center text-zinc-500 dark:text-zinc-400">
-                                        No se encontraron usuarios
+                                        No se encontraron usuarios {filter === 'PENDING' ? 'pendientes' : ''}
                                     </td>
                                 </tr>
                             ) : (
@@ -249,11 +257,9 @@ export const AdminUserList: React.FC = () => {
                                         </td>
                                         <td className="px-4 py-2.5">
                                             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${user.status === 'APPROVED' ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-100 dark:border-emerald-800' :
-                                                user.status === 'REJECTED' ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-100 dark:border-red-800' :
-                                                    'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-100 dark:border-amber-800'
+                                                'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-100 dark:border-amber-800'
                                                 }`}>
-                                                {user.status === 'APPROVED' ? 'Aprobado' :
-                                                    user.status === 'REJECTED' ? 'Rechazado' : 'Pendiente'}
+                                                {user.status === 'APPROVED' ? 'Aprobado' : 'Pendiente'}
                                             </span>
                                         </td>
                                         <td className="px-4 py-2.5">
@@ -284,8 +290,6 @@ export const AdminUserList: React.FC = () => {
                                                     </>
                                                 )}
 
-
-
                                                 <div className="w-px h-4 bg-zinc-200 dark:bg-zinc-700 mx-1" />
 
                                                 <button
@@ -295,8 +299,6 @@ export const AdminUserList: React.FC = () => {
                                                 >
                                                     <Lock size={16} />
                                                 </button>
-
-
                                             </div>
                                         </td>
                                     </tr>
@@ -306,6 +308,66 @@ export const AdminUserList: React.FC = () => {
                     </table>
                 </div>
             </div>
+
+            {/* Rejected Users Section */}
+            {rejectedUsers.length > 0 && (
+                <div className="mt-8 border border-red-200 dark:border-red-900/30 rounded-xl overflow-hidden bg-red-50/30 dark:bg-red-900/5">
+                    <button
+                        onClick={() => setShowRejected(!showRejected)}
+                        className="w-full px-4 py-3 flex items-center justify-between text-sm font-medium text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                    >
+                        <div className="flex items-center gap-2">
+                            <ShieldOff size={16} />
+                            Usuarios Rechazados ({rejectedUsers.length})
+                        </div>
+                        <span className="text-xs">{showRejected ? 'Ocultar' : 'Mostrar'}</span>
+                    </button>
+
+                    <AnimatePresence>
+                        {showRejected && (
+                            <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                className="overflow-hidden"
+                            >
+                                <div className="border-t border-red-200 dark:border-red-900/30 overflow-x-auto">
+                                    <table className="w-full text-sm text-left">
+                                        <tbody className="divide-y divide-red-100 dark:divide-red-900/30">
+                                            {rejectedUsers.map(user => (
+                                                <tr key={user.id} className="hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors">
+                                                    <td className="px-4 py-2.5">
+                                                        <div className="flex items-center gap-3">
+                                                            <UserAvatar name={user.name} imageUrl={user.avatarUrl} size="sm" className="opacity-60" />
+                                                            <div>
+                                                                <p className="font-medium text-zinc-700 dark:text-zinc-300 line-through decoration-red-400">{user.name}</p>
+                                                                <p className="text-xs text-zinc-500 dark:text-zinc-500">{user.email}</p>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-4 py-2.5">
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800">
+                                                            Rechazado
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-2.5 text-right">
+                                                        <button
+                                                            onClick={() => handleStatusChange(user.id, 'PENDING')}
+                                                            className="px-3 py-1 text-xs font-medium text-red-600 dark:text-red-400 bg-white dark:bg-zinc-800 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                                        >
+                                                            Restaurar
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+            )}
             {/* Permissions Modal */}
             {permissionUser && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">

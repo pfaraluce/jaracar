@@ -117,6 +117,8 @@ export const maintenanceService = {
         const { error } = await supabase
             .from('maintenance_tickets')
             .update({
+                title: updates.title,
+                description: updates.description,
                 priority: updates.priority,
                 location: updates.location,
                 image_url: updates.imageUrl,

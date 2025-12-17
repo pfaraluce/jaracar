@@ -136,12 +136,12 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({ user }) => {
                 });
             }
             setIsCreateOpen(false);
-            setIsCreateOpen(false);
             setNewTicket({ title: '', description: '', priority: 'medium', location: '', imageUrl: undefined, reporterId: user.id, assignedUserId: undefined });
             setEditingId(null);
             loadTickets();
         } catch (error) {
             console.error(error);
+            alert('Error al guardar la incidencia. Por favor inténtalo de nuevo.');
         } finally {
             setCreating(false);
         }
@@ -187,6 +187,13 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({ user }) => {
         if (priorityFilter !== 'all' && t.priority !== priorityFilter) return false;
         return true;
     });
+
+    const priorityBorderColors = {
+        low: 'border-blue-200 dark:border-blue-800 hover:border-blue-300 dark:hover:border-blue-700',
+        medium: 'border-amber-200 dark:border-amber-800 hover:border-amber-300 dark:hover:border-amber-700',
+        high: 'border-orange-200 dark:border-orange-800 hover:border-orange-300 dark:hover:border-orange-700',
+        critical: 'border-red-200 dark:border-red-800 hover:border-red-300 dark:hover:border-red-700',
+    };
 
     return (
         <div className="space-y-6">
@@ -257,7 +264,7 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({ user }) => {
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredTickets.map(ticket => (
-                        <div key={ticket.id} className="group bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden hover:shadow-xl hover:border-zinc-300 dark:hover:border-zinc-700 transition-all flex flex-col">
+                        <div key={ticket.id} className={`group bg-white dark:bg-zinc-900 border rounded-2xl overflow-hidden hover:shadow-xl transition-all flex flex-col ${priorityBorderColors[ticket.priority]}`}>
                             {/* Card Image */}
                             <div className="aspect-video bg-zinc-100 dark:bg-zinc-800 relative overflow-hidden">
                                 {ticket.imageUrl ? (
@@ -285,11 +292,6 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({ user }) => {
                                             )}
                                         </div>
                                     </div>
-                                    {ticket.priority === 'critical' ? (
-                                        <AlertCircle size={18} className="text-red-500 shrink-0" />
-                                    ) : ticket.priority === 'high' ? (
-                                        <AlertCircle size={18} className="text-orange-500 shrink-0" />
-                                    ) : null}
                                 </div>
 
                                 <p className="text-sm text-zinc-600 dark:text-zinc-400 line-clamp-2 mb-4 flex-1">

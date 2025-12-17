@@ -264,13 +264,7 @@ export const DailyMealsList: React.FC<DailyMealsListProps> = ({ user, selectedDa
     const dinnerGroups = groupByMealAndOption(orders, guests, 'dinner');
     const tomorrowPrep = getTomorrowPrep();
 
-    // Debug logging
-    console.log('=== KITCHEN VIEW DEBUG ===');
-    console.log('Total orders:', orders.length);
-    console.log('Breakfast orders:', orders.filter(o => o.mealType === 'breakfast'));
-    console.log('Breakfast groups:', breakfastGroups);
-    console.log('Lunch groups:', lunchGroups);
-    console.log('Dinner groups:', dinnerGroups);
+
 
     // Render a subdivision section
     const SubdivisionSection = ({
