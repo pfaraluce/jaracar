@@ -9,8 +9,12 @@ export const hasAccess = (user: User, module: 'vehicles' | 'meals' | 'maintenanc
     // If it exists, we respect the 'view' flag.
 
     // 2. Default Allow Logic:
-    // - If permissions object is missing/null => This is a standard user who hasn't been restricted => ALLOW ALL.
-    if (!user.permissions || Object.keys(user.permissions).length === 0) return true;
+    // - If permissions object is strictly NULL/UNDEFINED => This is a legacy user or fresh invite => ALLOW ALL (Backwards compatibility)
+    if (user.permissions === null || user.permissions === undefined) return true;
+
+    // - If permissions object EXISTS (even empty {}) => The user has been configured.
+    //   In this case, we switch to "Whitelist" mode. Only explicitly granted permissions are allowed.
+    if (Object.keys(user.permissions).length === 0) return false;
 
     // - If permissions object EXISTS => The user has been configured.
     //   In this case, we switch to "Whitelist" mode. Only explicitly granted permissions are allowed.

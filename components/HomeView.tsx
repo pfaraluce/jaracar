@@ -553,93 +553,100 @@ export const HomeView: React.FC<HomeViewProps> = ({ user, onNavigate }) => {
 
 
             {/* Today's Agenda Section */}
-            <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-6">
-                <div className="flex items-center gap-3 mb-6">
-                    <div className="p-2 bg-violet-100 dark:bg-violet-800 rounded-full text-violet-600 dark:text-violet-400">
-                        <CalendarIcon size={18} />
+            {/* Today's Agenda Section */}
+            {hasAccess(user, 'calendar') && (
+                <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 p-6">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="p-2 bg-violet-100 dark:bg-violet-800 rounded-full text-violet-600 dark:text-violet-400">
+                            <CalendarIcon size={18} />
+                        </div>
+                        <h2 className="font-semibold text-zinc-900 dark:text-white">
+                            Agenda de {viewDate.getDate() === new Date().getDate() ? 'Hoy' : 'Mañana'}
+                        </h2>
                     </div>
-                    <h2 className="font-semibold text-zinc-900 dark:text-white">
-                        Agenda de {viewDate.getDate() === new Date().getDate() ? 'Hoy' : 'Mañana'}
-                    </h2>
-                </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    {/* Gospel Section */}
-                    <div>
-                        <div className="flex items-center gap-2 mb-4 text-zinc-900 dark:text-white font-medium">
-                            <BookOpen size={18} className="text-rose-500" />
-                            <h3>Evangelio de {format(new Date(), "EEEE d", { locale: es })}</h3>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        {/* Gospel Section */}
+                        <div>
+                            <div className="flex items-center gap-2 mb-4 text-zinc-900 dark:text-white font-medium">
+                                <BookOpen size={18} className="text-rose-500" />
+                                <h3>Evangelio de {format(new Date(), "EEEE d", { locale: es })}</h3>
+                            </div>
+
+                            {gospel ? (
+                                <div className="prose prose-sm dark:prose-invert max-w-none">
+                                    <h4 className="text-lg font-bold leading-tight mb-3 text-zinc-900 dark:text-zinc-100">
+                                        <a href={gospel.link} target="_blank" rel="noopener noreferrer" className="hover:underline hover:text-rose-600 transition-colors">
+                                            {gospel.title}
+                                        </a>
+                                    </h4>
+                                    <p className="text-zinc-700 dark:text-zinc-300 text-sm leading-relaxed whitespace-pre-line">
+                                        {gospel.description}
+                                    </p>
+                                    <a href={gospel.link} target="_blank" rel="noopener noreferrer" className="text-xs text-rose-500 hover:text-rose-600 mt-3 inline-flex items-center gap-1 font-medium">
+                                        Leer completo en Opus Dei <ChevronRight size={12} />
+                                    </a>
+                                </div>
+                            ) : (
+                                <div className="animate-pulse space-y-3">
+                                    <div className="h-6 bg-zinc-100 dark:bg-zinc-800 rounded w-3/4" />
+                                    <div className="h-20 bg-zinc-100 dark:bg-zinc-800 rounded w-full" />
+                                </div>
+                            )}
                         </div>
 
-                        {gospel ? (
-                            <div className="prose prose-sm dark:prose-invert max-w-none">
-                                <h4 className="text-lg font-bold leading-tight mb-3 text-zinc-900 dark:text-zinc-100">
-                                    <a href={gospel.link} target="_blank" rel="noopener noreferrer" className="hover:underline hover:text-rose-600 transition-colors">
-                                        {gospel.title}
-                                    </a>
-                                </h4>
-                                <p className="text-zinc-700 dark:text-zinc-300 text-sm leading-relaxed whitespace-pre-line">
-                                    {gospel.description}
-                                </p>
-                                <a href={gospel.link} target="_blank" rel="noopener noreferrer" className="text-xs text-rose-500 hover:text-rose-600 mt-3 inline-flex items-center gap-1 font-medium">
-                                    Leer completo en Opus Dei <ChevronRight size={12} />
-                                </a>
-                            </div>
-                        ) : (
-                            <div className="animate-pulse space-y-3">
-                                <div className="h-6 bg-zinc-100 dark:bg-zinc-800 rounded w-3/4" />
-                                <div className="h-20 bg-zinc-100 dark:bg-zinc-800 rounded w-full" />
-                            </div>
-                        )}
+                        {/* Events List */}
+                        <div className="space-y-3 lg:border-l border-zinc-200 dark:border-zinc-800 lg:pl-8">
+                            {eventsLoading ? (
+                                <div className="animate-pulse space-y-3">
+                                    <div className="h-16 bg-zinc-100 dark:bg-zinc-800 rounded-xl w-full" />
+                                    <div className="h-16 bg-zinc-100 dark:bg-zinc-800 rounded-xl w-full" />
+                                </div>
+                            ) : (
+                                (() => {
+                                    const targetEvents = events.filter(e => {
+                                        return e.start.getDate() === viewDate.getDate() &&
+                                            e.start.getMonth() === viewDate.getMonth() &&
+                                            e.start.getFullYear() === viewDate.getFullYear();
+                                    });
+
+                                    if (targetEvents.length === 0) {
+                                        return (
+                                            <div className="text-center py-8 text-zinc-400">
+                                                <CalendarIcon size={32} className="mx-auto mb-2 opacity-50" />
+                                                <p>No hay eventos para {viewDate.getDate() === new Date().getDate() ? 'hoy' : 'mañana'}.</p>
+                                            </div>
+                                        );
+                                    }
+
+                                    return targetEvents.map(event => (
+                                        <EpactaEvent key={event.id} event={event} compact={false} />
+                                    ));
+                                })()
+                            )}
+                        </div>
                     </div>
 
-                    {/* Events List */}
-                    <div className="space-y-3 lg:border-l border-zinc-200 dark:border-zinc-800 lg:pl-8">
-                        {eventsLoading ? (
-                            <div className="animate-pulse space-y-3">
-                                <div className="h-16 bg-zinc-100 dark:bg-zinc-800 rounded-xl w-full" />
-                                <div className="h-16 bg-zinc-100 dark:bg-zinc-800 rounded-xl w-full" />
-                            </div>
-                        ) : (
-                            (() => {
-                                const targetEvents = events.filter(e => {
-                                    return e.start.getDate() === viewDate.getDate() &&
-                                        e.start.getMonth() === viewDate.getMonth() &&
-                                        e.start.getFullYear() === viewDate.getFullYear();
-                                });
-
-                                if (targetEvents.length === 0) {
-                                    return (
-                                        <div className="text-center py-8 text-zinc-400">
-                                            <CalendarIcon size={32} className="mx-auto mb-2 opacity-50" />
-                                            <p>No hay eventos para {viewDate.getDate() === new Date().getDate() ? 'hoy' : 'mañana'}.</p>
-                                        </div>
-                                    );
-                                }
-
-                                return targetEvents.map(event => (
-                                    <EpactaEvent key={event.id} event={event} compact={false} />
-                                ));
-                            })()
-                        )}
+                    {/* Bottom Link */}
+                    <div className="mt-6 flex justify-end">
+                        <button
+                            onClick={() => onNavigate('CALENDAR')}
+                            className="text-sm font-medium text-zinc-900 dark:text-white hover:gap-3 transition-all inline-flex items-center gap-2"
+                        >
+                            Ver todo <ChevronRight size={16} />
+                        </button>
                     </div>
                 </div>
-
-                {/* Bottom Link */}
-                <div className="mt-6 flex justify-end">
-                    <button
-                        onClick={() => onNavigate('CALENDAR')}
-                        className="text-sm font-medium text-zinc-900 dark:text-white hover:gap-3 transition-all inline-flex items-center gap-2"
-                    >
-                        Ver todo <ChevronRight size={16} />
-                    </button>
-                </div>
-            </div>
+            )}
 
             {/* Sugar Packet Quote Widget (Moved to bottom) */}
-            <div className="w-full pb-8">
-                <SugarPacket />
-            </div>
+            {/* Sugar Packet Quote Widget (Only if user is UNRESTRICTED or ADMIN) */}
+            {/* Logic: Restricted users (permissions exists) should NOT see this */}
+            {(!user.permissions && user.role !== 'ADMIN') || user.role === 'ADMIN' && (
+                <div className="w-full pb-8">
+                    <SugarPacket />
+                </div>
+            )}
 
             {/* Car Modal */}
             {selectedCar && (

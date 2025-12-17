@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 
 // Helper component to render simplified HTML tags
 const FormattedText: React.FC<{ text: string }> = ({ text }) => {
-    // Simple parser for <b>, <i>, <br>
+    // Simple parser for <b>, <i>, <br> AND URLs
     if (!text) return null;
 
     // Split by tags: <b>, </b>, <i>, </i>, <br>, <br/>
@@ -13,6 +13,31 @@ const FormattedText: React.FC<{ text: string }> = ({ text }) => {
 
     let isBold = false;
     let isItalic = false;
+
+    // Helper to finding links in a text string
+    const renderWithLinks = (str: string, keyPrefix: string) => {
+        // Regex to find URLs (starts with http/https)
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        const subParts = str.split(urlRegex);
+
+        return subParts.map((sub, i) => {
+            if (sub.match(urlRegex)) {
+                return (
+                    <a
+                        key={`${keyPrefix}-${i}`}
+                        href={sub}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 dark:text-blue-400 hover:underline break-all"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {sub}
+                    </a>
+                );
+            }
+            return <span key={`${keyPrefix}-${i}`}>{sub}</span>;
+        });
+    };
 
     return (
         <span>
@@ -28,7 +53,7 @@ const FormattedText: React.FC<{ text: string }> = ({ text }) => {
 
                 return (
                     <span key={index} className={`${isBold ? 'font-bold' : ''} ${isItalic ? 'italic' : ''}`}>
-                        {part}
+                        {renderWithLinks(part, `part-${index}`)}
                     </span>
                 );
             })}
@@ -193,12 +218,11 @@ export const EpactaEvent: React.FC<EpactaEventProps> = ({ event, compact = false
                 {/* Fallback for simple HTML description in Suplementos */}
                 {isSuplemento && event.description && (
                     <div
-                        className="mt-2 text-xs text-zinc-600 dark:text-zinc-400 border-t border-zinc-200 dark:border-zinc-700 pt-2 prose prose-xs dark:prose-invert max-w-none [&>a]:text-blue-600 [&>a]:underline"
+                        className="text-xs text-zinc-600 dark:text-zinc-400 prose prose-xs dark:prose-invert max-w-none [&>a]:text-blue-600 [&>a]:underline"
                         dangerouslySetInnerHTML={{ __html: event.description }}
                     />
                 )}
             </div>
-        // @ts-ignore
         </Container>
     );
 };

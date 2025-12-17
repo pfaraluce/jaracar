@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { User, MaintenanceTicket } from '../types';
 import { maintenanceService } from '../services/maintenance';
-import { Plus, MapPin, AlertCircle, CheckCircle2, Clock, XCircle, Loader2, Pencil, RotateCcw, Trash2, Filter } from 'lucide-react';
+import { profileService } from '../services/profiles';
+import { UserSelector } from './UserSelector';
+import { UserAvatar } from './UserAvatar';
+import { Plus, MapPin, AlertCircle, CheckCircle2, Clock, XCircle, Loader2, Pencil, RotateCcw, Trash2, Filter, User as UserIcon } from 'lucide-react';
 
 interface MaintenanceViewProps {
     user: User;
@@ -9,6 +12,7 @@ interface MaintenanceViewProps {
 
 export const MaintenanceView: React.FC<MaintenanceViewProps> = ({ user }) => {
     const [tickets, setTickets] = useState<MaintenanceTicket[]>([]);
+    const [allUsers, setAllUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [viewMode, setViewMode] = useState<'active' | 'history'>('active');
@@ -20,17 +24,36 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({ user }) => {
         priority: MaintenanceTicket['priority'];
         location: string;
         imageUrl?: string;
+        reporterId: string;
+        assignedUserId?: string;
     }>({
         title: '',
         description: '',
         priority: 'medium',
-        location: ''
+        location: '',
+        reporterId: user.id
     });
     const [creating, setCreating] = useState(false);
 
     useEffect(() => {
         loadTickets();
+        loadUsers();
     }, []);
+
+    const loadUsers = async () => {
+        try {
+            const users = await profileService.getAllProfiles();
+            setAllUsers(users || []);
+        } catch (error) {
+            console.error('Error loading users:', error);
+        }
+    };
+
+    // Filter users who have maintenance view permission
+    const maintenanceUsers = allUsers.filter(u =>
+        u.role === 'ADMIN' || // Admins always have access
+        u.permissions?.maintenance?.view // Users with explicit permission
+    );
 
     const loadTickets = async () => {
         const cacheKey = `maintenance-tickets`;
@@ -82,7 +105,9 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({ user }) => {
             description: ticket.description,
             priority: ticket.priority,
             location: ticket.location || '',
-            imageUrl: ticket.imageUrl || undefined
+            imageUrl: ticket.imageUrl || undefined,
+            reporterId: ticket.reporterId || user.id,
+            assignedUserId: ticket.assignedUserId || undefined
         });
         setEditingId(ticket.id);
         setIsCreateOpen(true);
@@ -107,11 +132,12 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({ user }) => {
             } else {
                 await maintenanceService.createTicket({
                     ...newTicket,
-                    reporterId: user.id
+                    reporterId: newTicket.reporterId || user.id
                 });
             }
             setIsCreateOpen(false);
-            setNewTicket({ title: '', description: '', priority: 'medium', location: '', imageUrl: undefined });
+            setIsCreateOpen(false);
+            setNewTicket({ title: '', description: '', priority: 'medium', location: '', imageUrl: undefined, reporterId: user.id, assignedUserId: undefined });
             setEditingId(null);
             loadTickets();
         } catch (error) {
@@ -169,56 +195,58 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({ user }) => {
                     <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">Mantenimiento</h2>
                     <p className="text-zinc-500 dark:text-zinc-400">Gestión de incidencias y averías</p>
                 </div>
-                <button
-                    onClick={() => {
-                        setEditingId(null);
-                        setNewTicket({ title: '', description: '', priority: 'medium', location: '', imageUrl: undefined });
-                        setIsCreateOpen(true);
-                    }}
-                    className="flex items-center gap-2 px-4 py-2 bg-zinc-900 dark:bg-white text-white dark:text-black rounded-xl hover:opacity-90 transition-all font-medium text-sm shadow-lg shadow-zinc-900/20 dark:shadow-white/10"
-                >
-                    <Plus size={16} />
-                    <span className="hidden sm:inline">Nueva Incidencia</span>
-                    <span className="sm:hidden">Nueva</span>
-                </button>
-            </div>
 
-            {/* Filters Bar */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 border-b border-zinc-100 dark:border-zinc-800 pb-1">
-                <div className="flex p-1 bg-zinc-100 dark:bg-zinc-800/50 rounded-lg">
-                    <button
-                        onClick={() => setViewMode('active')}
-                        className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${viewMode === 'active'
-                            ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm'
-                            : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
-                            }`}
-                    >
-                        Pendientes
-                    </button>
-                    <button
-                        onClick={() => setViewMode('history')}
-                        className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${viewMode === 'history'
-                            ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm'
-                            : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
-                            }`}
-                    >
-                        Historial
-                    </button>
-                </div>
+                <div className="flex items-center gap-3">
+                    {/* View Switcher */}
+                    <div className="flex bg-zinc-100 dark:bg-zinc-900 p-1 rounded-lg border border-zinc-200 dark:border-zinc-800">
+                        <button
+                            onClick={() => setViewMode('active')}
+                            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${viewMode === 'active'
+                                ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm'
+                                : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
+                                }`}
+                        >
+                            Pendientes
+                        </button>
+                        <button
+                            onClick={() => setViewMode('history')}
+                            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${viewMode === 'history'
+                                ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white shadow-sm'
+                                : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
+                                }`}
+                        >
+                            Historial
+                        </button>
+                    </div>
 
-                <div className="flex items-center gap-2 ml-auto">
-                    <Filter size={14} className="text-zinc-400" />
+                    {/* Priority Filter */}
                     <select
                         value={priorityFilter}
                         onChange={(e) => setPriorityFilter(e.target.value as any)}
-                        className="bg-transparent text-sm font-medium text-zinc-600 dark:text-zinc-400 border-none outline-none cursor-pointer hover:text-zinc-900 dark:hover:text-white transition-colors"
+                        className="h-9 px-3 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/10"
                     >
-                        <option value="all">Todas las prioridades</option>
-                        <option value="low">Prioridad Baja</option>
-                        <option value="medium">Prioridad Media</option>
-                        <option value="high">Prioridad Alta</option>
-                        <option value="critical">Prioridad Crítica</option>
+                        <option value="all">Todas</option>
+                        <option value="low">Baja</option>
+                        <option value="medium">Media</option>
+                        <option value="high">Alta</option>
+                        <option value="critical">Crítica</option>
                     </select>
+
+                    <div className="h-6 w-px bg-zinc-200 dark:bg-zinc-800 mx-1" />
+
+                    {/* Add Button */}
+                    <button
+                        onClick={() => {
+                            setEditingId(null);
+                            setNewTicket({ title: '', description: '', priority: 'medium', location: '', imageUrl: undefined, reporterId: user.id });
+                            setIsCreateOpen(true);
+                        }}
+                        className="group h-9 px-4 flex items-center gap-2 bg-zinc-900 dark:bg-white text-white dark:text-black rounded-lg hover:bg-zinc-800 dark:hover:bg-zinc-200 transition-colors text-sm font-medium"
+                        title="Nueva Incidencia"
+                    >
+                        <Plus size={16} />
+                        <span className="hidden sm:inline">Nueva</span>
+                    </button>
                 </div>
             </div>
 
@@ -270,13 +298,44 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({ user }) => {
 
                                 {/* Card Footer Actions */}
                                 <div className="pt-3 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
-                                    <span className="text-xs font-medium text-zinc-400">
-                                        {new Date(ticket.createdAt).toLocaleDateString()}
-                                    </span>
+                                    <div className="flex flex-wrap items-center gap-3 text-xs">
+                                        {/* Reporter Info */}
+                                        <div className="flex items-center gap-1.5" title="Solicitado por">
+                                            <UserAvatar
+                                                name={ticket.reporterName || 'Usuario'}
+                                                imageUrl={ticket.reporterAvatar}
+                                                size="sm"
+                                                className="w-5 h-5 !text-[9px]"
+                                            />
+                                            <span className="font-medium text-zinc-700 dark:text-zinc-300 truncate max-w-[80px] sm:max-w-[100px]">{ticket.reporterName || 'Usuario'}</span>
+                                        </div>
+
+                                        {/* Assigned Info */}
+                                        {ticket.assignedUserId && (
+                                            <>
+                                                <div className="w-px h-3 bg-zinc-200 dark:bg-zinc-700" />
+                                                <div className="flex items-center gap-1.5" title="Asignado a">
+                                                    <span className="text-zinc-400 hidden sm:inline">→</span>
+                                                    <UserAvatar
+                                                        name={ticket.assignedUserName || 'Usuario'}
+                                                        imageUrl={ticket.assignedUserAvatar}
+                                                        size="sm"
+                                                        className="w-5 h-5 !text-[9px]"
+                                                    />
+                                                    <span className="font-medium text-zinc-700 dark:text-zinc-300 truncate max-w-[80px] sm:max-w-[100px]">{ticket.assignedUserName}</span>
+                                                </div>
+                                            </>
+                                        )}
+
+                                        <div className="w-px h-3 bg-zinc-200 dark:bg-zinc-700" />
+                                        <span className="text-zinc-400 font-medium">
+                                            {new Date(ticket.createdAt).toLocaleDateString(undefined, { day: '2-digit', month: '2-digit' })}
+                                        </span>
+                                    </div>
 
                                     <div className="flex items-center gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
-                                        {/* Reopen (Admin - Resolved/Closed) */}
-                                        {user.role === 'ADMIN' && (ticket.status === 'resolved' || ticket.status === 'closed') && (
+                                        {/* Reopen (Admin/Assignee/Reporter - Resolved/Closed) */}
+                                        {(user.role === 'ADMIN' || user.id === ticket.reporterId || user.id === ticket.assignedUserId) && (ticket.status === 'resolved' || ticket.status === 'closed') && (
                                             <button
                                                 onClick={() => handleStatusChange(ticket.id, 'open')}
                                                 className="p-1.5 text-zinc-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
@@ -286,8 +345,8 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({ user }) => {
                                             </button>
                                         )}
 
-                                        {/* Resolve (Admin - Not Resolved) */}
-                                        {user.role === 'ADMIN' && ticket.status !== 'resolved' && ticket.status !== 'closed' && (
+                                        {/* Resolve (Admin - Not Resolved) OR Assignee OR Reporter */}
+                                        {(user.role === 'ADMIN' || user.id === ticket.reporterId || user.id === ticket.assignedUserId) && ticket.status !== 'resolved' && ticket.status !== 'closed' && (
                                             <button
                                                 onClick={() => handleStatusChange(ticket.id, 'resolved')}
                                                 className="p-1.5 text-zinc-500 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
@@ -298,7 +357,7 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({ user }) => {
                                         )}
 
                                         {/* Edit */}
-                                        {(user.role === 'ADMIN' || user.id === ticket.reporterId) && (
+                                        {(user.role === 'ADMIN' || user.id === ticket.reporterId || user.id === ticket.assignedUserId) && (
                                             <button
                                                 onClick={() => handleEdit(ticket)}
                                                 className="p-1.5 text-zinc-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
@@ -309,7 +368,7 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({ user }) => {
                                         )}
 
                                         {/* Delete */}
-                                        {(user.role === 'ADMIN' || user.id === ticket.reporterId) && (
+                                        {(user.role === 'ADMIN' || user.id === ticket.reporterId || user.id === ticket.assignedUserId) && (
                                             <button
                                                 onClick={() => handleDelete(ticket.id)}
                                                 className="p-1.5 text-zinc-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors"
@@ -336,7 +395,7 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({ user }) => {
 
             {isCreateOpen && (
                 <div className="fixed inset-0 bg-zinc-900/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center sm:p-4 animate-in fade-in duration-200">
-                    <div className="bg-white dark:bg-zinc-900 w-full h-[90vh] sm:h-auto sm:max-w-lg rounded-t-2xl sm:rounded-2xl shadow-xl flex flex-col max-h-[90vh] animate-in slide-in-from-bottom-10 duration-300">
+                    <div className="bg-white dark:bg-zinc-900 w-full h-full sm:h-auto sm:max-w-lg rounded-none sm:rounded-2xl shadow-xl flex flex-col max-h-none sm:max-h-[90vh] animate-in slide-in-from-bottom-10 duration-300">
                         <div className="p-5 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center">
                             <h3 className="text-lg font-bold text-zinc-900 dark:text-white">
                                 {editingId ? 'Editar Incidencia' : 'Nueva Incidencia'}
@@ -359,6 +418,25 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({ user }) => {
                                         onChange={e => setNewTicket({ ...newTicket, title: e.target.value })}
                                         className="w-full mt-1.5 px-3 py-2.5 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-sm text-zinc-900 dark:text-white placeholder:text-zinc-400 focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/10 outline-none transition-all"
                                         placeholder="Ej. Bombilla fundida en pasillo"
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <UserSelector
+                                        label="Solicitado por"
+                                        users={allUsers}
+                                        value={newTicket.reporterId}
+                                        onChange={(userId) => setNewTicket({ ...newTicket, reporterId: userId })}
+                                        placeholder="Buscar usuario..."
+                                        disabled={true}
+                                    />
+                                    <UserSelector
+                                        label="Asignado a"
+                                        users={maintenanceUsers}
+                                        value={newTicket.assignedUserId || ''}
+                                        onChange={(userId) => setNewTicket({ ...newTicket, assignedUserId: userId })}
+                                        placeholder="Asignar a..."
+                                        disabled={user.role !== 'ADMIN'}
                                     />
                                 </div>
 

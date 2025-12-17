@@ -1,11 +1,13 @@
-import React, { useState, useRef } from 'react';
-import { User, UserRole } from '../types';
-import { X, Camera, Shield, Mail, User as UserIcon, Loader2, Moon, Sun, Monitor, Edit2, Check } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { User, UserRole, DietFile } from '../types';
+import { X, Camera, Shield, Mail, User as UserIcon, Loader2, Moon, Sun, Monitor, Edit2, Check, Calendar, Hash, Utensils, Upload, FileText, Trash2 } from 'lucide-react';
+import { UserAvatar } from './UserAvatar';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../services/supabase';
 import { AdminUserList } from './AdminUserList';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import { useTheme } from '../contexts/ThemeContext';
+import { profileService } from '../services/profiles';
 
 interface ProfileModalProps {
     user: User;
@@ -23,9 +25,45 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClos
     const [savingName, setSavingName] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const dietFileInputRef = useRef<HTMLInputElement>(null);
     const { theme, setTheme } = useTheme();
 
+    // New profile fields
+    const [birthday, setBirthday] = useState(user.birthday || '');
+    const [initials, setInitials] = useState(user.initials || '');
+    const [hasDiet, setHasDiet] = useState(user.hasDiet || false);
+    const [dietName, setDietName] = useState(user.dietName || '');
+    const [dietNotes, setDietNotes] = useState(user.dietNotes || '');
+    const [dietFiles, setDietFiles] = useState<DietFile[]>([]);
+    const [uploadingDietFile, setUploadingDietFile] = useState(false);
+    const [savingProfile, setSavingProfile] = useState(false);
+
     useBodyScrollLock(isOpen);
+
+    // Sync state with user prop
+    useEffect(() => {
+        setBirthday(user.birthday || '');
+        setInitials(user.initials || '');
+        setHasDiet(user.hasDiet || false);
+        setDietName(user.dietName || '');
+        setDietNotes(user.dietNotes || '');
+    }, [user]);
+
+    // Load diet files when modal opens
+    useEffect(() => {
+        if (isOpen && user.hasDiet) {
+            loadDietFiles();
+        }
+    }, [isOpen, user.hasDiet]);
+
+    const loadDietFiles = async () => {
+        try {
+            const files = await profileService.getDietFiles(user.id);
+            setDietFiles(files);
+        } catch (err: any) {
+            console.error('Error loading diet files:', err);
+        }
+    };
 
     const handleAvatarClick = () => {
         fileInputRef.current?.click();
@@ -105,6 +143,64 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClos
         }
     };
 
+    const handleSaveProfile = async () => {
+        setSavingProfile(true);
+        setError(null);
+        try {
+            await profileService.updateProfile(user.id, {
+                birthday: birthday || undefined,
+                initials: initials.slice(0, 3).toUpperCase() || undefined,
+                hasDiet,
+                dietName: hasDiet ? dietName : undefined,
+                dietNotes: hasDiet ? dietNotes : undefined,
+            });
+
+            onUpdate();
+        } catch (err: any) {
+            console.error('Error updating profile:', err);
+            setError(err.message || 'Error al actualizar el perfil');
+        } finally {
+            setSavingProfile(false);
+        }
+    };
+
+    const handleDietFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (!event.target.files || event.target.files.length === 0) {
+            return;
+        }
+
+        const file = event.target.files[0];
+        setUploadingDietFile(true);
+        setError(null);
+
+        try {
+            await profileService.uploadDietFile(user.id, file);
+            await loadDietFiles();
+        } catch (err: any) {
+            console.error('Error uploading diet file:', err);
+            setError(err.message || 'Error al subir el archivo');
+        } finally {
+            setUploadingDietFile(false);
+            if (dietFileInputRef.current) {
+                dietFileInputRef.current.value = '';
+            }
+        }
+    };
+
+    const handleDeleteDietFile = async (fileId: string, filePath: string) => {
+        if (!confirm('¿Estás seguro de que quieres eliminar este archivo?')) {
+            return;
+        }
+
+        try {
+            await profileService.deleteDietFile(fileId, filePath);
+            await loadDietFiles();
+        } catch (err: any) {
+            console.error('Error deleting diet file:', err);
+            setError(err.message || 'Error al eliminar el archivo');
+        }
+    };
+
     const getThemeButtonClass = (btnTheme: string) => {
         const isActive = theme === btnTheme;
         return `flex flex-col items-center gap-2 p-3 rounded-xl border transition-all ${isActive
@@ -176,13 +272,12 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClos
                                 <div className="flex flex-col items-center">
                                     <div className="relative group cursor-pointer" onClick={handleAvatarClick}>
                                         <div className="w-24 h-24 rounded-full overflow-hidden bg-zinc-100 dark:bg-zinc-800 ring-4 ring-white dark:ring-zinc-900 shadow-lg">
-                                            {user.avatarUrl ? (
-                                                <img src={user.avatarUrl} alt={user.name} className="w-full h-full object-cover" />
-                                            ) : (
-                                                <div className="w-full h-full flex items-center justify-center text-zinc-300 dark:text-zinc-600">
-                                                    <UserIcon size={40} />
-                                                </div>
-                                            )}
+                                            <UserAvatar
+                                                name={user.name}
+                                                imageUrl={user.avatarUrl}
+                                                size="xl"
+                                                className="w-full h-full"
+                                            />
                                         </div>
                                         <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 rounded-full transition-opacity">
                                             <Camera className="text-white drop-shadow-md" size={24} />
@@ -274,8 +369,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClos
                                     </div>
                                 </div>
 
-                                {/* Info Section */}
+                                {/* Personal Info Section */}
                                 <div className="space-y-3 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                                    <h3 className="text-sm font-medium text-zinc-900 dark:text-white">Información Personal</h3>
+
                                     <div className="flex items-center gap-3 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-800/50">
                                         <Mail className="text-zinc-400" size={20} />
                                         <div className="flex-1 min-w-0">
@@ -284,18 +381,153 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClos
                                         </div>
                                     </div>
 
-                                    {/* Tutorial Reset */}
-                                    <div className="flex justify-center pt-2">
+                                    <div className="flex items-center gap-3 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-800/50">
+                                        <Calendar className="text-zinc-400" size={20} />
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Cumpleaños</p>
+                                            <input
+                                                type="date"
+                                                value={birthday}
+                                                onChange={(e) => setBirthday(e.target.value)}
+                                                className="text-sm text-zinc-900 dark:text-zinc-200 bg-transparent border-none outline-none w-full"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-3 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-800/50">
+                                        <Hash className="text-zinc-400" size={20} />
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Siglas (máx. 3)</p>
+                                            <input
+                                                type="text"
+                                                value={initials}
+                                                onChange={(e) => setInitials(e.target.value.slice(0, 3).toUpperCase())}
+                                                maxLength={3}
+                                                placeholder="ABC"
+                                                className="text-sm text-zinc-900 dark:text-zinc-200 bg-transparent border-none outline-none w-full uppercase"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Diet Section */}
+                                <div className="space-y-3 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <Utensils className="text-zinc-400" size={20} />
+                                            <h3 className="text-sm font-medium text-zinc-900 dark:text-white">Dieta</h3>
+                                        </div>
                                         <button
-                                            onClick={() => {
-                                                onRestartTutorial?.();
-                                                onClose();
-                                            }}
-                                            className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+                                            onClick={() => setHasDiet(!hasDiet)}
+                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${hasDiet ? 'bg-zinc-900 dark:bg-white' : 'bg-zinc-200 dark:bg-zinc-700'}`}
                                         >
-                                            Volver a ver el tutorial de inicio
+                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white dark:bg-zinc-900 transition-transform ${hasDiet ? 'translate-x-6' : 'translate-x-1'}`} />
                                         </button>
                                     </div>
+
+                                    {hasDiet && (
+                                        <div className="space-y-3 pl-7">
+                                            {user.dietNumber && (
+                                                <div className="flex items-center gap-2 p-2 rounded-lg bg-zinc-100 dark:bg-zinc-800">
+                                                    <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Número de dieta:</span>
+                                                    <span className="text-sm font-semibold text-zinc-900 dark:text-white">{user.dietNumber}</span>
+                                                </div>
+                                            )}
+
+                                            <div>
+                                                <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Nombre de la dieta</label>
+                                                <input
+                                                    type="text"
+                                                    value={dietName}
+                                                    onChange={(e) => setDietName(e.target.value)}
+                                                    placeholder="Ej: Sin gluten, Vegana..."
+                                                    className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white outline-none"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Notas</label>
+                                                <textarea
+                                                    value={dietNotes}
+                                                    onChange={(e) => setDietNotes(e.target.value)}
+                                                    placeholder="Detalles adicionales sobre la dieta..."
+                                                    rows={3}
+                                                    className="w-full px-3 py-2 text-sm bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white outline-none resize-none"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400">Archivos</label>
+                                                    <button
+                                                        onClick={() => dietFileInputRef.current?.click()}
+                                                        disabled={uploadingDietFile}
+                                                        className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-zinc-900 dark:text-white bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg transition-colors disabled:opacity-50"
+                                                    >
+                                                        {uploadingDietFile ? <Loader2 className="animate-spin" size={14} /> : <Upload size={14} />}
+                                                        Subir archivo
+                                                    </button>
+                                                    <input
+                                                        type="file"
+                                                        ref={dietFileInputRef}
+                                                        onChange={handleDietFileUpload}
+                                                        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                                                        className="hidden"
+                                                    />
+                                                </div>
+
+                                                {dietFiles.length > 0 ? (
+                                                    <div className="space-y-2">
+                                                        {dietFiles.map((file) => (
+                                                            <div key={file.id} className="flex items-center justify-between p-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg">
+                                                                <div className="flex items-center gap-2 flex-1 min-w-0">
+                                                                    <FileText className="text-zinc-400 flex-shrink-0" size={16} />
+                                                                    <span className="text-xs text-zinc-900 dark:text-zinc-200 truncate">{file.fileName}</span>
+                                                                </div>
+                                                                <button
+                                                                    onClick={() => handleDeleteDietFile(file.id, file.filePath)}
+                                                                    className="p-1 hover:bg-red-50 dark:hover:bg-red-900/20 rounded text-red-600 dark:text-red-400 transition-colors"
+                                                                >
+                                                                    <Trash2 size={14} />
+                                                                </button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <p className="text-xs text-zinc-400 text-center py-4">No hay archivos subidos</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Save Button */}
+                                <button
+                                    onClick={handleSaveProfile}
+                                    disabled={savingProfile}
+                                    className="w-full py-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                >
+                                    {savingProfile ? (
+                                        <>
+                                            <Loader2 className="animate-spin" size={18} />
+                                            Guardando...
+                                        </>
+                                    ) : (
+                                        'Guardar cambios'
+                                    )}
+                                </button>
+
+                                {/* Tutorial Reset */}
+                                <div className="flex justify-center pt-2">
+                                    <button
+                                        onClick={() => {
+                                            onRestartTutorial?.();
+                                            onClose();
+                                        }}
+                                        className="text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+                                    >
+                                        Volver a ver el tutorial de inicio
+                                    </button>
                                 </div>
                             </div>
                         ) : (

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { User, UserRole } from '../types';
 import { adminService } from '../services/admin';
 import { UserAvatar } from './UserAvatar';
-import { Check, X, Shield, ShieldOff, Search, Mail, CheckCircle, AlertTriangle, MessageSquare, Lock } from 'lucide-react';
+import { Search, UserPlus, Filter, Shield, AlertCircle, Check, X, Mail, Edit, ShieldOff, CheckCircle, AlertTriangle, MessageSquare, Lock } from 'lucide-react';
 
 export const AdminUserList: React.FC = () => {
     const [users, setUsers] = useState<User[]>([]);
@@ -14,14 +14,43 @@ export const AdminUserList: React.FC = () => {
     // Invite State
     const [showInviteModal, setShowInviteModal] = useState(false);
     const [inviteEmail, setInviteEmail] = useState('');
-    const [inviting, setInviting] = useState(false);
+    const [inviteRole, setInviteRole] = useState<'USER' | 'ADMIN' | 'KITCHEN'>('USER');
 
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
     const [permissionUser, setPermissionUser] = useState<User | null>(null);
+    const [isAdvancedMode, setIsAdvancedMode] = useState(false);
+    const [inviting, setInviting] = useState(false);
 
-    const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    const showToast = (message: string, type: 'success' | 'error' | 'info') => {
         setToast({ message, type });
         setTimeout(() => setToast(null), 3000);
+    };
+
+    const handleOpenPermissions = (user: User) => {
+        setPermissionUser({ ...user }); // Clone to avoid mutation
+        setIsAdvancedMode(false); // Reset advanced mode
+    };
+
+    const handleModalRoleChange = (newRole: UserRole) => {
+        if (!permissionUser) return;
+
+        let newPermissions = { ...permissionUser.permissions };
+
+        // Auto-configure permissions based on role
+        if (newRole === 'KITCHEN') {
+            // Kitchen doesn't need granular permissions usually, or we disable them
+            // For now, let's clear them to avoid confusion
+            newPermissions = {};
+            setIsAdvancedMode(false); // Force disable legacy advanced mode
+        } else if (newRole === 'ADMIN') {
+            setIsAdvancedMode(false);
+        }
+
+        setPermissionUser({
+            ...permissionUser,
+            role: newRole,
+            permissions: newPermissions
+        });
     };
 
     const handlePermissionChange = (module: string, type: 'view' | 'admin', checked: boolean) => {
@@ -49,34 +78,45 @@ export const AdminUserList: React.FC = () => {
         });
     };
 
-    const savePermissions = async () => {
+    const saveAccess = async () => {
         if (!permissionUser) return;
         try {
-            await adminService.updateUserPermissions(permissionUser.id, permissionUser.permissions);
-            showToast('Permisos actualizados correctamente', 'success');
+            await adminService.updateUserAccess(permissionUser.id, permissionUser.role, permissionUser.permissions);
+            showToast('Accesos actualizados correctamente', 'success');
             setPermissionUser(null);
-            fetchUsers(); // Refresh list
+            fetchUsers();
         } catch (error) {
-            console.error('Error updating permissions:', error);
-            showToast('Error al actualizar permisos', 'error');
+            console.error('Error updating access:', error);
+            showToast('Error al actualizar: ' + (error as Error).message, 'error');
         }
     };
 
-    const handleInviteUser = async () => {
-        if (!inviteEmail) return;
-        setInviting(true);
+    const handleInviteUser = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
         try {
-            await adminService.inviteUser(inviteEmail);
+            await adminService.inviteUser(inviteEmail, inviteRole);
             showToast('Invitación enviada con éxito', 'success');
             setShowInviteModal(false);
             setInviteEmail('');
+            setInviteRole('USER');
+            fetchUsers();
         } catch (error) {
             console.error('Error inviting user:', error);
             showToast('Error al invitar: ' + (error as Error).message, 'error');
         } finally {
-            setInviting(false);
+            setLoading(false);
         }
     };
+
+    // --- Handlers ---
+
+    // ... handleStatusChange ...
+
+    const handleUpdateRole = async () => {
+        // Dummy or Removed
+    };
+
 
     const fetchUsers = async () => {
         try {
@@ -185,7 +225,7 @@ export const AdminUserList: React.FC = () => {
                                 <th className="px-4 py-2.5">Usuario</th>
                                 <th className="px-4 py-2.5">Estado</th>
                                 <th className="px-4 py-2.5">Rol</th>
-                                <th className="px-4 py-2.5 text-right">Acciones</th>
+                                <th className="px-4 py-2.5 text-right">Permisos</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
@@ -244,6 +284,8 @@ export const AdminUserList: React.FC = () => {
                                                     </>
                                                 )}
 
+
+
                                                 <div className="w-px h-4 bg-zinc-200 dark:bg-zinc-700 mx-1" />
 
                                                 <button
@@ -254,16 +296,7 @@ export const AdminUserList: React.FC = () => {
                                                     <Lock size={16} />
                                                 </button>
 
-                                                <button
-                                                    onClick={() => handleRoleChange(user.id, user.role === UserRole.ADMIN ? UserRole.USER : UserRole.ADMIN)}
-                                                    className={`p-1.5 rounded transition-colors ${user.role === UserRole.ADMIN
-                                                        ? 'text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20'
-                                                        : 'text-zinc-400 dark:text-zinc-500 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20'
-                                                        }`}
-                                                    title={user.role === UserRole.ADMIN ? "Quitar Admin" : "Hacer Admin"}
-                                                >
-                                                    {user.role === UserRole.ADMIN ? <ShieldOff size={16} /> : <Shield size={16} />}
-                                                </button>
+
                                             </div>
                                         </td>
                                     </tr>
@@ -277,56 +310,109 @@ export const AdminUserList: React.FC = () => {
             {permissionUser && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setPermissionUser(null)} />
-                    <div className="relative w-full max-w-md bg-white dark:bg-zinc-900 rounded-xl shadow-2xl p-6 overflow-hidden border border-zinc-200 dark:border-zinc-800">
-                        <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-1">Permisos Granulares</h3>
-                        <p className="text-sm text-zinc-500 mb-4">Configura el acceso para {permissionUser.name}</p>
+                    <div className="relative w-full max-w-lg bg-white dark:bg-zinc-900 rounded-xl shadow-2xl p-6 overflow-hidden border border-zinc-200 dark:border-zinc-800 max-h-[90vh] flex flex-col">
+                        <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-1">Control de Acceso y Roles</h3>
+                        <p className="text-sm text-zinc-500 mb-6">Configura el rol y permisos para <span className="font-medium text-zinc-900 dark:text-white">{permissionUser.name}</span></p>
 
-                        <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
-                            {['vehicles', 'meals', 'maintenance', 'calendar'].map(module => {
-                                const currentPerms = permissionUser.permissions?.[module as keyof typeof permissionUser.permissions] || { view: true, admin: false };
+                        <div className="flex-1 overflow-y-auto pr-2 space-y-6">
+                            {/* Role Selection */}
+                            <div className="bg-zinc-50 dark:bg-zinc-800/50 p-4 rounded-xl border border-zinc-100 dark:border-zinc-800">
+                                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+                                    Rol del Usuario
+                                </label>
+                                <select
+                                    value={permissionUser.role}
+                                    onChange={(e) => handleModalRoleChange(e.target.value as UserRole)}
+                                    className="w-full px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100"
+                                >
+                                    <option value="USER">Usuario (Residente)</option>
+                                    <option value="ADMIN">Administrador</option>
+                                    <option value="KITCHEN">Cocina (Solo ver)</option>
+                                </select>
+                                <p className="mt-2 text-xs text-zinc-500">
+                                    {permissionUser.role === 'KITCHEN' && "El rol de Cocina tiene acceso restringido al Dashboard de Cocina."}
+                                    {permissionUser.role === 'ADMIN' && "Los administradores tienen acceso completo a todos los módulos."}
+                                    {permissionUser.role === 'USER' && "Los residentes acceden a los módulos permitidos abajo."}
+                                </p>
+                            </div>
 
-                                const getLabel = (m: string) => {
-                                    switch (m) {
-                                        case 'vehicles': return 'Vehículos';
-                                        case 'meals': return 'Comidas';
-                                        case 'maintenance': return 'Mantenimiento';
-                                        case 'calendar': return 'Calendario';
-                                        default: return m;
-                                    }
-                                };
-
-                                return (
-                                    <div key={module} className="bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-lg border border-zinc-100 dark:border-zinc-800">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <span className="font-medium text-zinc-900 dark:text-white capitalize flex items-center gap-2">
-                                                {getLabel(module)}
-                                            </span>
+                            {/* Advanced Permissions Disclaimer */}
+                            {/* Advanced Permissions Disclaimer - Only for USER role */}
+                            {permissionUser.role === 'USER' && (
+                                <div>
+                                    <label className="flex items-start gap-3 p-3 rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-900/10 dark:border-amber-900/30 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={isAdvancedMode}
+                                            onChange={(e) => setIsAdvancedMode(e.target.checked)}
+                                            className="mt-1 rounded border-amber-300 text-amber-600 focus:ring-amber-600"
+                                        />
+                                        <div>
+                                            <span className="font-medium text-amber-800 dark:text-amber-400 text-sm">Habilitar Permisos Granulares</span>
+                                            <p className="text-xs text-amber-700/80 dark:text-amber-500/80 mt-1">
+                                                Modificar estos permisos manualmente es solo para usuarios residentes con necesidades especiales.
+                                            </p>
                                         </div>
-                                        <div className="flex gap-6">
-                                            <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
-                                                <input
-                                                    type="checkbox"
-                                                    className="rounded border-zinc-300 dark:border-zinc-600 text-zinc-900 focus:ring-zinc-900"
-                                                    checked={currentPerms.view}
-                                                    onChange={e => handlePermissionChange(module, 'view', e.target.checked)}
-                                                />
-                                                <span className="text-zinc-600 dark:text-zinc-400">Ver</span>
-                                            </label>
-                                            <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
-                                                <input
-                                                    type="checkbox"
-                                                    className="rounded border-zinc-300 dark:border-zinc-600 text-purple-600 focus:ring-purple-600"
-                                                    checked={currentPerms.admin}
-                                                    onChange={e => handlePermissionChange(module, 'admin', e.target.checked)}
-                                                />
-                                                <span className="text-zinc-600 dark:text-zinc-400 flex items-center gap-1">
-                                                    Admin <Shield size={10} className="text-purple-500" />
-                                                </span>
-                                            </label>
-                                        </div>
+                                    </label>
+                                </div>
+                            )}
+
+                            {/* Granular Permissions - Strictly for USER role with Advanced Mode enabled */}
+                            {isAdvancedMode && permissionUser.role === 'USER' && (
+                                <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                    <h4 className="text-sm font-medium text-zinc-900 dark:text-white flex items-center gap-2">
+                                        <Shield size={14} /> Permisos por Módulo
+                                    </h4>
+
+                                    <div className="grid gap-3">
+                                        {['vehicles', 'meals', 'maintenance', 'calendar'].map(module => {
+                                            const currentPerms = permissionUser.permissions?.[module as keyof typeof permissionUser.permissions] || { view: true, admin: false };
+
+                                            const getLabel = (m: string) => {
+                                                switch (m) {
+                                                    case 'vehicles': return 'Vehículos';
+                                                    case 'meals': return 'Comidas';
+                                                    case 'maintenance': return 'Mantenimiento';
+                                                    case 'calendar': return 'Calendario';
+                                                    default: return m;
+                                                }
+                                            };
+
+                                            return (
+                                                <div key={module} className="bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-lg border border-zinc-100 dark:border-zinc-800">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <span className="font-medium text-zinc-900 dark:text-white capitalize text-sm">
+                                                            {getLabel(module)}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex gap-6">
+                                                        <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                                                            <input
+                                                                type="checkbox"
+                                                                className="rounded border-zinc-300 dark:border-zinc-600 text-zinc-900 focus:ring-zinc-900"
+                                                                checked={currentPerms.view}
+                                                                onChange={e => handlePermissionChange(module, 'view', e.target.checked)}
+                                                            />
+                                                            <span className="text-zinc-600 dark:text-zinc-400">Ver</span>
+                                                        </label>
+                                                        <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                                                            <input
+                                                                type="checkbox"
+                                                                className="rounded border-zinc-300 dark:border-zinc-600 text-purple-600 focus:ring-purple-600"
+                                                                checked={currentPerms.admin}
+                                                                onChange={e => handlePermissionChange(module, 'admin', e.target.checked)}
+                                                            />
+                                                            <span className="text-zinc-600 dark:text-zinc-400 flex items-center gap-1">
+                                                                Admin <Shield size={10} className="text-purple-500" />
+                                                            </span>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
-                                );
-                            })}
+                                </div>
+                            )}
                         </div>
 
                         <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-zinc-100 dark:border-zinc-800">
@@ -337,10 +423,10 @@ export const AdminUserList: React.FC = () => {
                                 Cancelar
                             </button>
                             <button
-                                onClick={savePermissions}
-                                className="px-4 py-2 text-sm font-medium text-white bg-zinc-900 dark:bg-white dark:text-black hover:bg-zinc-800 rounded-lg"
+                                onClick={saveAccess}
+                                className="px-4 py-2 text-sm font-medium text-white bg-zinc-900 dark:bg-white dark:text-black hover:bg-zinc-800 rounded-lg shadow-sm"
                             >
-                                Guardar Permisos
+                                Guardar Cambios
                             </button>
                         </div>
                     </div>
@@ -348,47 +434,62 @@ export const AdminUserList: React.FC = () => {
             )}
 
             {/* Invite Modal */}
-            {showInviteModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowInviteModal(false)} />
-                    <div className="relative w-full max-w-sm bg-white dark:bg-zinc-900 rounded-xl shadow-2xl p-6 overflow-hidden border border-zinc-200 dark:border-zinc-800">
-                        <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">Invitar Usuario</h3>
-                        <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
-                            Envía una invitación por correo. El usuario será aprobado automáticamente al registrarse.
-                        </p>
+            {
+                showInviteModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowInviteModal(false)} />
+                        <div className="relative w-full max-w-sm bg-white dark:bg-zinc-900 rounded-xl shadow-2xl p-6 overflow-hidden border border-zinc-200 dark:border-zinc-800">
+                            <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">Invitar Usuario</h3>
+                            <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
+                                Envía una invitación por correo. El usuario será aprobado automáticamente al registrarse.
+                            </p>
 
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Correo electrónico</label>
-                                <input
-                                    type="email"
-                                    value={inviteEmail}
-                                    onChange={(e) => setInviteEmail(e.target.value)}
-                                    placeholder="usuario@ejemplo.com"
-                                    className="w-full px-3 py-2 text-sm border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white rounded-lg focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/10 outline-none"
-                                    autoFocus
-                                />
-                            </div>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Correo electrónico</label>
+                                    <input
+                                        type="email"
+                                        value={inviteEmail}
+                                        onChange={(e) => setInviteEmail(e.target.value)}
+                                        placeholder="usuario@ejemplo.com"
+                                        className="w-full px-3 py-2 text-sm border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white rounded-lg focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/10 outline-none"
+                                        autoFocus
+                                    />
+                                </div>
 
-                            <div className="flex gap-3">
-                                <button
-                                    onClick={() => setShowInviteModal(false)}
-                                    className="flex-1 px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg transition-colors"
-                                >
-                                    Cancelar
-                                </button>
-                                <button
-                                    onClick={handleInviteUser}
-                                    disabled={inviting || !inviteEmail}
-                                    className="flex-1 px-4 py-2 text-sm font-medium text-white bg-zinc-900 dark:bg-white dark:text-black hover:bg-zinc-800 dark:hover:bg-zinc-200 rounded-lg transition-colors disabled:opacity-50"
-                                >
-                                    {inviting ? 'Enviando...' : 'Enviar Invitación'}
-                                </button>
+                                <div>
+                                    <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Rol</label>
+                                    <select
+                                        value={inviteRole}
+                                        onChange={(e) => setInviteRole(e.target.value as UserRole)}
+                                        className="w-full px-3 py-2 text-sm border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white rounded-lg focus:ring-2 focus:ring-zinc-900/10 dark:focus:ring-white/10 outline-none appearance-none"
+                                    >
+                                        <option value={UserRole.USER}>Usuario (Residente)</option>
+                                        <option value={UserRole.ADMIN}>Administrador</option>
+                                        <option value={UserRole.KITCHEN}>Cocina (Solo ver)</option>
+                                    </select>
+                                </div>
+
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={() => setShowInviteModal(false)}
+                                        className="flex-1 px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg transition-colors"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        onClick={handleInviteUser}
+                                        disabled={inviting || !inviteEmail}
+                                        className="flex-1 px-4 py-2 text-sm font-medium text-white bg-zinc-900 dark:bg-white dark:text-black hover:bg-zinc-800 dark:hover:bg-zinc-200 rounded-lg transition-colors disabled:opacity-50"
+                                    >
+                                        {inviting ? 'Enviando...' : 'Enviar Invitación'}
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Toast Notification */}
             <AnimatePresence>
@@ -408,6 +509,6 @@ export const AdminUserList: React.FC = () => {
                     </motion.div>
                 )}
             </AnimatePresence>
-        </div>
+        </div >
     );
 };

@@ -13,43 +13,43 @@ interface TutorialStep {
 
 const tutorialSteps: TutorialStep[] = [
     {
-        id: 'dashboard',
-        title: 'Panel de Flota',
-        description: 'Bienvenido a JaraCar. Aquí podrás gestionar toda la flota de vehículos de manera sencilla.',
+        id: 'welcome',
+        title: 'Bienvenido a Quango',
+        description: 'Quango es tu plataforma integral para la gestión de residencias. Aquí podrás gestionar vehículos, comidas, mantenimiento, calendarios y mucho más.',
         position: 'center'
     },
     {
-        id: 'views',
-        title: 'Vistas Flexibles',
-        description: 'Alterna entre vista de Cuadrícula, Lista o Cronograma según lo que necesites visualizar.',
+        id: 'navigation',
+        title: 'Navegación',
+        description: 'Usa el menú de navegación para acceder a las diferentes secciones: vehículos, comidas, mantenimiento y calendario.',
         targetSelector: '[data-tutorial="view-switcher"]',
         position: 'bottom'
     },
     {
-        id: 'car-card',
-        title: 'Tarjetas de Coches',
-        description: 'En la vista de cuadrícula, haz clic en cualquier coche para ver sus detalles, historial y hacer una reserva.',
+        id: 'interactions',
+        title: 'Interacciones',
+        description: 'Haz clic en cualquier elemento para ver más detalles, editar información o realizar acciones específicas.',
         targetSelector: '[data-tutorial="car-card"]',
         position: 'bottom'
     },
     {
         id: 'favorites',
-        title: 'Marca Favoritos',
-        description: 'Usa la estrella para marcar los coches que más usas. Aparecerán siempre al principio.',
+        title: 'Personalización',
+        description: 'Marca tus elementos favoritos para acceder a ellos rápidamente. Tus preferencias se guardan automáticamente.',
         targetSelector: '[data-tutorial="favorite-star"]',
         position: 'bottom'
     },
     {
         id: 'profile',
         title: 'Tu Perfil',
-        description: 'Accede a tu perfil para editar tus datos o cambiar tus preferencias.',
+        description: 'Accede a tu perfil para editar tu información personal, configurar tu dieta, cambiar preferencias de apariencia y más.',
         targetSelector: '[data-tutorial="user-avatar"]',
         position: 'bottom'
     },
     {
         id: 'complete',
         title: '¡Todo listo!',
-        description: 'Si necesitas volver a ver este tutorial, puedes encontrarlo en tu perfil de usuario.',
+        description: 'Ya estás preparado para usar Quango. Si necesitas volver a ver este tutorial, puedes encontrarlo en tu perfil de usuario.',
         position: 'center'
     }
 ];

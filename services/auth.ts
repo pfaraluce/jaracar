@@ -23,7 +23,7 @@ export const authService = {
         // Try to get profile data
         const { data: profile, error: profileError } = await supabase
             .from('profiles')
-            .select('full_name, role, status, avatar_url, permissions')
+            .select('*')
             .eq('id', data.user.id)
             .single();
 
@@ -44,7 +44,13 @@ export const authService = {
             role: role,
             status: status,
             avatarUrl: profile?.avatar_url,
-            permissions: profile?.permissions
+            permissions: profile?.permissions,
+            birthday: profile?.birthday,
+            initials: profile?.initials,
+            dietNumber: profile?.diet_number,
+            hasDiet: profile?.has_diet,
+            dietName: profile?.diet_name,
+            dietNotes: profile?.diet_notes
         };
     },
 
@@ -109,7 +115,7 @@ export const authService = {
             // Try to get profile data
             const { data: profile, error: profileError } = await supabase
                 .from('profiles')
-                .select('full_name, role, status, avatar_url, permissions')
+                .select('*')
                 .eq('id', user.id)
                 .single();
 
@@ -136,7 +142,13 @@ export const authService = {
                 role: profile?.role || (isAdminEmail ? UserRole.ADMIN : UserRole.USER),
                 status: isAdminEmail ? 'APPROVED' : (profile?.status || 'PENDING'),
                 avatarUrl: profile?.avatar_url || (user.user_metadata.avatar_url || user.user_metadata.picture), // Fallback to Google URL directly if sync failed or in progress
-                permissions: profile?.permissions
+                permissions: profile?.permissions,
+                birthday: profile?.birthday,
+                initials: profile?.initials,
+                dietNumber: profile?.diet_number,
+                hasDiet: profile?.has_diet,
+                dietName: profile?.diet_name,
+                dietNotes: profile?.diet_notes
             };
         } catch (error) {
             console.error('[AUTH] getCurrentUser: Error', error);

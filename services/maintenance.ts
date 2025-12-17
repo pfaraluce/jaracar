@@ -11,6 +11,7 @@ export const maintenanceService = {
                 description: ticket.description,
                 priority: ticket.priority,
                 reporter_id: ticket.reporterId,
+                assigned_user_id: ticket.assignedUserId,
                 location: ticket.location,
                 image_url: ticket.imageUrl,
                 status: 'open'
@@ -23,24 +24,55 @@ export const maintenanceService = {
     },
 
     async getTickets(): Promise<MaintenanceTicket[]> {
-        const { data, error } = await supabase
+        // First get all tickets
+        const { data: tickets, error: ticketsError } = await supabase
             .from('maintenance_tickets')
             .select('*')
             .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (ticketsError) throw ticketsError;
+        if (!tickets) return [];
 
-        return data.map(d => ({
-            id: d.id,
-            title: d.title,
-            description: d.description,
-            status: d.status,
-            priority: d.priority,
-            reporterId: d.reporter_id,
-            location: d.location,
-            imageUrl: d.image_url,
-            createdAt: d.created_at
-        }));
+        // Get unique user IDs
+        const userIds = new Set<string>();
+        tickets.forEach(t => {
+            if (t.reporter_id) userIds.add(t.reporter_id);
+            if (t.assigned_user_id) userIds.add(t.assigned_user_id);
+        });
+
+        // Fetch user profiles
+        const { data: profiles, error: profilesError } = await supabase
+            .from('profiles')
+            .select('id, full_name, avatar_url')
+            .in('id', Array.from(userIds));
+
+        if (profilesError) throw profilesError;
+
+        // Create a map for quick lookup
+        const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+
+        // Map tickets with user data
+        return tickets.map(d => {
+            const reporter = profileMap.get(d.reporter_id);
+            const assigned = profileMap.get(d.assigned_user_id);
+
+            return {
+                id: d.id,
+                title: d.title,
+                description: d.description,
+                status: d.status,
+                priority: d.priority,
+                reporterId: d.reporter_id,
+                reporterName: reporter?.full_name,
+                reporterAvatar: reporter?.avatar_url,
+                assignedUserId: d.assigned_user_id,
+                assignedUserName: assigned?.full_name,
+                assignedUserAvatar: assigned?.avatar_url,
+                location: d.location,
+                imageUrl: d.image_url,
+                createdAt: d.created_at
+            };
+        });
     },
 
     async uploadImage(file: File): Promise<string> {
@@ -85,11 +117,11 @@ export const maintenanceService = {
         const { error } = await supabase
             .from('maintenance_tickets')
             .update({
-                title: updates.title,
-                description: updates.description,
                 priority: updates.priority,
                 location: updates.location,
-                image_url: updates.imageUrl
+                image_url: updates.imageUrl,
+                reporter_id: updates.reporterId,
+                assigned_user_id: updates.assignedUserId
             })
             .eq('id', id);
 

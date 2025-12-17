@@ -3,17 +3,23 @@ import { format, addDays, subDays, startOfToday } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { mealService } from '../services/meals';
 import { kitchenService, MealGuest } from '../services/kitchen';
-import { ChevronLeft, ChevronRight, Lock, Users } from 'lucide-react';
+import { profileService } from '../services/profiles';
+import { ChevronLeft, ChevronRight, Lock, Users, Utensils } from 'lucide-react';
 import { MealOrder, User } from '../types';
 import { KitchenAdminPanel } from './KitchenAdminPanel';
+import { UserAvatar } from './UserAvatar';
 
 interface DailyMealsListProps {
     user: User;
+    selectedDate: Date;
+    onDateChange: (date: Date) => void;
+    mode?: 'standard' | 'kitchen';
 }
 
 // Color configuration matching DailyOrderManager
 const OPTION_CONFIG: Record<string, { label: string; color: string; textColor: string }> = {
     skip: { label: 'NO', color: 'bg-rose-500', textColor: 'text-white' },
+    no: { label: 'NO', color: 'bg-rose-500', textColor: 'text-white' },
     standard: { label: 'SÍ', color: 'bg-emerald-500', textColor: 'text-white' },
     early: { label: '1T', color: 'bg-yellow-400', textColor: 'text-zinc-900' },
     late: { label: '2T', color: 'bg-emerald-700', textColor: 'text-white' },
@@ -23,22 +29,28 @@ const OPTION_CONFIG: Record<string, { label: string; color: string; textColor: s
 
 interface ResidentEntry {
     name: string;
+    userId?: string;
+    avatarUrl?: string;
+    hasDiet?: boolean;
+    dietNumber?: number;
     option: string;
     isBag: boolean;
     isFromTemplate: boolean;
     isGuest: boolean;
     guestCount?: number;
     guestNotes?: string;
+    initials?: string;
 }
 
-export const DailyMealsList: React.FC<DailyMealsListProps> = ({ user }) => {
-    const [selectedDate, setSelectedDate] = useState(startOfToday());
+
+export const DailyMealsList: React.FC<DailyMealsListProps> = ({ user, selectedDate, onDateChange, mode = 'standard' }) => {
     const [orders, setOrders] = useState<(MealOrder & { userName: string })[]>([]);
     const [nextDayOrders, setNextDayOrders] = useState<(MealOrder & { userName: string })[]>([]);
     const [guests, setGuests] = useState<MealGuest[]>([]);
     const [nextGuests, setNextGuests] = useState<MealGuest[]>([]);
     const [isLocked, setIsLocked] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [userProfiles, setUserProfiles] = useState<Map<string, User>>(new Map());
 
     useEffect(() => {
         loadOrders();
@@ -50,19 +62,27 @@ export const DailyMealsList: React.FC<DailyMealsListProps> = ({ user }) => {
             const dateStr = format(selectedDate, 'yyyy-MM-dd');
             const nextDateStr = format(addDays(selectedDate, 1), 'yyyy-MM-dd');
 
-            const [todayData, nextData, todayGuests, nextGuestsData, locked] = await Promise.all([
+            const [todayData, nextData, todayGuests, nextGuestsData, locked, profiles] = await Promise.all([
                 mealService.getDailyMealPlan(dateStr),
                 mealService.getDailyMealPlan(nextDateStr),
                 kitchenService.getGuests(dateStr),
                 kitchenService.getGuests(nextDateStr),
-                kitchenService.getDailyLockStatus(dateStr)
+                kitchenService.getDailyLockStatus(dateStr),
+                profileService.getAllProfiles()
             ]);
+
+            // Create a map of user profiles for quick lookup
+            const profileMap = new Map<string, User>();
+            profiles.forEach(profile => {
+                profileMap.set(profile.id, profile);
+            });
 
             setOrders(todayData);
             setNextDayOrders(nextData);
             setGuests(todayGuests);
             setNextGuests(nextGuestsData);
             setIsLocked(locked);
+            setUserProfiles(profileMap);
         } catch (error) {
             console.error('Error loading orders:', error);
         } finally {
@@ -70,29 +90,42 @@ export const DailyMealsList: React.FC<DailyMealsListProps> = ({ user }) => {
         }
     };
 
-    const handlePrevDay = () => setSelectedDate(curr => subDays(curr, 1));
-    const handleNextDay = () => setSelectedDate(curr => addDays(curr, 1));
-
     // Group residents by meal type and option
     const groupByMealAndOption = (
         ordersList: typeof orders,
         guestsList: typeof guests,
         mealType: string
     ): Record<string, ResidentEntry[]> => {
-        const grouped: Record<string, ResidentEntry[]> = {};
+        const grouped: Record<string, ResidentEntry[]> = {
+            no: [] // Ensure 'no' group exists
+        };
+
+        const getTargetKey = (option: string, isBag: boolean, mType: string): string => {
+            if (option === 'skip' || option === 'no') return 'no';
+            if (isBag || option === 'bag') return 'no';
+            if (option === 'tupper') return 'no';
+            if (mType === 'breakfast' && option === 'early') return 'no';
+            return option;
+        };
 
         // Add regular orders
         ordersList
-            .filter(o => o.mealType === mealType && o.option && o.option !== 'skip' && o.option !== 'no')
+            .filter(o => o.mealType === mealType)
             .forEach(o => {
-                const key = o.option === 'bag' || o.isBag ? 'bag' : o.option;
+                const key = getTargetKey(o.option || 'standard', o.isBag || false, mealType);
                 if (!grouped[key]) grouped[key] = [];
+                const userProfile = userProfiles.get(o.userId);
                 grouped[key].push({
                     name: o.userName,
+                    userId: o.userId,
+                    avatarUrl: userProfile?.avatarUrl,
+                    hasDiet: userProfile?.hasDiet,
+                    dietNumber: userProfile?.dietNumber,
                     option: o.option,
                     isBag: o.isBag || false,
                     isFromTemplate: o.status === 'template',
-                    isGuest: false
+                    isGuest: false,
+                    initials: userProfile?.initials
                 });
             });
 
@@ -100,7 +133,7 @@ export const DailyMealsList: React.FC<DailyMealsListProps> = ({ user }) => {
         guestsList
             .filter(g => g.mealType === mealType)
             .forEach(g => {
-                const key = g.option === 'bag' || g.isBag ? 'bag' : g.option;
+                const key = getTargetKey(g.option || 'standard', g.isBag || false, mealType);
                 if (!grouped[key]) grouped[key] = [];
                 grouped[key].push({
                     name: 'Invitados',
@@ -128,12 +161,18 @@ export const DailyMealsList: React.FC<DailyMealsListProps> = ({ user }) => {
         nextDayOrders
             .filter(o => o.mealType === 'breakfast' && o.option === 'early')
             .forEach(o => {
+                const userProfile = userProfiles.get(o.userId);
                 prep.earlyBreakfast.push({
                     name: o.userName,
+                    userId: o.userId,
+                    avatarUrl: userProfile?.avatarUrl,
+                    hasDiet: userProfile?.hasDiet,
+                    dietNumber: userProfile?.dietNumber,
                     option: o.option,
                     isBag: false,
                     isFromTemplate: o.status === 'template',
-                    isGuest: false
+                    isGuest: false,
+                    initials: userProfile?.initials
                 });
             });
 
@@ -155,12 +194,18 @@ export const DailyMealsList: React.FC<DailyMealsListProps> = ({ user }) => {
         nextDayOrders
             .filter(o => o.option === 'tupper' && !o.isBag)
             .forEach(o => {
+                const userProfile = userProfiles.get(o.userId);
                 prep.tupper.push({
                     name: o.userName,
+                    userId: o.userId,
+                    avatarUrl: userProfile?.avatarUrl,
+                    hasDiet: userProfile?.hasDiet,
+                    dietNumber: userProfile?.dietNumber,
                     option: o.option,
                     isBag: false,
                     isFromTemplate: o.status === 'template',
-                    isGuest: false
+                    isGuest: false,
+                    initials: userProfile?.initials
                 });
             });
 
@@ -182,12 +227,18 @@ export const DailyMealsList: React.FC<DailyMealsListProps> = ({ user }) => {
         nextDayOrders
             .filter(o => o.isBag || o.option === 'bag')
             .forEach(o => {
+                const userProfile = userProfiles.get(o.userId);
                 prep.bag.push({
                     name: o.userName,
+                    userId: o.userId,
+                    avatarUrl: userProfile?.avatarUrl,
+                    hasDiet: userProfile?.hasDiet,
+                    dietNumber: userProfile?.dietNumber,
                     option: o.option,
                     isBag: true,
                     isFromTemplate: o.status === 'template',
-                    isGuest: false
+                    isGuest: false,
+                    initials: userProfile?.initials
                 });
             });
 
@@ -253,13 +304,12 @@ export const DailyMealsList: React.FC<DailyMealsListProps> = ({ user }) => {
                     {residents.map((resident, idx) => (
                         <div
                             key={idx}
-                            className={`flex items-center justify-between p-2 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors ${resident.isFromTemplate ? 'ring-1 ring-zinc-300 dark:ring-zinc-600' : ''
-                                }`}
+                            className="flex items-center justify-between p-2 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
                         >
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-3">
                                 {resident.isGuest ? (
                                     <>
-                                        <div className="w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-xs font-bold">
+                                        <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-xs font-bold">
                                             +{resident.guestCount}
                                         </div>
                                         <div>
@@ -274,20 +324,55 @@ export const DailyMealsList: React.FC<DailyMealsListProps> = ({ user }) => {
                                         </div>
                                     </>
                                 ) : (
-                                    <span className="text-sm font-medium text-zinc-900 dark:text-white">
-                                        {resident.name}
+                                    <>
+                                        {mode === 'standard' && (
+                                            <UserAvatar
+                                                name={resident.name}
+                                                imageUrl={resident.avatarUrl}
+                                                size="sm"
+                                            />
+                                        )}
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm font-medium text-zinc-900 dark:text-white">
+                                                {mode === 'kitchen' ? (
+                                                    // Get Initials - prefer stored initials, fallback to generated
+                                                    resident.initials || resident.name
+                                                        .split(' ')
+                                                        .map(p => p[0])
+                                                        .join('')
+                                                        .substring(0, 3)
+                                                        .toUpperCase()
+                                                ) : (
+                                                    resident.name
+                                                )}
+                                            </span>
+                                            {resident.hasDiet && resident.dietNumber && (
+                                                <div className="flex items-center gap-1 px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full">
+                                                    <Utensils size={12} />
+                                                    <span className="text-xs font-bold">D{resident.dietNumber}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </>
+                                )}
+
+                            </div>
+                            <div className="flex items-center gap-2">
+                                {/* Special Status Label for 'NO' group */}
+                                {optionKey === 'no' && (resident.option !== 'skip' && resident.option !== 'no') && (
+                                    <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-500 bg-zinc-100 dark:bg-zinc-700 dark:text-zinc-400 px-1.5 py-0.5 rounded">
+                                        {resident.isBag || resident.option === 'bag' ? 'Bolsa' :
+                                            resident.option === 'tupper' ? 'Tupper' :
+                                                resident.option === 'early' ? 'Pronto' :
+                                                    resident.option}
                                     </span>
                                 )}
+
                             </div>
-                            {resident.isFromTemplate && (
-                                <span className="text-[10px] text-zinc-400 dark:text-zinc-500 uppercase tracking-wide">
-                                    Plantilla
-                                </span>
-                            )}
                         </div>
                     ))}
                 </div>
-            </div>
+            </div >
         );
     };
 
@@ -323,27 +408,7 @@ export const DailyMealsList: React.FC<DailyMealsListProps> = ({ user }) => {
 
     return (
         <div className="space-y-6 animate-in fade-in duration-300">
-            {/* Header with Date Selector - matching DailyOrderManager style */}
-            <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">Vista de Cocina</h3>
-                <div className="flex items-center gap-3">
-                    <button
-                        onClick={handlePrevDay}
-                        className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
-                    >
-                        <ChevronLeft size={20} className="text-zinc-600 dark:text-zinc-400" />
-                    </button>
-                    <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300 min-w-[140px] text-center capitalize">
-                        {format(selectedDate, "d 'de' MMMM", { locale: es })}
-                    </span>
-                    <button
-                        onClick={handleNextDay}
-                        className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
-                    >
-                        <ChevronRight size={20} className="text-zinc-600 dark:text-zinc-400" />
-                    </button>
-                </div>
-            </div>
+            {/* No header needed - navigation is in parent */}
 
             {isLocked && (
                 <div className="flex justify-center items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
@@ -372,7 +437,8 @@ export const DailyMealsList: React.FC<DailyMealsListProps> = ({ user }) => {
                             groups={breakfastGroups}
                             subdivisions={[
                                 { key: 'early', label: 'Pronto' },
-                                { key: 'standard', label: 'Normal' }
+                                { key: 'standard', label: 'Normal' },
+                                { key: 'no', label: 'No' }
                             ]}
                         />
 
@@ -383,8 +449,9 @@ export const DailyMealsList: React.FC<DailyMealsListProps> = ({ user }) => {
                                 { key: 'early', label: 'Pronto' },
                                 { key: 'standard', label: 'Normal' },
                                 { key: 'late', label: 'Tarde' },
-                                { key: 'tupper', label: 'Tupper' },
-                                { key: 'bag', label: 'Bolsa' }
+                                { key: 'tupper', label: 'Tupper' }, // Keep standard tuppers if logic allows, though grouping logic moves them to NO
+                                { key: 'bag', label: 'Bolsa' }, // Same for bag
+                                { key: 'no', label: 'No' }
                             ]}
                         />
 
@@ -393,7 +460,8 @@ export const DailyMealsList: React.FC<DailyMealsListProps> = ({ user }) => {
                             groups={dinnerGroups}
                             subdivisions={[
                                 { key: 'standard', label: 'Normal' },
-                                { key: 'late', label: 'Tarde' }
+                                { key: 'late', label: 'Tarde' },
+                                { key: 'no', label: 'No' }
                             ]}
                         />
                     </div>
@@ -435,10 +503,7 @@ export const DailyMealsList: React.FC<DailyMealsListProps> = ({ user }) => {
 
                     {/* Legend */}
                     <div className="flex flex-wrap gap-3 text-xs text-zinc-600 dark:text-zinc-400 pt-2">
-                        <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 rounded border border-zinc-300 dark:border-zinc-600"></div>
-                            <span>Desde plantilla</span>
-                        </div>
+
                         <div className="flex items-center gap-2">
                             <div className="w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-[10px] font-bold">
                                 +N

@@ -8,6 +8,8 @@ import { es } from 'date-fns/locale';
 
 interface DailyOrderManagerProps {
     userId: string;
+    currentDate: Date;
+    onDateChange: (date: Date) => void;
 }
 
 const MEALS = [
@@ -26,8 +28,7 @@ const OPTION_CONFIG: Record<string, { label: string; color: string; textColor: s
     bag: { label: 'B', color: 'bg-blue-600', textColor: 'text-white' },
 };
 
-export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId }) => {
-    const [currentDate, setCurrentDate] = useState(new Date());
+export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId, currentDate, onDateChange }) => {
     const [orders, setOrders] = useState<MealOrder[]>([]);
     const [templates, setTemplates] = useState<MealTemplate[]>([]);
     const [locks, setLocks] = useState<DailyLock[]>([]);
@@ -334,10 +335,8 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId }) 
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">Pedidos Diarios</h3>
-
+            {/* Header with Countdown and Date Navigation */}
+            <div className="flex items-center justify-between">
                 {/* Countdown Timer */}
                 {timeLeft && (
                     <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${isClosingSoon
@@ -351,25 +350,6 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId }) 
                         </div>
                     </div>
                 )}
-            </div>
-
-            {/* Date Navigation */}
-            <div className="flex items-center justify-center gap-3 mb-6">
-                <button
-                    onClick={() => setCurrentDate(new Date(currentDate.setDate(currentDate.getDate() - 7)))}
-                    className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
-                >
-                    <ChevronLeft size={20} className="text-zinc-600 dark:text-zinc-400" />
-                </button>
-                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300 min-w-[140px] text-center">
-                    {format(start, "d 'de' MMMM", { locale: es })}
-                </span>
-                <button
-                    onClick={() => setCurrentDate(new Date(currentDate.setDate(currentDate.getDate() + 7)))}
-                    className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
-                >
-                    <ChevronRight size={20} className="text-zinc-600 dark:text-zinc-400" />
-                </button>
             </div>
 
             {/* Matrix Table */}
@@ -405,6 +385,12 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId }) 
                                                 <span className="text-xs text-zinc-500 dark:text-zinc-400">
                                                     {format(day, 'd MMM', { locale: es })}
                                                 </span>
+                                                {kitchenConfig?.weekly_schedule?.[day.getDay().toString()] && (
+                                                    <span className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1 flex items-center gap-1">
+                                                        <Clock size={10} />
+                                                        {kitchenConfig.weekly_schedule[day.getDay().toString()]}
+                                                    </span>
+                                                )}
                                             </div>
                                         </td>
                                         {MEALS.map(meal => {
@@ -453,107 +439,111 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId }) 
             </div>
 
             {/* Edit Modal */}
-            {editingMeal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl max-w-md w-full border border-zinc-200 dark:border-zinc-800 animate-in zoom-in-95 duration-200">
-                        {/* Header */}
-                        <div className="p-6 border-b border-zinc-200 dark:border-zinc-800">
-                            <div className="flex items-center justify-between mb-2">
-                                <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">
-                                    {MEALS.find(m => m.id === editingMeal.mealType)?.name}
-                                </h3>
-                                <button
-                                    onClick={() => setEditingMeal(null)}
-                                    className="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
-                                >
-                                    <X size={20} className="text-zinc-500" />
-                                </button>
-                            </div>
-                            <p className="text-sm text-zinc-600 dark:text-zinc-400 capitalize">
-                                {format(editingMeal.date, "EEEE, d 'de' MMMM", { locale: es })}
-                            </p>
-                        </div>
-
-                        {/* Options */}
-                        <div className="p-6 space-y-2">
-                            {getAvailableOptions(editingMeal.mealType).map(opt => {
-                                const config = OPTION_CONFIG[opt];
-                                const isSelected = editingMeal.currentOption === opt;
-                                const optionLocked = isLocked(editingMeal.date, editingMeal.mealType, opt, editingMeal.currentOption);
-
-                                return (
+            {
+                editingMeal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+                        <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl max-w-md w-full border border-zinc-200 dark:border-zinc-800 animate-in zoom-in-95 duration-200">
+                            {/* Header */}
+                            <div className="p-6 border-b border-zinc-200 dark:border-zinc-800">
+                                <div className="flex items-center justify-between mb-2">
+                                    <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">
+                                        {MEALS.find(m => m.id === editingMeal.mealType)?.name}
+                                    </h3>
                                     <button
-                                        key={opt}
-                                        onClick={() => handleOptionSelect(opt)}
-                                        disabled={optionLocked}
-                                        className={`
-                                            w-full flex items-center gap-3 p-4 rounded-xl border-2 transition-all
-                                            ${isSelected
-                                                ? 'border-zinc-900 dark:border-white bg-zinc-50 dark:bg-zinc-800'
-                                                : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
-                                            }
-                                            ${optionLocked ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}
-                                        `}
+                                        onClick={() => setEditingMeal(null)}
+                                        className="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
                                     >
-                                        <div className={`w-3 h-3 rounded-full border-2 ${isSelected
-                                            ? 'border-zinc-900 dark:border-white bg-zinc-900 dark:bg-white'
-                                            : 'border-zinc-300 dark:border-zinc-600'
-                                            }`} />
-                                        <div className={`px-3 py-1 rounded-lg ${config.color} ${config.textColor} font-semibold text-sm min-w-[48px] text-center`}>
-                                            {config.label}
-                                        </div>
-                                        <span className="text-sm text-zinc-700 dark:text-zinc-300">
-                                            {opt === 'skip' ? 'No' : opt === 'standard' ? 'Normal' : opt === 'early' ? 'Temprano' : opt === 'late' ? 'Tarde' : opt === 'tupper' ? 'Tupper' : 'Bolsa'}
-                                        </span>
-                                        {optionLocked && (
-                                            <span className="ml-auto text-xs text-amber-600 dark:text-amber-500 font-medium">Cerrado</span>
-                                        )}
+                                        <X size={20} className="text-zinc-500" />
                                     </button>
-                                );
-                            })}
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Prep Change Warning Modal */}
-            {showPrepWarning && pendingMealChange && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl max-w-md w-full p-6 border border-zinc-200 dark:border-zinc-800">
-                        <div className="flex items-start gap-4 mb-4">
-                            <div className="flex-shrink-0 w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                                <AlertCircle className="w-6 h-6 text-amber-600 dark:text-amber-500" />
-                            </div>
-                            <div className="flex-1">
-                                <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-1">
-                                    Cambiar pedido preparado
-                                </h3>
-                                <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                                    Ya tienes {pendingMealChange.currentOption === 'tupper' ? 'preparado un' : 'preparada una'} <span className="font-medium text-zinc-900 dark:text-white">{pendingMealChange.currentOption === 'tupper' ? 'tupper' : 'bolsa'}</span>. ¿Quieres cambiarlo de todas formas?
+                                </div>
+                                <p className="text-sm text-zinc-600 dark:text-zinc-400 capitalize">
+                                    {format(editingMeal.date, "EEEE, d 'de' MMMM", { locale: es })}
                                 </p>
                             </div>
-                        </div>
 
-                        <div className="flex gap-3 mt-6">
-                            <button
-                                onClick={() => {
-                                    setShowPrepWarning(false);
-                                    setPendingMealChange(null);
-                                }}
-                                className="flex-1 px-4 py-2.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 font-medium text-sm transition-colors"
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                onClick={confirmPrepChange}
-                                className="flex-1 px-4 py-2.5 rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-100 font-medium text-sm transition-colors shadow-sm"
-                            >
-                                Confirmar cambio
-                            </button>
+                            {/* Options */}
+                            <div className="p-6 space-y-2">
+                                {getAvailableOptions(editingMeal.mealType).map(opt => {
+                                    const config = OPTION_CONFIG[opt];
+                                    const isSelected = editingMeal.currentOption === opt;
+                                    const optionLocked = isLocked(editingMeal.date, editingMeal.mealType, opt, editingMeal.currentOption);
+
+                                    return (
+                                        <button
+                                            key={opt}
+                                            onClick={() => handleOptionSelect(opt)}
+                                            disabled={optionLocked}
+                                            className={`
+                                            w-full flex items-center gap-3 p-4 rounded-xl border-2 transition-all
+                                            ${isSelected
+                                                    ? 'border-zinc-900 dark:border-white bg-zinc-50 dark:bg-zinc-800'
+                                                    : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
+                                                }
+                                            ${optionLocked ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}
+                                        `}
+                                        >
+                                            <div className={`w-3 h-3 rounded-full border-2 ${isSelected
+                                                ? 'border-zinc-900 dark:border-white bg-zinc-900 dark:bg-white'
+                                                : 'border-zinc-300 dark:border-zinc-600'
+                                                }`} />
+                                            <div className={`px-3 py-1 rounded-lg ${config.color} ${config.textColor} font-semibold text-sm min-w-[48px] text-center`}>
+                                                {config.label}
+                                            </div>
+                                            <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                                                {opt === 'skip' ? 'No' : opt === 'standard' ? 'Normal' : opt === 'early' ? 'Temprano' : opt === 'late' ? 'Tarde' : opt === 'tupper' ? 'Tupper' : 'Bolsa'}
+                                            </span>
+                                            {optionLocked && (
+                                                <span className="ml-auto text-xs text-amber-600 dark:text-amber-500 font-medium">Cerrado</span>
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+
+            {/* Prep Change Warning Modal */}
+            {
+                showPrepWarning && pendingMealChange && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                        <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl max-w-md w-full p-6 border border-zinc-200 dark:border-zinc-800">
+                            <div className="flex items-start gap-4 mb-4">
+                                <div className="flex-shrink-0 w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                                    <AlertCircle className="w-6 h-6 text-amber-600 dark:text-amber-500" />
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-1">
+                                        Cambiar pedido preparado
+                                    </h3>
+                                    <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                                        Ya tienes {pendingMealChange.currentOption === 'tupper' ? 'preparado un' : 'preparada una'} <span className="font-medium text-zinc-900 dark:text-white">{pendingMealChange.currentOption === 'tupper' ? 'tupper' : 'bolsa'}</span>. ¿Quieres cambiarlo de todas formas?
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-3 mt-6">
+                                <button
+                                    onClick={() => {
+                                        setShowPrepWarning(false);
+                                        setPendingMealChange(null);
+                                    }}
+                                    className="flex-1 px-4 py-2.5 rounded-lg border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 font-medium text-sm transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={confirmPrepChange}
+                                    className="flex-1 px-4 py-2.5 rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-100 font-medium text-sm transition-colors shadow-sm"
+                                >
+                                    Confirmar cambio
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+        </div >
     );
 };

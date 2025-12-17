@@ -35,6 +35,14 @@ const parseEpactaDescription = (desc: string): EpactaMetadata => {
     // 1. Color
     if (parts.length > 0) {
         let colorPart = parts[0];
+
+        // HEURISTIC: If the first part (color) is suspiciously long (> 20 chars),
+        // assume this is NOT a valid Epacta string and return empty metadata
+        // to force the UI to fall back to standard description rendering.
+        if (colorPart.length > 20) {
+            return {};
+        }
+
         // Check for "flo" in color part just in case
         if (extractKeyword(colorPart, 'flo')) {
             result.flores = true;
@@ -212,4 +220,5 @@ export interface CalendarEvent {
     allDay: boolean;
     color?: string;
     metadata?: EpactaMetadata; // New field for rich liturgical data
+    calendarId?: string;
 }

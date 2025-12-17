@@ -38,13 +38,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
 
   // Determine standard start view
   const getInitialView = (): DashboardView => {
-    if (!isRestricted) return 'HOME'; // Standard / Admin users start at Home
-
-    if (hasAccess(user, 'vehicles')) return 'VEHICLES';
-    if (hasAccess(user, 'meals')) return 'MEALS';
-    if (hasAccess(user, 'maintenance')) return 'MAINTENANCE';
-    if (hasAccess(user, 'calendar')) return 'CALENDAR';
-
+    // Allows ANYONE to start at HOME now, regardless of permissions
     return 'HOME';
   };
 
@@ -55,13 +49,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
   const [showTutorial, setShowTutorial] = useState(false);
 
   // Force redirect if user is on HOME but shouldn't be
+  // Force redirect logic REMOVED - Restricted users can now see HOME
   useEffect(() => {
-    if (isRestricted && currentView === 'HOME') {
-      const newView = getInitialView();
-      if (newView !== 'HOME') {
-        setCurrentView(newView);
-      }
-    }
+    // Keep this effect for future redirect logic if needed, but for now empty
   }, [user, isRestricted, currentView]);
 
   // Check if user is new (first time login)
@@ -137,9 +127,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
 
           {/* Navigation Links */}
           <div className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-            {!isRestricted && (
-              <NavItem view="HOME" icon={LayoutDashboard} label="Inicio" />
-            )}
+            {/* Always show HOME link permissions permitting (now allowed for all) */}
+            <NavItem view="HOME" icon={LayoutDashboard} label="Inicio" />
 
             <div className="pt-4 pb-2">
               <p className="px-4 text-xs font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
@@ -203,7 +192,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
         {/* Scrollable Content */}
         <main className="flex-1 lg:overflow-y-auto p-4 sm:p-6 lg:p-8">
           <div className="max-w-6xl mx-auto">
-            {!isRestricted && currentView === 'HOME' && (
+            {currentView === 'HOME' && (
               <HomeView user={user} onNavigate={(view) => setCurrentView(view)} />
             )}
 

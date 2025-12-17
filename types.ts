@@ -1,6 +1,7 @@
 export enum UserRole {
   ADMIN = 'ADMIN',
   USER = 'USER',
+  KITCHEN = 'KITCHEN',
 }
 
 export interface PermissionLevel {
@@ -23,6 +24,22 @@ export interface User {
   status: 'PENDING' | 'APPROVED' | 'REJECTED';
   avatarUrl?: string;
   permissions?: UserPermissions;
+  birthday?: string;
+  initials?: string;
+  hasDiet?: boolean;
+  dietNumber?: number;
+  dietName?: string;
+  dietNotes?: string;
+}
+
+export interface DietFile {
+  id: string;
+  userId: string;
+  fileName: string;
+  filePath: string;
+  fileSize?: number;
+  mimeType?: string;
+  createdAt: string;
 }
 
 export enum CarStatus {
@@ -94,6 +111,11 @@ export interface MaintenanceTicket {
   status: 'open' | 'in_progress' | 'resolved' | 'closed';
   priority: 'low' | 'medium' | 'high' | 'critical';
   reporterId: string;
+  reporterName?: string;
+  reporterAvatar?: string;
+  assignedUserId?: string;
+  assignedUserName?: string;
+  assignedUserAvatar?: string;
   location?: string;
   imageUrl?: string;
   createdAt: string;

@@ -67,9 +67,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ user }) => {
         }
     };
 
-    const fetchCachedEvents = async () => {
+    const fetchCachedEvents = async (overrideIds?: string[]) => {
         setLoadingEvents(true);
-        const targetIds = Array.from(activeCalendarIds);
+        const targetIds = overrideIds || Array.from(activeCalendarIds);
         if (targetIds.length === 0) {
             setAllEvents([]);
             setLoadingEvents(false);
@@ -81,8 +81,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ user }) => {
 
             // Assign colors based on calendar index
             const valid = cached.map(ev => {
-                const calIndex = calendars.findIndex(c => c.id === (ev as any).calendarId);
-                const color = CALENDAR_COLORS[calIndex % CALENDAR_COLORS.length] || '#3b82f6';
+                const calIndex = calendars.findIndex(c => c.id === ev.calendarId);
+                // If not found (calIndex -1), use Gray. Otherwise use the palette.
+                const color = calIndex >= 0
+                    ? CALENDAR_COLORS[calIndex % CALENDAR_COLORS.length]
+                    : '#71717a';
                 return { ...ev, color };
             });
 
@@ -184,7 +187,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ user }) => {
             fetchWithProxy(newCal.url)
                 .then(text => parseICS(text, newCal.is_epacta))
                 .then(events => calendarService.syncEvents(newCal.id, events))
-                .then(() => fetchCachedEvents())
+                .then(() => {
+                    // Use optional param to force refresh with new ID included, 
+                    // since activeCalendarIds state update might not be reflected in closure yet
+                    const updatedIds = Array.from(new Set(activeCalendarIds).add(newCal.id));
+                    fetchCachedEvents(updatedIds);
+                })
                 .catch(err => console.error("Auto-sync failed for new calendar", err));
 
         } catch (error) {
@@ -224,7 +232,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ user }) => {
                         className="flex items-center gap-2 px-4 py-2 bg-zinc-900 dark:bg-white text-white dark:text-black rounded-lg hover:opacity-90 transition-all font-medium text-sm"
                     >
                         <Plus size={16} />
-                        Añadir Calendario
+                        <span className="hidden sm:inline">Añadir</span>
                     </button>
                 )}
             </div>

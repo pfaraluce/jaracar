@@ -38,7 +38,11 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({ events }) => {
     const weekDays = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
     const handlePrev = () => {
-        if (selectedDate) {
+        // Mobile behavior: if date selected, navigate days
+        // Desktop behavior: always navigate months
+        const isMobile = window.matchMedia('(max-width: 768px)').matches;
+
+        if (selectedDate && isMobile) {
             const newDate = subDays(selectedDate, 1);
             setSelectedDate(newDate);
             if (!isSameMonth(newDate, currentMonth)) {
@@ -50,7 +54,9 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({ events }) => {
     };
 
     const handleNext = () => {
-        if (selectedDate) {
+        const isMobile = window.matchMedia('(max-width: 768px)').matches;
+
+        if (selectedDate && isMobile) {
             const newDate = addDays(selectedDate, 1);
             setSelectedDate(newDate);
             if (!isSameMonth(newDate, currentMonth)) {
@@ -72,7 +78,7 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({ events }) => {
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-zinc-200 dark:border-zinc-800">
                 <h3 className="text-lg font-bold text-zinc-900 dark:text-white capitalize">
-                    {format(selectedDate || currentMonth, selectedDate ? 'EEEE d, MMMM' : 'MMMM yyyy', { locale: es })}
+                    {format(currentMonth, 'MMMM yyyy', { locale: es })}
                 </h3>
                 <div className="flex items-center gap-2">
                     <button onClick={handlePrev} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full">
@@ -121,11 +127,6 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({ events }) => {
                                             : 'text-zinc-500 dark:text-zinc-400'}`}>
                                             {format(day, dateFormat)}
                                         </span>
-                                        {dayEventsList.length > 0 && (
-                                            <span className="text-[9px] sm:text-[10px] font-bold text-blue-600 dark:text-blue-400">
-                                                {dayEventsList.length}
-                                            </span>
-                                        )}
                                     </div>
                                     <div className="flex flex-col gap-0.5 sm:gap-1">
                                         {dayEventsList.slice(0, 3).map(ev => (

@@ -53,9 +53,30 @@ export const KitchenAdminPanel: React.FC<KitchenAdminPanelProps> = ({ selectedDa
                 kitchenService.getGuests(dateStr),
                 kitchenService.getDailyLockStatus(dateStr)
             ]);
+
+            // Auto-lock Logic: If not locked, today, and past cutoff -> Lock it
+            let effectiveLocked = locked;
+            const now = new Date();
+            if (!locked && isSameDay(selectedDate, now)) {
+                const sKey = selectedDate.getDay().toString();
+                const scheduleTime = cfg.weekly_schedule?.[sKey];
+
+                if (scheduleTime) {
+                    const [h, m] = scheduleTime.split(':').map(Number);
+                    const cutoff = new Date(now);
+                    cutoff.setHours(h, m, 0, 0);
+
+                    if (now > cutoff) {
+                        effectiveLocked = true;
+                        // Fire and forget update to persist the lock
+                        kitchenService.setDayLock(dateStr, true).catch(e => console.error("Auto-lock update failed", e));
+                    }
+                }
+            }
+
             setConfig(cfg);
             setGuests(gst);
-            setIsLocked(locked);
+            setIsLocked(effectiveLocked);
         } catch (error) {
             console.error(error);
         } finally {
@@ -160,8 +181,8 @@ export const KitchenAdminPanel: React.FC<KitchenAdminPanelProps> = ({ selectedDa
                         onClick={handleToggleLock}
                         disabled={!canLock}
                         className={`flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-colors ${isLocked
-                                ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                                : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                            ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                            : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
                             } ${!canLock ? 'opacity-50 cursor-not-allowed grayscale' : ''}`}
                     >
                         {isLocked ? <Lock size={12} /> : <Unlock size={12} />}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { MealTemplate } from '../types';
 import { mealService } from '../services/meals';
 import { Save, Loader2, X, Copy } from 'lucide-react';
@@ -7,6 +7,7 @@ import { es } from 'date-fns/locale';
 interface WeeklyTemplateEditorProps {
     userId: string;
     onUnsavedChanges?: (hasChanges: boolean) => void;
+    onSave?: (saveHandler: () => Promise<void>) => void;
 }
 
 const DAYS = [
@@ -35,7 +36,7 @@ const OPTION_CONFIG: Record<string, { label: string; color: string; textColor: s
     bag: { label: 'B', color: 'bg-blue-600', textColor: 'text-white' },
 };
 
-export const WeeklyTemplateEditor: React.FC<WeeklyTemplateEditorProps> = ({ userId, onUnsavedChanges }) => {
+export const WeeklyTemplateEditor: React.FC<WeeklyTemplateEditorProps> = ({ userId, onUnsavedChanges, onSave }) => {
     const [templates, setTemplates] = useState<MealTemplate[]>([]);
     const [originalTemplates, setOriginalTemplates] = useState<MealTemplate[]>([]); // Track original state
     const [loading, setLoading] = useState(true);
@@ -185,7 +186,7 @@ export const WeeklyTemplateEditor: React.FC<WeeklyTemplateEditorProps> = ({ user
         setApplyToAllMeal(null);
     };
 
-    const handleSave = async () => {
+    const handleSave = useCallback(async () => {
         setSaving(true);
         try {
             const promises = templates.map(t =>
@@ -200,7 +201,14 @@ export const WeeklyTemplateEditor: React.FC<WeeklyTemplateEditorProps> = ({ user
         } finally {
             setSaving(false);
         }
-    };
+    }, [templates, userId]);
+
+    // Pass save handler to parent when it changes
+    useEffect(() => {
+        if (onSave) {
+            onSave(handleSave);
+        }
+    }, [handleSave, onSave]);
 
     const getAvailableOptions = (mealType: string) => {
         if (mealType === 'breakfast') {
@@ -216,21 +224,15 @@ export const WeeklyTemplateEditor: React.FC<WeeklyTemplateEditorProps> = ({ user
 
     return (
         <div className="space-y-6">
-            {/* Header */}
-            <div className="flex justify-between items-start gap-4">
-                <div>
-                    <h3 className="text-lg font-semibold text-zinc-900 dark:text-white">Plantilla Semanal</h3>
-                    <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-                        Define tus preferencias habituales. Se usarán por defecto si no haces un pedido específico.
-                    </p>
-                </div>
+            {/* Save button passed to parent - will be rendered in header */}
+            <div className="hidden" data-save-button>
                 <button
                     onClick={handleSave}
                     disabled={saving}
                     className="flex items-center gap-2 px-4 py-2.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg hover:bg-zinc-800 dark:hover:bg-zinc-100 disabled:opacity-50 transition-all font-medium text-sm shadow-sm"
                 >
                     {saving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
-                    Guardar Cambios
+                    <span className="hidden sm:inline">Guardar</span>
                 </button>
             </div>
 

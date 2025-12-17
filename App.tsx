@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ViewState, User } from './types';
 import { AuthLayout } from './components/AuthLayout';
 import { Dashboard } from './components/Dashboard';
+import { KitchenDashboard } from './components/KitchenDashboard';
 import { PendingApproval } from './components/PendingApproval';
 import { authService } from './services/auth';
 import { supabase } from './services/supabase';
@@ -34,7 +35,7 @@ export default function App() {
 
     // Listen for auth changes (login, logout, password recovery, etc.)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth event:', event, 'Session:', session);
+      // console.log('Auth event:', event, 'Session:', session);
 
       if (event === 'SIGNED_IN') {
         // Reload user data to get profile/roles
@@ -103,6 +104,8 @@ export default function App() {
       {user && viewState === 'DASHBOARD' ? (
         user.status === 'PENDING' ? (
           <PendingApproval user={user} onLogout={handleLogout} />
+        ) : user.role === 'KITCHEN' ? (
+          <KitchenDashboard user={user} onLogout={handleLogout} />
         ) : (
           <Dashboard user={user} onLogout={handleLogout} onUserUpdate={refreshUser} />
         )
