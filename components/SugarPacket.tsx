@@ -70,14 +70,15 @@ export const SugarPacket: React.FC = () => {
                     >
                         "{quote.text}"
                     </p>
-                    <div className="pt-1 flex flex-col items-center gap-0.5 text-[#8B0000]/60 text-sm font-medium">
-                        {quote.author && <span style={{ fontFamily: "'Parisienne', cursive" }} className="text-lg">— {quote.author}</span>}
-                        {quote.date && (
-                            <span className="text-[10px] uppercase tracking-wider opacity-60 font-sans">
-                                {new Date(quote.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}
-                            </span>
-                        )}
-                    </div>
+                    {(quote.author || quote.date) && (
+                        <div className="pt-1 flex flex-col items-center gap-0.5 text-[#8B0000]/60 text-sm font-medium">
+                            {quote.author && <span style={{ fontFamily: "'Parisienne', cursive" }} className="text-lg">— {quote.author}</span>}
+                            {quote.date && (
+                                <span className="text-[10px] uppercase tracking-wider opacity-60 font-sans">
+                                    {new Date(quote.date).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                </span>
+                            )}
+                        </div>
                     )}
                 </div>
 
