@@ -20,15 +20,15 @@ export const KitchenDashboard: React.FC<KitchenDashboardProps> = ({ user, onLogo
             <header className="h-16 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 sticky top-0 z-50">
                 <div className="h-full max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between">
                     <div className="flex items-center gap-8">
-                        <Logo size="sm" />
+                        <Logo size="lg" />
 
                         {/* Navigation Tabs */}
                         <nav className="hidden sm:flex items-center gap-1 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-lg">
                             <button
                                 onClick={() => setView('ORDERS')}
                                 className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${view === 'ORDERS'
-                                        ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm'
-                                        : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+                                    ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm'
+                                    : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
                                     }`}
                             >
                                 <Receipt size={16} />
@@ -37,8 +37,8 @@ export const KitchenDashboard: React.FC<KitchenDashboardProps> = ({ user, onLogo
                             <button
                                 onClick={() => setView('DIETS')}
                                 className={`flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all ${view === 'DIETS'
-                                        ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm'
-                                        : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+                                    ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-white shadow-sm'
+                                    : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
                                     }`}
                             >
                                 <FileText size={16} />
@@ -70,8 +70,8 @@ export const KitchenDashboard: React.FC<KitchenDashboardProps> = ({ user, onLogo
                     <button
                         onClick={() => setView('ORDERS')}
                         className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${view === 'ORDERS'
-                                ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white'
-                                : 'text-zinc-600 dark:text-zinc-400'
+                            ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white'
+                            : 'text-zinc-600 dark:text-zinc-400'
                             }`}
                     >
                         <Receipt size={18} />
@@ -80,8 +80,8 @@ export const KitchenDashboard: React.FC<KitchenDashboardProps> = ({ user, onLogo
                     <button
                         onClick={() => setView('DIETS')}
                         className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${view === 'DIETS'
-                                ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white'
-                                : 'text-zinc-600 dark:text-zinc-400'
+                            ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white'
+                            : 'text-zinc-600 dark:text-zinc-400'
                             }`}
                     >
                         <FileText size={18} />

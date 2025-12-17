@@ -75,7 +75,7 @@ export const AuthLayout: React.FC<AuthProps> = ({ setViewState, setUser, current
         <div className="w-full max-w-sm bg-white dark:bg-zinc-900 p-8 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm transition-colors duration-300">
           <div className="mb-8 text-center">
             <div className="flex justify-center mb-2">
-              <Logo size="md" />
+              <Logo size="lg" />
             </div>
           </div>
           <ResetPassword onSuccess={() => setViewState('DASHBOARD')} />
@@ -91,7 +91,7 @@ export const AuthLayout: React.FC<AuthProps> = ({ setViewState, setUser, current
         <div className="w-full max-w-sm bg-white dark:bg-zinc-900 p-8 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm transition-colors duration-300">
           <div className="mb-8 text-center">
             <div className="flex justify-center mb-2">
-              <Logo size="md" />
+              <Logo size="lg" />
             </div>
           </div>
           <InviteSignup inviteEmail={inviteEmail} onSuccess={() => setViewState('DASHBOARD')} />

@@ -25,6 +25,7 @@ import {
     BookOpen,
     Plus
 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { format, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -83,6 +84,18 @@ export const HomeView: React.FC<HomeViewProps> = ({ user, onNavigate }) => {
         isBag: boolean;
         currentOption: string;
     } | null>(null);
+
+    // Birthday Logic
+    const isBirthday = React.useMemo(() => {
+        if (!user.birthday) return false;
+        try {
+            const today = new Date();
+            const [bYear, bMonth, bDay] = user.birthday.split('-').map(Number);
+            return today.getDate() === bDay && (today.getMonth() + 1) === bMonth;
+        } catch (e) {
+            return false;
+        }
+    }, [user.birthday]);
 
     useEffect(() => {
         loadDashboardData();
@@ -311,9 +324,34 @@ export const HomeView: React.FC<HomeViewProps> = ({ user, onNavigate }) => {
         <div className="space-y-8 animate-in fade-in duration-500">
             {/* Header */}
             <header>
-                <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">
-                    Hola, {user.name.split(' ')[0]} 👋
-                </h1>
+                {isBirthday ? (
+                    <div className="flex items-center gap-2">
+                        <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">
+                            ¡Felicidades, {user.name.split(' ')[0]}!
+                        </h1>
+                        <motion.div
+                            animate={{
+                                rotate: [0, 14, -8, 14, -4, 10, 0, 0],
+                                scale: [1, 1.2, 1]
+                            }}
+                            transition={{
+                                duration: 2.5,
+                                ease: "easeInOut",
+                                times: [0, 0.2, 0.4, 0.6, 0.7, 0.8, 0.9, 1],
+                                repeat: Infinity,
+                                repeatDelay: 1
+                            }}
+                            className="text-3xl origin-bottom-right inline-block filter drop-shadow-sm cursor-help"
+                            title="¡Feliz Cumpleaños!"
+                        >
+                            🎂
+                        </motion.div>
+                    </div>
+                ) : (
+                    <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">
+                        Hola, {user.name.split(' ')[0]} 👋
+                    </h1>
+                )}
                 <p className="text-zinc-500 dark:text-zinc-400 mt-1">
                     Aquí tienes el resumen de hoy, {format(new Date(), "d 'de' MMMM", { locale: es })}.
                 </p>
@@ -570,7 +608,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ user, onNavigate }) => {
                         <div>
                             <div className="flex items-center gap-2 mb-4 text-zinc-900 dark:text-white font-medium">
                                 <BookOpen size={18} className="text-rose-500" />
-                                <h3>Evangelio de {format(new Date(), "EEEE d", { locale: es })}</h3>
+                                <h3>Comentario del Evangelio</h3>
                             </div>
 
                             {gospel ? (

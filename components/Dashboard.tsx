@@ -116,7 +116,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
         <div className="h-full flex flex-col">
           {/* Sidebar Header */}
           <div className="h-16 px-6 flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800">
-            <Logo size="sm" />
+            <Logo size="lg" />
             <button
               onClick={() => setIsSidebarOpen(false)}
               className="md:hidden text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
@@ -185,7 +185,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
           >
             <Menu size={24} />
           </button>
-          <Logo size="sm" />
+          <Logo size="lg" />
           <div className="w-10" /> {/* Spacer for centering */}
         </header>
 
