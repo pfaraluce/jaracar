@@ -37,8 +37,8 @@ export const Logo: React.FC<LogoProps> = ({ className = '', size = 'md' }) => {
         : systemTheme === 'dark';
 
     const logoSrc = isDark
-        ? '/logo-jaracar-white.svg'
-        : '/logo-jaracar-black.svg';
+        ? '/logo-quang-white.svg'
+        : '/logo-quango-black.svg';
 
     // Size mappings
     const sizeClasses = {
@@ -50,7 +50,7 @@ export const Logo: React.FC<LogoProps> = ({ className = '', size = 'md' }) => {
     return (
         <img
             src={logoSrc}
-            alt="JaraCar"
+            alt="Quango"
             className={`${sizeClasses[size]} w-auto ${className}`}
         />
     );
