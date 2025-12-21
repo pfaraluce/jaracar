@@ -84,7 +84,7 @@ export const MealsView: React.FC<MealsViewProps> = ({ user }) => {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">{getTitleForTab()}</h2>
-                    <p className="text-zinc-500 dark:text-zinc-400">Planifica tus menús y pedidos.</p>
+                    <p className="hidden sm:block text-zinc-500 dark:text-zinc-400">Planifica tus menús y pedidos.</p>
                 </div>
 
                 <div className="flex items-center gap-3">

@@ -223,8 +223,8 @@ export const WeeklyTemplateEditor: React.FC<WeeklyTemplateEditorProps> = ({ user
     if (loading) return <div className="p-8 text-center text-zinc-500">Cargando plantilla...</div>;
 
     return (
-        <div className="space-y-6">
-            {/* Save button passed to parent - will be rendered in header */}
+        <div className="space-y-4">
+            {/* Hidden Save button passed to parent */}
             <div className="hidden" data-save-button>
                 <button
                     onClick={handleSave}
@@ -242,23 +242,20 @@ export const WeeklyTemplateEditor: React.FC<WeeklyTemplateEditorProps> = ({ user
                     <table className="w-full">
                         <thead>
                             <tr className="border-b border-zinc-200 dark:border-zinc-800">
-                                <th className="text-left p-4 text-sm font-medium text-zinc-500 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-900/50">
+                                <th className="text-left p-1.5 sm:p-4 text-[11px] sm:text-sm font-medium text-zinc-500 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-900/50">
                                     Día
                                 </th>
                                 {MEALS.map(meal => (
-                                    <th key={meal.id} className="p-4 bg-zinc-50 dark:bg-zinc-900/50">
-                                        <div className="flex items-center justify-center gap-2">
-                                            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                                    <th key={meal.id} className="p-1 sm:p-4 bg-zinc-50 dark:bg-zinc-900/50">
+                                        <button
+                                            onClick={() => handleApplyToAll(meal.id)}
+                                            className="w-full flex items-center justify-center py-1.5 hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50 rounded-lg transition-all group"
+                                            title="Aplicar a toda la semana"
+                                        >
+                                            <span className="text-[11px] sm:text-sm font-bold text-zinc-700 dark:text-zinc-300 group-hover:text-zinc-900 dark:group-hover:text-white transition-colors">
                                                 {meal.name}
                                             </span>
-                                            <button
-                                                onClick={() => handleApplyToAll(meal.id)}
-                                                className="p-1.5 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg transition-colors group"
-                                                title="Aplicar a toda la semana"
-                                            >
-                                                <Copy size={14} className="text-zinc-400 group-hover:text-zinc-600 dark:group-hover:text-zinc-300" />
-                                            </button>
-                                        </div>
+                                        </button>
                                     </th>
                                 ))}
                             </tr>
@@ -269,9 +266,9 @@ export const WeeklyTemplateEditor: React.FC<WeeklyTemplateEditorProps> = ({ user
                                     key={day.id}
                                     className="border-b border-zinc-100 dark:border-zinc-800/50 hover:bg-zinc-50/50 dark:hover:bg-zinc-800/30 transition-colors"
                                 >
-                                    <td className="p-4">
+                                    <td className="p-1.5 sm:p-4">
                                         <div className="flex flex-col">
-                                            <span className="text-sm font-medium text-zinc-900 dark:text-white">
+                                            <span className="text-[12px] sm:text-sm font-medium text-zinc-900 dark:text-white">
                                                 {day.name}
                                             </span>
                                         </div>
@@ -282,11 +279,11 @@ export const WeeklyTemplateEditor: React.FC<WeeklyTemplateEditorProps> = ({ user
                                         const config = OPTION_CONFIG[option];
 
                                         return (
-                                            <td key={meal.id} className="p-4">
+                                            <td key={meal.id} className="p-1 sm:p-4">
                                                 <button
                                                     onClick={() => handleCellClick(day.id, meal.id)}
                                                     className={`
-                                                        w-full px-4 py-2.5 rounded-xl font-semibold text-sm
+                                                        w-full px-1.5 sm:px-4 py-2.5 rounded-xl font-bold sm:font-semibold text-[13px] sm:text-sm
                                                         ${config.color} ${config.textColor}
                                                         hover:scale-105 cursor-pointer shadow-sm hover:shadow-md
                                                         transition-all duration-200
@@ -303,6 +300,10 @@ export const WeeklyTemplateEditor: React.FC<WeeklyTemplateEditorProps> = ({ user
                     </table>
                 </div>
             </div>
+
+            <p className="text-[10px] sm:text-xs text-center font-bold uppercase tracking-wider text-zinc-400 dark:text-zinc-500/60 pb-2">
+                PULSA EN EL NOMBRE DEL SERVICIO PARA COPIAR A TODA LA SEMANA
+            </p>
 
             {/* Edit Modal */}
             {editingMeal && (

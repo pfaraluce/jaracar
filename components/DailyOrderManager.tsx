@@ -36,10 +36,6 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId, cu
     const [locks, setLocks] = useState<DailyLock[]>([]);
     const [kitchenConfig, setKitchenConfig] = useState<KitchenConfig | null>(null);
     const [loading, setLoading] = useState(true);
-    const [timeLeft, setTimeLeft] = useState<string | null>(null);
-    const [isClosingSoon, setIsClosingSoon] = useState(false);
-
-    // Edit modal state
     const [editingMeal, setEditingMeal] = useState<{
         date: Date;
         mealType: string;
@@ -61,41 +57,7 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId, cu
         loadData();
     }, [currentDate]);
 
-    useEffect(() => {
-        updateCountdown();
-        const timer = setInterval(updateCountdown, 1000);
-        return () => clearInterval(timer);
-    }, [kitchenConfig]);
 
-    const updateCountdown = () => {
-        if (!kitchenConfig || !kitchenConfig.weekly_schedule) return;
-
-        const now = new Date();
-        const startDay = now.getDay().toString();
-        const cutoffTime = kitchenConfig.weekly_schedule[startDay];
-
-        if (!cutoffTime) {
-            setTimeLeft(null);
-            return;
-        }
-
-        const [h, m] = cutoffTime.split(':').map(Number);
-        const deadline = new Date(now);
-        deadline.setHours(h, m, 0, 0);
-
-        if (deadline <= now) {
-            setTimeLeft(null);
-            return;
-        }
-
-        const diff = deadline.getTime() - now.getTime();
-        const hours = Math.floor(diff / (1000 * 60 * 60));
-        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-
-        setTimeLeft(`${hours}h ${minutes}m ${seconds}s`);
-        setIsClosingSoon(diff < 3600000); // < 1 hour
-    };
 
     const loadData = async () => {
         try {
@@ -332,33 +294,17 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId, cu
 
     return (
         <div className="space-y-6">
-            {/* Header with Countdown */}
-            <div className="flex items-center justify-between">
-                {timeLeft && (
-                    <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border ${isClosingSoon
-                        ? 'bg-rose-50 dark:bg-rose-900/20 border-rose-100 dark:border-rose-900/50 text-rose-600 dark:text-rose-400'
-                        : 'bg-zinc-50 dark:bg-zinc-800/50 border-zinc-100 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400'
-                        }`}>
-                        <Clock size={14} className={isClosingSoon ? "animate-pulse" : ""} />
-                        <div className="flex flex-col">
-                            <span className="text-[10px] uppercase font-bold tracking-wider opacity-70">Tiempo para pedidos de hoy</span>
-                            <span className="text-xs font-mono font-bold leading-none">{timeLeft}</span>
-                        </div>
-                    </div>
-                )}
-            </div>
-
             {/* Matrix Table */}
             <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden shadow-sm">
                 <div className="overflow-x-auto">
                     <table className="w-full">
                         <thead>
                             <tr className="border-b border-zinc-200 dark:border-zinc-800">
-                                <th className="text-left p-4 text-sm font-medium text-zinc-500 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-900/50">
+                                <th className="text-left p-1.5 sm:p-4 text-[11px] sm:text-sm font-medium text-zinc-500 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-900/50">
                                     Día
                                 </th>
                                 {MEALS.map(meal => (
-                                    <th key={meal.id} className="p-4 text-sm font-medium text-zinc-700 dark:text-zinc-300 bg-zinc-50 dark:bg-zinc-900/50">
+                                    <th key={meal.id} className="p-1 px-1.5 sm:p-4 text-[11px] sm:text-sm font-medium text-zinc-700 dark:text-zinc-300 bg-zinc-50 dark:bg-zinc-900/50">
                                         {meal.name}
                                     </th>
                                 ))}
@@ -375,20 +321,15 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId, cu
                                         className={`border-b border-zinc-100 dark:border-zinc-800/50 hover:bg-zinc-50/50 dark:hover:bg-zinc-800/30 transition-colors ${isToday ? 'bg-zinc-50 dark:bg-zinc-800/50' : ''
                                             }`}
                                     >
-                                        <td className="p-4">
+                                        <td className="p-1.5 sm:p-4">
                                             <div className="flex flex-col">
-                                                <span className="text-sm font-medium text-zinc-900 dark:text-white capitalize">
+                                                <span className="text-[12px] sm:text-sm font-medium text-zinc-900 dark:text-white capitalize">
                                                     {format(day, 'EEEE', { locale: es })}
                                                 </span>
                                                 <span className="text-xs text-zinc-500 dark:text-zinc-400">
                                                     {format(day, 'd MMM', { locale: es })}
                                                 </span>
-                                                {kitchenConfig?.weekly_schedule?.[day.getDay().toString()] && (
-                                                    <span className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1 flex items-center gap-1">
-                                                        <Clock size={10} />
-                                                        {kitchenConfig.weekly_schedule[day.getDay().toString()]}
-                                                    </span>
-                                                )}
+
                                             </div>
                                         </td>
                                         {MEALS.map(meal => {
@@ -405,19 +346,19 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId, cu
                                                 : `${config.color} ${config.textColor}`;
 
                                             return (
-                                                <td key={meal.id} className="p-4">
+                                                <td key={meal.id} className="p-1 sm:p-4">
                                                     <button
                                                         onClick={() => handleCellClick(day, meal.id)}
                                                         disabled={locked}
                                                         className={`
-                                                            w-full px-4 py-2.5 rounded-xl font-semibold text-sm
+                                                            w-full px-1.5 sm:px-4 py-2.5 rounded-xl font-bold sm:font-semibold text-[13px] sm:text-sm
                                                             ${buttonClass}
                                                             ${locked ? 'opacity-40 cursor-not-allowed' : 'hover:scale-105 cursor-pointer shadow-sm hover:shadow-md'}
                                                             ${isFromTemplate ? 'ring-2 ring-zinc-300 dark:ring-zinc-600 ring-offset-2 dark:ring-offset-zinc-900' : ''}
                                                             transition-all duration-200
                                                         `}
                                                     >
-                                                        {option === 'skip' && isDefaultAbsence ? 'AUSENTE' : config.label}
+                                                        {option === 'skip' && isDefaultAbsence ? 'AUS' : config.label}
                                                     </button>
                                                 </td>
                                             );
