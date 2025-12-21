@@ -7,6 +7,7 @@ import { PendingApproval } from './components/PendingApproval';
 import { authService } from './services/auth';
 import { supabase } from './services/supabase';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { ReloadPrompt } from './components/ReloadPrompt';
 
 export default function App() {
   // Simple state-based router for SPA feel without heavy routing libraries yet
@@ -117,6 +118,7 @@ export default function App() {
           inviteEmail={inviteEmail}
         />
       )}
+      <ReloadPrompt />
     </ThemeProvider>
   );
 }
