@@ -30,6 +30,11 @@ export interface User {
   dietNumber?: number;
   dietName?: string;
   dietNotes?: string;
+  roomId?: string;
+  bedId?: string;
+  roomName?: string;
+  bedNumber?: number;
+  roomTotalBeds?: number; // Total beds in the assigned room
 }
 
 export interface DietFile {
@@ -119,6 +124,38 @@ export interface MaintenanceTicket {
   location?: string;
   imageUrl?: string;
   createdAt: string;
+}
+
+export interface Room {
+  id: string;
+  name: string;
+  description?: string;
+  totalBeds: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RoomBed {
+  id: string;
+  roomId: string;
+  bedNumber: number;
+  assignedUserId?: string;
+  assignedUserName?: string;
+  assignedUserAvatar?: string;
+  roomName?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UserAbsence {
+  id: string;
+  userId: string;
+  userName?: string;
+  startDate: string; // ISO Date YYYY-MM-DD
+  endDate: string; // ISO Date YYYY-MM-DD
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export type ViewState = 'LOGIN' | 'SIGNUP' | 'FORGOT_PASSWORD' | 'RESET_PASSWORD' | 'INVITE_SIGNUP' | 'DASHBOARD';

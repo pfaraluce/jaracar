@@ -20,7 +20,6 @@ const WEEKDAYS = [
 
 export const KitchenAdminPanel: React.FC<KitchenAdminPanelProps> = ({ selectedDate, onUpdate }) => {
     const [config, setConfig] = useState<KitchenConfig | null>(null);
-    const [guests, setGuests] = useState<MealGuest[]>([]);
     const [isLocked, setIsLocked] = useState(false);
     const [loading, setLoading] = useState(true);
     const [savingConfig, setSavingConfig] = useState(false);
@@ -48,9 +47,8 @@ export const KitchenAdminPanel: React.FC<KitchenAdminPanelProps> = ({ selectedDa
 
     const loadData = async () => {
         try {
-            const [cfg, gst, locked] = await Promise.all([
+            const [cfg, locked] = await Promise.all([
                 kitchenService.getConfig(),
-                kitchenService.getGuests(dateStr),
                 kitchenService.getDailyLockStatus(dateStr)
             ]);
 
@@ -75,7 +73,6 @@ export const KitchenAdminPanel: React.FC<KitchenAdminPanelProps> = ({ selectedDa
             }
 
             setConfig(cfg);
-            setGuests(gst);
             setIsLocked(effectiveLocked);
         } catch (error) {
             console.error(error);
@@ -138,17 +135,6 @@ export const KitchenAdminPanel: React.FC<KitchenAdminPanelProps> = ({ selectedDa
             setNewGuestCount(1);
             setNewGuestNotes('');
             setNewGuestOption('standard');
-            loadData();
-            if (onUpdate) onUpdate();
-        } catch (error) {
-            console.error(error);
-        }
-    };
-
-    const handleDeleteGuest = async (id: string) => {
-        if (!confirm('¿Borrar?')) return;
-        try {
-            await kitchenService.deleteGuest(id);
             loadData();
             if (onUpdate) onUpdate();
         } catch (error) {
@@ -300,23 +286,6 @@ export const KitchenAdminPanel: React.FC<KitchenAdminPanelProps> = ({ selectedDa
                             Añadir
                         </button>
                     </div>
-                </div>
-            )}
-
-            {/* Guest List Preview (Only for deletion/management, distinct from main list) */}
-            {guests.length > 0 && showAddGuest && (
-                <div className="mt-2 space-y-1">
-                    <p className="text-[10px] text-zinc-400 uppercase font-bold">Invitados Registrados:</p>
-                    {guests.map(g => (
-                        <div key={g.id} className="flex justify-between items-center text-xs p-2 bg-zinc-50 dark:bg-zinc-800/50 rounded border border-zinc-100 dark:border-zinc-800">
-                            <div className="flex gap-2">
-                                <span className="font-bold">{g.count}</span>
-                                <span className="capitalize">{g.mealType} ({g.option})</span>
-                                {g.notes && <span className="text-zinc-400">- {g.notes}</span>}
-                            </div>
-                            <button onClick={() => handleDeleteGuest(g.id)} className="text-red-500 hover:text-red-700"><Trash2 size={12} /></button>
-                        </div>
-                    ))}
                 </div>
             )}
         </div>

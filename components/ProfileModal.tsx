@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { User, UserRole, DietFile } from '../types';
-import { X, Camera, Shield, Mail, User as UserIcon, Loader2, Moon, Sun, Monitor, Edit2, Check, Calendar, Hash, Utensils, Upload, FileText, Trash2, LogOut } from 'lucide-react';
+import { User, UserRole, DietFile, UserAbsence } from '../types';
+import { X, Camera, Shield, Mail, User as UserIcon, Loader2, Moon, Sun, Monitor, Edit2, Check, Calendar, Hash, Utensils, Upload, FileText, Trash2, LogOut, Hotel, ChevronDown, ChevronUp, Plus } from 'lucide-react';
 import { UserAvatar } from './UserAvatar';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../services/supabase';
@@ -8,6 +8,8 @@ import { AdminUserList } from './AdminUserList';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import { useTheme } from '../contexts/ThemeContext';
 import { profileService } from '../services/profiles';
+import { absencesService } from '../services/absences';
+import { RoomsManagementView } from './RoomsManagementView';
 
 interface ProfileModalProps {
     user: User;
@@ -19,7 +21,7 @@ interface ProfileModalProps {
 }
 
 export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClose, onUpdate, onRestartTutorial, onLogout }) => {
-    const [activeTab, setActiveTab] = useState<'PROFILE' | 'ADMIN'>('PROFILE');
+    const [activeTab, setActiveTab] = useState<'PROFILE' | 'ADMIN' | 'ROOMS'>('PROFILE');
     const [uploading, setUploading] = useState(false);
     const [isEditingName, setIsEditingName] = useState(false);
     const [editedName, setEditedName] = useState(user.name);
@@ -39,6 +41,16 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClos
     const [uploadingDietFile, setUploadingDietFile] = useState(false);
     const [savingProfile, setSavingProfile] = useState(false);
 
+    // Absence management state
+    const [showAbsences, setShowAbsences] = useState(false);
+    const [absences, setAbsences] = useState<UserAbsence[]>([]);
+    const [loadingAbsences, setLoadingAbsences] = useState(false);
+    const [newAbsenceStart, setNewAbsenceStart] = useState('');
+    const [newAbsenceEnd, setNewAbsenceEnd] = useState('');
+    const [newAbsenceNotes, setNewAbsenceNotes] = useState('');
+    const [creatingAbsence, setCreatingAbsence] = useState(false);
+    const [absenceError, setAbsenceError] = useState('');
+
     useBodyScrollLock(isOpen);
 
     // Sync state with user prop
@@ -55,7 +67,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClos
         if (isOpen && user.hasDiet) {
             loadDietFiles();
         }
-    }, [isOpen, user.hasDiet]);
+        if (isOpen && user.roomId && showAbsences) {
+            loadAbsences();
+        }
+    }, [isOpen, user.hasDiet, user.roomId, showAbsences]);
 
     const loadDietFiles = async () => {
         try {
@@ -64,6 +79,78 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClos
         } catch (err: any) {
             console.error('Error loading diet files:', err);
         }
+    };
+
+    const loadAbsences = async () => {
+        setLoadingAbsences(true);
+        try {
+            const data = await absencesService.getUserAbsences(user.id);
+            setAbsences(data);
+        } catch (err: any) {
+            console.error('Error loading absences:', err);
+        } finally {
+            setLoadingAbsences(false);
+        }
+    };
+
+    const handleCreateAbsence = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setAbsenceError('');
+
+        if (!newAbsenceStart || !newAbsenceEnd) {
+            setAbsenceError('Las fechas son obligatorias');
+            return;
+        }
+
+        if (new Date(newAbsenceStart) > new Date(newAbsenceEnd)) {
+            setAbsenceError('La fecha de inicio debe ser anterior a la fecha de fin');
+            return;
+        }
+
+        setCreatingAbsence(true);
+        try {
+            const hasOverlap = await absencesService.hasOverlappingAbsence(user.id, newAbsenceStart, newAbsenceEnd);
+            if (hasOverlap) {
+                setAbsenceError('Ya tienes una ausencia registrada en estas fechas');
+                setCreatingAbsence(false);
+                return;
+            }
+
+            await absencesService.createAbsence(user.id, newAbsenceStart, newAbsenceEnd, newAbsenceNotes || undefined);
+            setNewAbsenceStart('');
+            setNewAbsenceEnd('');
+            setNewAbsenceNotes('');
+            await loadAbsences();
+        } catch (err: any) {
+            setAbsenceError(err.message || 'Error al crear la ausencia');
+        } finally {
+            setCreatingAbsence(false);
+        }
+    };
+
+    const handleDeleteAbsence = async (absenceId: string) => {
+        if (!confirm('¿Estás seguro de que quieres eliminar esta ausencia?')) {
+            return;
+        }
+
+        try {
+            await absencesService.deleteAbsence(absenceId);
+            await loadAbsences();
+        } catch (err: any) {
+            setAbsenceError(err.message || 'Error al eliminar la ausencia');
+        }
+    };
+
+    const formatDate = (dateStr: string) => {
+        return new Date(dateStr + 'T00:00:00').toLocaleDateString('es-ES', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        });
+    };
+
+    const getTodayString = () => {
+        return new Date().toISOString().split('T')[0];
     };
 
     const handleAvatarClick = () => {
@@ -226,7 +313,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClos
                     initial={{ opacity: 0, scale: 0.95, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                    className={`relative w-full h-full sm:h-auto bg-white dark:bg-zinc-900 sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col transition-all duration-300 border border-zinc-200 dark:border-zinc-800 ${activeTab === 'ADMIN' ? 'sm:max-w-4xl' : 'sm:max-w-md'
+                    className={`relative w-full h-full sm:h-auto bg-white dark:bg-zinc-900 sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col transition-all duration-300 border border-zinc-200 dark:border-zinc-800 ${activeTab === 'ADMIN' || activeTab === 'ROOMS' ? 'sm:max-w-4xl' : 'sm:max-w-md'
                         } sm:max-h-[90vh]`}
                 >
                     {/* Header */}
@@ -240,13 +327,22 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClos
                                 Perfil
                             </button>
                             {user.role === UserRole.ADMIN && (
-                                <button
-                                    onClick={() => setActiveTab('ADMIN')}
-                                    className={`text-sm font-medium transition-colors ${activeTab === 'ADMIN' ? 'text-zinc-900 dark:text-white' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300'
-                                        }`}
-                                >
-                                    Administración
-                                </button>
+                                <>
+                                    <button
+                                        onClick={() => setActiveTab('ADMIN')}
+                                        className={`text-sm font-medium transition-colors ${activeTab === 'ADMIN' ? 'text-zinc-900 dark:text-white' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300'
+                                            }`}
+                                    >
+                                        Usuarios
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveTab('ROOMS')}
+                                        className={`text-sm font-medium transition-colors ${activeTab === 'ROOMS' ? 'text-zinc-900 dark:text-white' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300'
+                                            }`}
+                                    >
+                                        Habitaciones
+                                    </button>
+                                </>
                             )}
                         </div>
                         <button
@@ -411,6 +507,165 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClos
                                     </div>
                                 </div>
 
+                                {/* Room Information Section */}
+                                <div className="space-y-3 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                                    <h3 className="text-sm font-medium text-zinc-900 dark:text-white">Habitación</h3>
+
+                                    <div className="flex items-center gap-3 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-800/50">
+                                        <Hotel className="text-zinc-400" size={20} />
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Asignación</p>
+                                            <p className="text-sm text-zinc-900 dark:text-zinc-200">
+                                                {user.roomName && user.bedNumber
+                                                    ? user.roomTotalBeds && user.roomTotalBeds > 1
+                                                        ? `${user.roomName} - Cama ${user.bedNumber}`
+                                                        : user.roomName
+                                                    : 'No asignada'
+                                                }
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {user.roomId && (
+                                        <div className="space-y-3">
+                                            <button
+                                                onClick={() => setShowAbsences(!showAbsences)}
+                                                className="w-full flex items-center justify-between py-2 px-4 bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors font-medium text-sm"
+                                            >
+                                                <span>Gestionar Ausencias</span>
+                                                {showAbsences ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                            </button>
+
+                                            <AnimatePresence>
+                                                {showAbsences && (
+                                                    <motion.div
+                                                        initial={{ opacity: 0, height: 0 }}
+                                                        animate={{ opacity: 1, height: 'auto' }}
+                                                        exit={{ opacity: 0, height: 0 }}
+                                                        className="overflow-hidden space-y-3"
+                                                    >
+                                                        {/* Create Form */}
+                                                        <form onSubmit={handleCreateAbsence} className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg p-3 space-y-3">
+                                                            <div className="flex items-center gap-2">
+                                                                <Plus size={16} className="text-zinc-600 dark:text-zinc-400" />
+                                                                <h4 className="text-sm font-medium text-zinc-900 dark:text-white">Nueva Ausencia</h4>
+                                                            </div>
+
+                                                            {absenceError && (
+                                                                <div className="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-2 rounded">
+                                                                    {absenceError}
+                                                                </div>
+                                                            )}
+
+                                                            <div className="grid grid-cols-2 gap-2">
+                                                                <div>
+                                                                    <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">Inicio *</label>
+                                                                    <input
+                                                                        type="date"
+                                                                        value={newAbsenceStart}
+                                                                        onChange={(e) => setNewAbsenceStart(e.target.value)}
+                                                                        min={getTodayString()}
+                                                                        disabled={creatingAbsence}
+                                                                        required
+                                                                        className="w-full px-2 py-1.5 text-xs border border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white disabled:opacity-50"
+                                                                    />
+                                                                </div>
+                                                                <div>
+                                                                    <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">Fin *</label>
+                                                                    <input
+                                                                        type="date"
+                                                                        value={newAbsenceEnd}
+                                                                        onChange={(e) => setNewAbsenceEnd(e.target.value)}
+                                                                        min={newAbsenceStart || getTodayString()}
+                                                                        disabled={creatingAbsence}
+                                                                        required
+                                                                        className="w-full px-2 py-1.5 text-xs border border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white disabled:opacity-50"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                            <div>
+                                                                <label className="block text-xs font-medium text-zinc-700 dark:text-zinc-300 mb-1">Notas (opcional)</label>
+                                                                <input
+                                                                    type="text"
+                                                                    value={newAbsenceNotes}
+                                                                    onChange={(e) => setNewAbsenceNotes(e.target.value)}
+                                                                    placeholder="Ej: Vacaciones, viaje..."
+                                                                    disabled={creatingAbsence}
+                                                                    className="w-full px-2 py-1.5 text-xs border border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 disabled:opacity-50"
+                                                                />
+                                                            </div>
+                                                            <button
+                                                                type="submit"
+                                                                disabled={creatingAbsence}
+                                                                className="w-full py-1.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded text-xs font-medium hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-colors disabled:opacity-50"
+                                                            >
+                                                                {creatingAbsence ? 'Creando...' : 'Crear Ausencia'}
+                                                            </button>
+                                                        </form>
+
+                                                        {/* Absences List */}
+                                                        <div className="space-y-2">
+                                                            <h4 className="text-xs font-medium text-zinc-600 dark:text-zinc-400">Mis Ausencias</h4>
+                                                            {loadingAbsences ? (
+                                                                <div className="text-center py-4">
+                                                                    <div className="inline-block animate-spin rounded-full h-4 w-4 border-2 border-zinc-900 dark:border-white border-t-transparent"></div>
+                                                                </div>
+                                                            ) : absences.length === 0 ? (
+                                                                <div className="text-center py-4 text-xs text-zinc-500 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded">
+                                                                    No tienes ausencias registradas
+                                                                </div>
+                                                            ) : (
+                                                                <div className="space-y-2">
+                                                                    {absences.map((absence) => {
+                                                                        const isPast = new Date(absence.endDate) < new Date();
+                                                                        return (
+                                                                            <div
+                                                                                key={absence.id}
+                                                                                className={`flex items-start justify-between p-2 rounded border ${isPast
+                                                                                    ? 'border-zinc-200 dark:border-zinc-700 opacity-60'
+                                                                                    : 'border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800'
+                                                                                    }`}
+                                                                            >
+                                                                                <div className="flex-1 min-w-0">
+                                                                                    <div className="flex items-center gap-1.5 mb-0.5">
+                                                                                        <Calendar size={12} className="text-zinc-500 dark:text-zinc-400" />
+                                                                                        <span className="text-xs font-medium text-zinc-900 dark:text-white">
+                                                                                            {formatDate(absence.startDate)} - {formatDate(absence.endDate)}
+                                                                                        </span>
+                                                                                        {isPast && (
+                                                                                            <span className="text-[10px] px-1.5 py-0.5 bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400 rounded">
+                                                                                                Pasada
+                                                                                            </span>
+                                                                                        )}
+                                                                                    </div>
+                                                                                    {absence.notes && (
+                                                                                        <p className="text-xs text-zinc-600 dark:text-zinc-400 truncate">
+                                                                                            {absence.notes}
+                                                                                        </p>
+                                                                                    )}
+                                                                                </div>
+                                                                                {!isPast && (
+                                                                                    <button
+                                                                                        onClick={() => handleDeleteAbsence(absence.id)}
+                                                                                        className="p-1 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                                                                        title="Eliminar"
+                                                                                    >
+                                                                                        <Trash2 size={12} />
+                                                                                    </button>
+                                                                                )}
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                        </div>
+                                    )}
+                                </div>
+
                                 {/* Diet Section */}
                                 <div className="space-y-3 pt-4 border-t border-zinc-100 dark:border-zinc-800">
                                     <div className="flex items-center justify-between">
@@ -543,8 +798,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClos
                                     </button>
                                 </div>
                             </div>
-                        ) : (
+                        ) : activeTab === 'ADMIN' ? (
                             <AdminUserList />
+                        ) : (
+                            <RoomsManagementView />
                         )}
                     </div>
                 </motion.div>

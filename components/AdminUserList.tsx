@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, UserRole } from '../types';
+import { User, UserRole, Room, RoomBed } from '../types';
 import { adminService } from '../services/admin';
 import { UserAvatar } from './UserAvatar';
-import { Search, UserPlus, Filter, Shield, AlertCircle, Check, X, Mail, Edit, ShieldOff, CheckCircle, AlertTriangle, MessageSquare, Lock } from 'lucide-react';
+import { Search, UserPlus, Filter, Shield, AlertCircle, Check, X, Mail, Edit, ShieldOff, CheckCircle, AlertTriangle, MessageSquare, Lock, Hotel } from 'lucide-react';
 
 export const AdminUserList: React.FC = () => {
     const [users, setUsers] = useState<User[]>([]);
@@ -20,6 +20,11 @@ export const AdminUserList: React.FC = () => {
     const [permissionUser, setPermissionUser] = useState<User | null>(null);
     const [isAdvancedMode, setIsAdvancedMode] = useState(false);
     const [inviting, setInviting] = useState(false);
+
+    // Room assignment state
+    const [rooms, setRooms] = useState<Room[]>([]);
+    const [beds, setBeds] = useState<RoomBed[]>([]);
+    const [loadingRooms, setLoadingRooms] = useState(true);
 
     const showToast = (message: string, type: 'success' | 'error' | 'info') => {
         setToast({ message, type });
@@ -129,8 +134,66 @@ export const AdminUserList: React.FC = () => {
         }
     };
 
+    const fetchRooms = async () => {
+        try {
+            const { roomsService } = await import('../services/rooms');
+            const [roomsData, bedsData] = await Promise.all([
+                roomsService.getAllRooms(),
+                roomsService.getAllBeds()
+            ]);
+            setRooms(roomsData);
+            setBeds(bedsData);
+        } catch (error) {
+            console.error('Error fetching rooms:', error);
+        } finally {
+            setLoadingRooms(false);
+        }
+    };
+
+    const handleRoomAssignment = async (userId: string, roomId: string) => {
+        try {
+            const { profileService } = await import('../services/profiles');
+            const { roomsService } = await import('../services/rooms');
+
+            if (!roomId) {
+                // Unassign room
+                await profileService.updateRoomAssignment(userId, null);
+                showToast('Habitación desasignada', 'success');
+            } else {
+                const room = rooms.find(r => r.id === roomId);
+                const roomBeds = beds.filter(b => b.roomId === roomId && !b.assignedUserId);
+
+                if (!room || roomBeds.length === 0) {
+                    showToast('No hay camas disponibles en esta habitación', 'error');
+                    return;
+                }
+
+                // If room has only one bed, assign automatically
+                // Otherwise, assign the first available bed
+                const bedToAssign = roomBeds[0];
+                await profileService.updateRoomAssignment(userId, bedToAssign.id);
+                showToast('Habitación asignada correctamente', 'success');
+            }
+
+            // Refresh data - fetch both in parallel
+            const [usersData, roomsData, bedsData] = await Promise.all([
+                adminService.getUsers(),
+                roomsService.getAllRooms(),
+                roomsService.getAllBeds()
+            ]);
+
+            setUsers(usersData);
+            setRooms(roomsData);
+            setBeds(bedsData);
+        } catch (error) {
+            console.error('Error assigning room:', error);
+            showToast('Error al asignar habitación', 'error');
+        }
+    };
+
     useEffect(() => {
         fetchUsers();
+        fetchRooms();
     }, []);
 
     const handleStatusChange = async (userId: string, newStatus: 'APPROVED' | 'REJECTED' | 'PENDING') => {
@@ -233,13 +296,14 @@ export const AdminUserList: React.FC = () => {
                                 <th className="px-4 py-2.5">Usuario</th>
                                 <th className="px-4 py-2.5">Estado</th>
                                 <th className="px-4 py-2.5">Rol</th>
+                                <th className="px-4 py-2.5">Habitación</th>
                                 <th className="px-4 py-2.5 text-right">Permisos</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
                             {filteredUsers.length === 0 ? (
                                 <tr>
-                                    <td colSpan={4} className="px-4 py-8 text-center text-zinc-500 dark:text-zinc-400">
+                                    <td colSpan={5} className="px-4 py-8 text-center text-zinc-500 dark:text-zinc-400">
                                         No se encontraron usuarios {filter === 'PENDING' ? 'pendientes' : ''}
                                     </td>
                                 </tr>
@@ -268,6 +332,32 @@ export const AdminUserList: React.FC = () => {
                                                 {user.role === UserRole.ADMIN && <Shield size={10} />}
                                                 {user.role}
                                             </span>
+                                        </td>
+                                        <td className="px-4 py-2.5">
+                                            {loadingRooms ? (
+                                                <span className="text-xs text-zinc-400">Cargando...</span>
+                                            ) : (
+                                                <select
+                                                    value={user.roomId || ''}
+                                                    onChange={(e) => handleRoomAssignment(user.id, e.target.value)}
+                                                    className="text-xs px-2 py-1 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                >
+                                                    <option value="">Sin asignar</option>
+                                                    {rooms.map(room => {
+                                                        const availableBeds = beds.filter(b => b.roomId === room.id && !b.assignedUserId).length;
+                                                        const isUserInRoom = user.roomId === room.id;
+                                                        return (
+                                                            <option
+                                                                key={room.id}
+                                                                value={room.id}
+                                                                disabled={availableBeds === 0 && !isUserInRoom}
+                                                            >
+                                                                {room.name} {isUserInRoom ? `(Cama ${user.bedNumber})` : availableBeds > 0 ? `(${availableBeds} libre${availableBeds > 1 ? 's' : ''})` : '(Completa)'}
+                                                            </option>
+                                                        );
+                                                    })}
+                                                </select>
+                                            )}
                                         </td>
                                         <td className="px-4 py-2.5 text-right">
                                             <div className="flex items-center justify-end gap-2">

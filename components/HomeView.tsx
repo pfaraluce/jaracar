@@ -191,7 +191,8 @@ export const HomeView: React.FC<HomeViewProps> = ({ user, onNavigate }) => {
 
             // 2. Meal Status (Today)
             const todayStr = format(now, 'yyyy-MM-dd');
-            const dayOfWeek = now.getDay(); // 0=Sun
+            let dayOfWeek = now.getDay(); // 0=Sun
+            if (dayOfWeek === 0) dayOfWeek = 7; // Convert to 1-7 (Mon-Sun)
 
             const [templates, orders, config] = await Promise.all([
                 mealService.getMyTemplates(),

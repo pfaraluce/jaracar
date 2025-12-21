@@ -158,7 +158,7 @@ export const MealsView: React.FC<MealsViewProps> = ({ user }) => {
                                     <ChevronLeft size={20} className="text-zinc-600 dark:text-zinc-400" />
                                 </button>
                                 <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300 min-w-[140px] text-center">
-                                    {format(startOfWeek(currentWeekDate, { weekStartsOn: 1 }), "d 'de' MMMM", { locale: es })}
+                                    {format(currentWeekDate, "d 'de' MMM", { locale: es })} - {format(addDays(currentWeekDate, 6), "d 'de' MMM", { locale: es })}
                                 </span>
                                 <button
                                     onClick={() => setCurrentWeekDate(new Date(currentWeekDate.setDate(currentWeekDate.getDate() + 7)))}

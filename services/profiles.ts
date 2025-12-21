@@ -10,21 +10,49 @@ export const profileService = {
 
         if (error) throw new Error(error.message);
 
-        return data.map(p => ({
-            id: p.id,
-            email: p.email,
-            name: p.full_name,
-            role: p.role,
-            status: p.status,
-            avatarUrl: p.avatar_url,
-            permissions: p.permissions,
-            birthday: p.birthday,
-            initials: p.initials,
-            hasDiet: p.has_diet,
-            dietNumber: p.diet_number,
-            dietName: p.diet_name,
-            dietNotes: p.diet_notes
+        // Fetch room/bed info separately for users with room assignments
+        const profilesWithRooms = await Promise.all(data.map(async (p) => {
+            let roomName = undefined;
+            let bedNumber = undefined;
+            let roomTotalBeds = undefined;
+
+            if (p.bed_id) {
+                const { data: bedData } = await supabase
+                    .from('room_beds')
+                    .select('bed_number, rooms(name, total_beds)')
+                    .eq('id', p.bed_id)
+                    .single();
+
+                if (bedData) {
+                    bedNumber = bedData.bed_number;
+                    roomName = (bedData.rooms as any)?.name;
+                    roomTotalBeds = (bedData.rooms as any)?.total_beds;
+                }
+            }
+
+            return {
+                id: p.id,
+                email: p.email,
+                name: p.full_name,
+                role: p.role,
+                status: p.status,
+                avatarUrl: p.avatar_url,
+                permissions: p.permissions,
+                birthday: p.birthday,
+                initials: p.initials,
+                hasDiet: p.has_diet,
+                dietNumber: p.diet_number,
+                dietName: p.diet_name,
+                dietNotes: p.diet_notes,
+                roomId: p.room_id,
+                bedId: p.bed_id,
+                roomName,
+                bedNumber,
+                roomTotalBeds
+            };
         }));
+
+        return profilesWithRooms;
     },
 
     getProfile: async (userId: string) => {
@@ -35,6 +63,25 @@ export const profileService = {
             .single();
 
         if (error) throw new Error(error.message);
+
+        // Fetch room/bed info separately if user has room assignment
+        let roomName = undefined;
+        let bedNumber = undefined;
+        let roomTotalBeds = undefined;
+
+        if (p.bed_id) {
+            const { data: bedData } = await supabase
+                .from('room_beds')
+                .select('bed_number, rooms(name, total_beds)')
+                .eq('id', p.bed_id)
+                .single();
+
+            if (bedData) {
+                bedNumber = bedData.bed_number;
+                roomName = (bedData.rooms as any)?.name;
+                roomTotalBeds = (bedData.rooms as any)?.total_beds;
+            }
+        }
 
         return {
             id: p.id,
@@ -49,7 +96,12 @@ export const profileService = {
             hasDiet: p.has_diet,
             dietNumber: p.diet_number,
             dietName: p.diet_name,
-            dietNotes: p.diet_notes
+            dietNotes: p.diet_notes,
+            roomId: p.room_id,
+            bedId: p.bed_id,
+            roomName,
+            bedNumber,
+            roomTotalBeds
         };
     },
 
@@ -216,5 +268,40 @@ export const profileService = {
             .getPublicUrl(filePath);
 
         return data.publicUrl;
+    },
+
+    // Update room assignment for a user
+    updateRoomAssignment: async (userId: string, bedId: string | null): Promise<void> => {
+        // If bedId is null, we're unassigning the user
+        if (bedId === null) {
+            // Find current bed and unassign
+            const { data: currentBed } = await supabase
+                .from('room_beds')
+                .select('id')
+                .eq('assigned_user_id', userId)
+                .single();
+
+            if (currentBed) {
+                await supabase
+                    .from('room_beds')
+                    .update({ assigned_user_id: null })
+                    .eq('id', currentBed.id);
+            }
+        } else {
+            // First, unassign user from any current bed
+            await supabase
+                .from('room_beds')
+                .update({ assigned_user_id: null })
+                .eq('assigned_user_id', userId);
+
+            // Then assign to new bed
+            const { error } = await supabase
+                .from('room_beds')
+                .update({ assigned_user_id: userId })
+                .eq('id', bedId);
+
+            if (error) throw new Error(error.message);
+        }
     }
 };
+

@@ -20,38 +20,23 @@ export const authService = {
 
         if (!data.user) throw new Error('No user data returned');
 
-        // Try to get profile data
-        const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', data.user.id)
-            .single();
-
-        if (profileError) {
+        // Use profileService to get complete profile data
+        try {
+            const { profileService } = await import('./profiles');
+            return await profileService.getProfile(data.user.id);
+        } catch (profileError) {
             console.error('Error fetching profile:', profileError);
+
+            // Fallback
+            const isAdminEmail = email.toLowerCase() === 'pfaraluce@gmail.com';
+            return {
+                id: data.user.id,
+                email: data.user.email || '',
+                name: data.user.user_metadata.name || email.split('@')[0],
+                role: isAdminEmail ? UserRole.ADMIN : UserRole.USER,
+                status: isAdminEmail ? 'APPROVED' : 'PENDING'
+            };
         }
-
-        const isAdminEmail = email.toLowerCase() === 'pfaraluce@gmail.com';
-        const name = profile?.full_name || data.user.user_metadata.name || email.split('@')[0];
-        const role = profile?.role || (isAdminEmail ? UserRole.ADMIN : UserRole.USER);
-        // Force APPROVED for hardcoded admin email to prevent lockout
-        const status = isAdminEmail ? 'APPROVED' : (profile?.status || 'PENDING');
-
-        return {
-            id: data.user.id,
-            email: data.user.email || '',
-            name: name,
-            role: role,
-            status: status,
-            avatarUrl: profile?.avatar_url,
-            permissions: profile?.permissions,
-            birthday: profile?.birthday,
-            initials: profile?.initials,
-            dietNumber: profile?.diet_number,
-            hasDiet: profile?.has_diet,
-            dietName: profile?.diet_name,
-            dietNotes: profile?.diet_notes
-        };
     },
 
     loginWithGoogle: async () => {
@@ -111,45 +96,49 @@ export const authService = {
 
             const user = session.user;
             const email = user.email || '';
-
-            // Try to get profile data
-            const { data: profile, error: profileError } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', user.id)
-                .single();
-
-            if (profileError) {
-                console.error('Error fetching profile:', profileError);
-            }
-
             const isAdminEmail = email.toLowerCase() === 'pfaraluce@gmail.com';
 
-            if (!profile?.avatar_url && (user.user_metadata.avatar_url || user.user_metadata.picture)) {
-                const googleUrl = user.user_metadata.avatar_url || user.user_metadata.picture;
-                const newAvatarUrl = await authService._syncGoogleAvatar(user.id, googleUrl);
-                if (newAvatarUrl && profile) {
-                    profile.avatar_url = newAvatarUrl;
-                }
-                // If profile was null but we synced, 'profile?.avatar_url' below will still use the fetched null profile.
-                // But usually profile exists. Ideally we update the return object.
-            }
+            // Use profileService to get complete profile data including room assignment
+            try {
+                const { profileService } = await import('./profiles');
+                const profile = await profileService.getProfile(user.id);
 
-            return {
-                id: user.id,
-                email: email,
-                name: profile?.full_name || user.user_metadata.name || email.split('@')[0] || 'User',
-                role: profile?.role || (isAdminEmail ? UserRole.ADMIN : UserRole.USER),
-                status: isAdminEmail ? 'APPROVED' : (profile?.status || 'PENDING'),
-                avatarUrl: profile?.avatar_url || (user.user_metadata.avatar_url || user.user_metadata.picture), // Fallback to Google URL directly if sync failed or in progress
-                permissions: profile?.permissions,
-                birthday: profile?.birthday,
-                initials: profile?.initials,
-                dietNumber: profile?.diet_number,
-                hasDiet: profile?.has_diet,
-                dietName: profile?.diet_name,
-                dietNotes: profile?.diet_notes
-            };
+                // Sync Google avatar if needed
+                if (!profile.avatarUrl && (user.user_metadata.avatar_url || user.user_metadata.picture)) {
+                    const googleUrl = user.user_metadata.avatar_url || user.user_metadata.picture;
+                    const newAvatarUrl = await authService._syncGoogleAvatar(user.id, googleUrl);
+                    if (newAvatarUrl) {
+                        profile.avatarUrl = newAvatarUrl;
+                    }
+                }
+
+                return profile;
+            } catch (profileError) {
+                console.error('Error fetching profile with profileService:', profileError);
+
+                // Fallback to basic profile query
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', user.id)
+                    .single();
+
+                return {
+                    id: user.id,
+                    email: email,
+                    name: profile?.full_name || user.user_metadata.name || email.split('@')[0] || 'User',
+                    role: profile?.role || (isAdminEmail ? UserRole.ADMIN : UserRole.USER),
+                    status: isAdminEmail ? 'APPROVED' : (profile?.status || 'PENDING'),
+                    avatarUrl: profile?.avatar_url || (user.user_metadata.avatar_url || user.user_metadata.picture),
+                    permissions: profile?.permissions,
+                    birthday: profile?.birthday,
+                    initials: profile?.initials,
+                    dietNumber: profile?.diet_number,
+                    hasDiet: profile?.has_diet,
+                    dietName: profile?.diet_name,
+                    dietNotes: profile?.diet_notes
+                };
+            }
         } catch (error) {
             console.error('[AUTH] getCurrentUser: Error', error);
             return null;
