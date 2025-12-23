@@ -402,6 +402,8 @@ export const AdminUserList: React.FC = () => {
                                         <td className="px-4 py-2.5">
                                             {loadingRooms ? (
                                                 <span className="text-xs text-zinc-400">Cargando...</span>
+                                            ) : user.role === UserRole.KITCHEN ? (
+                                                <span className="text-xs text-zinc-400">-</span>
                                             ) : (
                                                 <select
                                                     value={user.roomId || ''}
@@ -418,7 +420,7 @@ export const AdminUserList: React.FC = () => {
                                                                 value={room.id}
                                                                 disabled={availableBeds === 0 && !isUserInRoom}
                                                             >
-                                                                {room.name} {isUserInRoom ? `(Cama ${user.bedNumber})` : availableBeds > 0 ? `(${availableBeds} libre${availableBeds > 1 ? 's' : ''})` : '(Completa)'}
+                                                                {room.name} {isUserInRoom ? (room.totalBeds === 1 ? '' : `(Cama ${user.bedNumber})`) : availableBeds > 0 ? `(${availableBeds} libre${availableBeds > 1 ? 's' : ''})` : '(Completa)'}
                                                             </option>
                                                         );
                                                     })}

@@ -3,30 +3,48 @@ import { User } from '../types';
 
 export const adminService = {
     getUsers: async (): Promise<User[]> => {
-        const { data, error } = await supabase
+        // Fetch profiles
+        const { data: profiles, error: profilesError } = await supabase
             .from('profiles')
             .select('*')
             .order('created_at', { ascending: false });
 
-        console.log('AdminService getUsers response:', { data, error });
+        if (profilesError) throw new Error(profilesError.message);
 
-        if (error) throw new Error(error.message);
+        // Fetch active room assignments
+        const { data: assignments, error: assignmentsError } = await supabase
+            .from('room_beds')
+            .select('id, bed_number, assigned_user_id, rooms(id, name)')
+            .not('assigned_user_id', 'is', null);
 
-        // Fetch emails from auth is not directly possible via client SDK for all users without admin API
-        // BUT, we can't access auth.users from client. 
-        // Workaround: We rely on the profile data. 
-        // Ideally, profiles should have email synced. 
-        // Let's assume profiles has email (it does based on setup_profiles.sql)
+        if (assignmentsError) console.error('Error fetching assignments:', assignmentsError);
+        const userAssignments = new Map(assignments?.map(a => [a.assigned_user_id, a]));
 
-        return data.map((profile: any) => ({
-            id: profile.id,
-            email: profile.email || '', // Should be in profiles
-            name: profile.full_name || 'Sin nombre',
-            role: profile.role || 'USER',
-            status: profile.status || 'PENDING',
-            avatarUrl: profile.avatar_url,
-            permissions: profile.permissions || {}
-        }));
+        console.log('AdminService getUsers response:', { profilesCount: profiles?.length, assignmentsCount: assignments?.length });
+
+        return profiles.map((profile: any) => {
+            const assignment = userAssignments.get(profile.id);
+            const roomData = assignment?.rooms as any;
+
+            return {
+                id: profile.id,
+                email: profile.email || '',
+                name: profile.full_name || 'Sin nombre',
+                role: profile.role || 'USER',
+                status: profile.status || 'PENDING',
+                avatarUrl: profile.avatar_url,
+                permissions: profile.permissions || {},
+                // Map additional profile fields
+                hasDiet: profile.has_diet,
+                dietNumber: profile.diet_number,
+                
+                // Map room info
+                roomId: roomData?.id,
+                bedId: assignment?.id,
+                bedNumber: assignment?.bed_number,
+                roomName: roomData?.name
+            };
+        });
     },
 
     updateUserStatus: async (userId: string, status: 'APPROVED' | 'REJECTED' | 'PENDING') => {

@@ -130,9 +130,6 @@ export const HouseGuideView: React.FC<HouseGuideViewProps> = ({ user, refreshTri
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
 
-    const APP_GUIDE_CONTENT: AppGuideSection[] = [
-        // ... (existing content)
-    ];
 
     useEffect(() => {
         loadData();
@@ -142,11 +139,12 @@ export const HouseGuideView: React.FC<HouseGuideViewProps> = ({ user, refreshTri
         setLoading(true);
         try {
             // Fetch everything, but handle errors individually to prevent total failure
-            const [usersDataResult, settingsDataResult, docsDataResult, tasksDataResult] = await Promise.allSettled([
+            const [usersDataResult, settingsDataResult, docsDataResult, tasksDataResult, guideSectionsResult] = await Promise.allSettled([
                 profileService.getAllProfiles(),
                 houseGuideService.getSettings(),
                 houseGuideService.getDocuments(),
-                tasksService.getTasks() // Fetch ALL tasks now
+                tasksService.getTasks(), // Fetch ALL tasks now
+                houseGuideService.getGuideSections()
             ]);
 
             if (usersDataResult.status === 'fulfilled') {
@@ -173,10 +171,15 @@ export const HouseGuideView: React.FC<HouseGuideViewProps> = ({ user, refreshTri
                 console.error('Error loading tasks:', tasksDataResult.reason);
             }
 
-            setWikiSections(APP_GUIDE_CONTENT);
+            if (guideSectionsResult.status === 'fulfilled') {
+                setWikiSections(guideSectionsResult.value);
+            } else {
+                console.error('Error loading guide sections:', guideSectionsResult.reason);
+                // Fallback to empty if DB fetch fails
+                setWikiSections([]);
+            }
         } catch (error) {
             console.error('Error in loadData Promise.allSettled catch:', error);
-            setWikiSections(APP_GUIDE_CONTENT);
         } finally {
             setLoading(false);
         }
@@ -223,7 +226,10 @@ export const HouseGuideView: React.FC<HouseGuideViewProps> = ({ user, refreshTri
                         {menuItems.map(item => (
                             <button
                                 key={item.id}
-                                onClick={() => setActiveSection(item.id as any)}
+                                onClick={() => {
+                                    setActiveSection(item.id as any);
+                                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }}
                                 className="group relative flex flex-col items-start p-6 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl hover:border-zinc-300 dark:hover:border-zinc-700 transition-all text-left shadow-sm hover:shadow-md overflow-hidden"
                             >
                                 <div className={`p-3 rounded-2xl ${item.bg} mb-4 group-hover:scale-110 transition-transform`}>
@@ -234,14 +240,6 @@ export const HouseGuideView: React.FC<HouseGuideViewProps> = ({ user, refreshTri
                                     {item.description}
                                 </p>
                                 
-                                {item.id === 'TASKS' && (
-                                    <div className="mt-4 pt-4 border-t border-zinc-50 dark:border-zinc-800/50 w-full">
-                                        <div className="flex items-center justify-between text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
-                                            <span>Estado Hoy</span>
-                                            <span className="text-zinc-900 dark:text-zinc-100">{userTasks.length} activos</span>
-                                        </div>
-                                    </div>
-                                )}
 
                                 {item.id === 'RESIDENTS' && (
                                     <div className="mt-4 pt-4 border-t border-zinc-50 dark:border-zinc-800/50 w-full flex -space-x-2">
@@ -283,7 +281,10 @@ export const HouseGuideView: React.FC<HouseGuideViewProps> = ({ user, refreshTri
                         className="space-y-6"
                     >
                         <button 
-                            onClick={() => setActiveSection(null)}
+                            onClick={() => {
+                                setActiveSection(null);
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
                             className="flex items-center gap-2 text-sm font-medium text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors group"
                         >
                             <div className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center group-hover:bg-zinc-200 dark:group-hover:bg-zinc-700 transition-colors">

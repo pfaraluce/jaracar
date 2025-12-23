@@ -63,6 +63,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onUpdate, onRest
 
     const [guideRefreshTrigger, setGuideRefreshTrigger] = useState(0);
     const [guideSection, setGuideSection] = useState<any>(undefined);
+    const [showGuideAdmin, setShowGuideAdmin] = useState(false);
 
     // Sync state with user prop
     useEffect(() => {
@@ -905,7 +906,24 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onUpdate, onRest
                         
                         {user.role === UserRole.ADMIN && (
                             <div className="mt-12 pt-12 border-t border-zinc-100 dark:border-zinc-800">
-                                <HouseGuideAdmin onUpdate={() => setGuideRefreshTrigger(prev => prev + 1)} />
+                                <button
+                                    onClick={() => setShowGuideAdmin(!showGuideAdmin)}
+                                    className="flex items-center gap-2 text-sm font-bold text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors mb-6 uppercase tracking-wider"
+                                >
+                                    <Settings size={16} />
+                                    Panel de Administración
+                                    {showGuideAdmin ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                </button>
+                                
+                                {showGuideAdmin && (
+                                    <motion.div
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: 'auto' }}
+                                        exit={{ opacity: 0, height: 0 }}
+                                    >
+                                        <HouseGuideAdmin onUpdate={() => setGuideRefreshTrigger(prev => prev + 1)} />
+                                    </motion.div>
+                                )}
                             </div>
                         )}
                     </motion.div>

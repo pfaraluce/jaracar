@@ -155,6 +155,30 @@ serve(async (req) => {
       invalidTokens: [] as string[]
     }
 
+    // Insert messages into user_admin_messages for persistence
+    const messagesToInsert = preferences.map((p: any) => ({
+      user_id: p.user_id,
+      sender_id: user.id, // The admin sending the broadcast
+      content: body, // The message body
+      title: title, // Store title if schema supports it, otherwise logic assumes body content
+      is_read: false,
+      is_global: true, // Flag as global broadcast
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }))
+
+    // Batch insert messages (Supabase handles batch inserts well)
+    // Note: We might want to chunk this if the user base is massive, but for now direct insert is fine.
+    const { error: insertError } = await supabaseClient
+      .from('user_admin_messages')
+      .insert(messagesToInsert)
+    
+    if (insertError) {
+      console.error('Error persisting broadcast messages:', insertError)
+      // We continue to send push notifications even if persistence fails, or we could throw. 
+      // Let's log and continue to ensure at least the alert goes out.
+    }
+
     // Send notifications using FCM v1 API
     for (const fcmToken of fcmTokens) {
       try {
@@ -175,7 +199,8 @@ serve(async (req) => {
                 },
                 data: {
                   ...data,
-                  type: 'admin_announcement'
+                  type: 'admin_announcement',
+                  is_global: 'true'
                 },
                 webpush: {
                   notification: {
