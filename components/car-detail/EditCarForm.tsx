@@ -1,8 +1,10 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { Upload, Link as LinkIcon, Save, Trash2, AlertTriangle } from 'lucide-react';
 import { addDays, isBefore, isAfter } from 'date-fns';
-import { Car } from '../../types';
+import { Car, User } from '../../types';
 import { carService } from '../../services/cars';
+import { adminService } from '../../services/admin';
+import { UserSelector } from '../UserSelector';
 
 interface EditCarFormProps {
     car: Car;
@@ -21,13 +23,27 @@ export const EditCarForm: React.FC<EditCarFormProps> = ({
     const [uploading, setUploading] = useState(false);
     const [showUrlInput, setShowUrlInput] = useState(false);
     const [urlInput, setUrlInput] = useState('');
+    const [users, setUsers] = useState<User[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    React.useEffect(() => {
+        const fetchUsers = async () => {
+            try {
+                const data = await adminService.getUsers();
+                setUsers(data.filter(u => u.status === 'APPROVED'));
+            } catch (error) {
+                console.error('Error fetching users:', error);
+            }
+        };
+        fetchUsers();
+    }, []);
 
     const [editFormData, setEditFormData] = useState({
         name: car.name,
         inWorkshop: car.inWorkshop,
         nextServiceDate: car.nextServiceDate || '',
-        imageUrl: car.imageUrl
+        imageUrl: car.imageUrl,
+        assignedUserId: car.assignedUserId || ''
     });
 
     // Check if next service is within 1 week
@@ -66,7 +82,8 @@ export const EditCarForm: React.FC<EditCarFormProps> = ({
                 name: editFormData.name,
                 inWorkshop: editFormData.inWorkshop,
                 nextServiceDate: editFormData.nextServiceDate || undefined,
-                imageUrl: editFormData.imageUrl
+                imageUrl: editFormData.imageUrl,
+                assignedUserId: editFormData.assignedUserId || undefined
             });
 
             onShowToast('Cambios guardados correctamente', 'success');
@@ -80,6 +97,15 @@ export const EditCarForm: React.FC<EditCarFormProps> = ({
 
     return (
         <div className="space-y-6">
+            <div className="mb-4">
+                <UserSelector
+                    label="Encargado"
+                    users={users}
+                    value={editFormData.assignedUserId}
+                    onChange={(userId) => setEditFormData({ ...editFormData, assignedUserId: userId })}
+                    placeholder="Seleccionar encargado..."
+                />
+            </div>
             <div>
                 <label className="block text-[10px] font-medium text-zinc-500 dark:text-zinc-400 mb-1">Nombre</label>
                 <input

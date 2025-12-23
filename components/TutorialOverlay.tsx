@@ -15,41 +15,41 @@ const tutorialSteps: TutorialStep[] = [
     {
         id: 'welcome',
         title: 'Bienvenido a Quango',
-        description: 'Quango es tu plataforma integral para la gestión de residencias. Aquí podrás gestionar vehículos, comidas, mantenimiento, calendarios y mucho más.',
+        description: 'Tu plataforma de gestión integral. Hemos diseñado esta guía rápida para que aproveches al máximo todas las herramientas de la casa.',
         position: 'center'
     },
     {
-        id: 'navigation',
-        title: 'Navegación',
-        description: 'Usa el menú de navegación para acceder a las diferentes secciones: vehículos, comidas, mantenimiento y calendario.',
-        targetSelector: '[data-tutorial="view-switcher"]',
-        position: 'bottom'
-    },
-    {
-        id: 'interactions',
-        title: 'Interacciones',
-        description: 'Haz clic en cualquier elemento para ver más detalles, editar información o realizar acciones específicas.',
+        id: 'dashboard',
+        title: 'Panel Principal',
+        description: 'Desde aquí tienes una visión rápida de los vehículos y servicios del día. Los colores te indican disponibilidad al instante.',
         targetSelector: '[data-tutorial="car-card"]',
         position: 'bottom'
     },
     {
-        id: 'favorites',
-        title: 'Personalización',
-        description: 'Marca tus elementos favoritos para acceder a ellos rápidamente. Tus preferencias se guardan automáticamente.',
-        targetSelector: '[data-tutorial="favorite-star"]',
+        id: 'meals',
+        title: 'Comidas y Plantillas',
+        description: 'No olvides pedir tu comida o cena. Te recomendamos configurar tu "Plantilla Semanal" para automatizar tus pedidos.',
+        targetSelector: '[data-tutorial="nav-meals"]',
+        position: 'bottom'
+    },
+    {
+        id: 'guide',
+        title: 'Guía de la Casa',
+        description: '¿Tienes dudas sobre normas, horarios o cómo usar la app? La "Guía Casa" es el manual completo siempre disponible.',
+        targetSelector: '[data-tutorial="nav-profile"]', // We'll point to profile since guide is inside
         position: 'bottom'
     },
     {
         id: 'profile',
-        title: 'Tu Perfil',
-        description: 'Accede a tu perfil para editar tu información personal, configurar tu dieta, cambiar preferencias de apariencia y más.',
+        title: 'Tu Perfil y Dieta',
+        description: 'Configura tus iniciales, tu cumpleaños y, muy importante, tus avisos de dieta para que cocina esté al tanto.',
         targetSelector: '[data-tutorial="user-avatar"]',
         position: 'bottom'
     },
     {
         id: 'complete',
         title: '¡Todo listo!',
-        description: 'Ya estás preparado para usar Quango. Si necesitas volver a ver este tutorial, puedes encontrarlo en tu perfil de usuario.',
+        description: 'Explora Quango con total libertad. Si necesitas ayuda, el manual detallado te espera en la sección de Perfil.',
         position: 'center'
     }
 ];

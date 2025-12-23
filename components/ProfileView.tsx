@@ -1,16 +1,22 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { User, UserRole, DietFile, UserAbsence } from '../types';
-import { Camera, Shield, Mail, Loader2, Moon, Sun, Monitor, Edit2, Check, Calendar, Hash, Utensils, Upload, FileText, Trash2, LogOut, Hotel, ChevronDown, ChevronUp, Plus, User as UserIcon, Users } from 'lucide-react';
+import { User, UserRole, DietFile, UserAbsence, Task, HouseSettings } from '../types';
+import { Camera, Shield, Mail, Loader2, Moon, Sun, Monitor, Edit2, Check, Calendar, Hash, Utensils, Upload, FileText, Trash2, LogOut, Hotel, ChevronDown, ChevronUp, Plus, User as UserIcon, Users, ClipboardList, ExternalLink, BookOpen, Settings, AlertCircle, Circle } from 'lucide-react';
 import { UserAvatar } from './UserAvatar';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../services/supabase';
 import { useTheme } from '../contexts/ThemeContext';
 import { profileService } from '../services/profiles';
 import { absencesService } from '../services/absences';
+import { tasksService } from '../services/tasks';
 import { NotificationSettings } from './NotificationSettings';
 import { MessagingView } from './MessagingView';
 import { AdminUserList } from './AdminUserList';
 import { RoomsManagementView } from './RoomsManagementView';
+import { HouseGuideView } from './HouseGuideView';
+import { HouseGuideAdmin } from './HouseGuideAdmin';
+import { houseGuideService } from '../services/houseGuide';
+import { TasksAdmin } from './TasksAdmin';
+
 
 interface ProfileViewProps {
     user: User;
@@ -24,12 +30,14 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onUpdate, onRest
     const [isEditingName, setIsEditingName] = useState(false);
     const [editedName, setEditedName] = useState(user.name);
     const [savingName, setSavingName] = useState(false);
+    const [userTasks, setUserTasks] = useState<Task[]>([]);
+    const [loadingTasks, setLoadingTasks] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const dietFileInputRef = useRef<HTMLInputElement>(null);
     const { theme, setTheme } = useTheme();
 
-    type ProfileTab = 'PROFILE' | 'MESSAGES' | 'ADMIN_USERS' | 'ADMIN_ROOMS';
+    type ProfileTab = 'PROFILE' | 'MESSAGES' | 'HOUSE_GUIDE' | 'ADMIN_USERS' | 'ADMIN_ROOMS' | 'ADMIN_TASKS';
     const [activeTab, setActiveTab] = useState<ProfileTab>('PROFILE');
 
     // New profile fields
@@ -51,6 +59,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onUpdate, onRest
     const [newAbsenceNotes, setNewAbsenceNotes] = useState('');
     const [creatingAbsence, setCreatingAbsence] = useState(false);
     const [absenceError, setAbsenceError] = useState('');
+    const [houseSettings, setHouseSettings] = useState<HouseSettings | null>(null);
+
+    const [guideRefreshTrigger, setGuideRefreshTrigger] = useState(0);
+    const [guideSection, setGuideSection] = useState<any>(undefined);
 
     // Sync state with user prop
     useEffect(() => {
@@ -73,6 +85,35 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onUpdate, onRest
             loadAbsences();
         }
     }, [user.roomId, showAbsences]);
+
+    useEffect(() => {
+        loadSettings();
+    }, []);
+
+    const loadSettings = async () => {
+        try {
+            const data = await houseGuideService.getSettings();
+            setHouseSettings(data);
+        } catch (err) {
+            console.error('Error loading settings:', err);
+        }
+    };
+
+    useEffect(() => {
+        loadUserTasks();
+    }, [user.id]);
+
+    const loadUserTasks = async () => {
+        setLoadingTasks(true);
+        try {
+            const data = await tasksService.getTasks(user.id);
+            setUserTasks(data.filter(t => t.status === 'open'));
+        } catch (err) {
+            console.error('Error loading tasks:', err);
+        } finally {
+            setLoadingTasks(false);
+        }
+    };
 
     const loadDietFiles = async () => {
         try {
@@ -231,10 +272,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onUpdate, onRest
         try {
             await profileService.updateProfile(user.id, {
                 birthday: birthday || undefined,
-                initials: initials.slice(0, 3).toUpperCase() || undefined,
+                initials: initials.slice(0, 5).toUpperCase() || undefined,
                 hasDiet,
-                dietName: hasDiet ? dietName : undefined,
-                dietNotes: hasDiet ? dietNotes : undefined,
+                dietName: dietName || undefined,
+                dietNotes: dietNotes || undefined,
             });
 
             onUpdate();
@@ -305,16 +346,34 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onUpdate, onRest
                     <UserIcon size={18} />
                     <span className="hidden md:block">Mi Perfil</span>
                 </button>
-                <button
-                    onClick={() => setActiveTab('MESSAGES')}
-                    className={`px-4 py-2 rounded-xl text-sm transition-all flex items-center gap-2 ${activeTab === 'MESSAGES'
-                        ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 shadow-sm'
-                        : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
-                        }`}
-                >
-                    <Mail size={18} />
-                    <span className="hidden md:block">Mensajería</span>
-                </button>
+                {user.role !== UserRole.KITCHEN && (
+                    <button
+                        onClick={() => setActiveTab('MESSAGES')}
+                        className={`px-4 py-2 rounded-xl text-sm transition-all flex items-center gap-2 ${activeTab === 'MESSAGES'
+                            ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 shadow-sm'
+                            : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+                            }`}
+                    >
+                        <Mail size={18} />
+                        <span className="hidden md:block">Mensajería</span>
+                    </button>
+                )}
+                {user.role !== UserRole.KITCHEN && (
+                    <button
+                        onClick={() => {
+                            setActiveTab('HOUSE_GUIDE');
+                            setGuideSection(undefined);
+                        }}
+                        data-tutorial="guide-tab"
+                        className={`px-4 py-2 rounded-xl text-sm transition-all flex items-center gap-2 ${activeTab === 'HOUSE_GUIDE'
+                            ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 shadow-sm'
+                            : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+                            }`}
+                    >
+                        <BookOpen size={18} />
+                        <span className="hidden md:block">Guía Casa</span>
+                    </button>
+                )}
                 {user.role === UserRole.ADMIN && (
                     <>
                         <button
@@ -336,6 +395,16 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onUpdate, onRest
                         >
                             <Hotel size={18} />
                             <span className="hidden md:block">Habitaciones</span>
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('ADMIN_TASKS')}
+                            className={`px-4 py-2 rounded-xl text-sm transition-all flex items-center gap-2 ${activeTab === 'ADMIN_TASKS'
+                                ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 shadow-sm'
+                                : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
+                                }`}
+                        >
+                            <ClipboardList size={18} />
+                            <span className="hidden md:block">Encargos</span>
                         </button>
                     </>
                 )}
@@ -472,20 +541,73 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onUpdate, onRest
                         <NotificationSettings userId={user.id} userRole={user.role} />
                     </div>
 
-                    {/* Tutorial Reset */}
-                    <div className="bg-zinc-100/50 dark:bg-zinc-800/30 p-6 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-700 text-center">
-                        <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">¿Necesitas ayuda para recordar cómo funciona todo?</p>
+                    {/* House Guide Link */}
+                    <div className="p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 text-center">
+                        <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">¿Necesitas ayuda con el funcionamiento de la aplicación?</p>
                         <button
-                            onClick={onRestartTutorial}
-                            className="px-6 py-2.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl text-sm font-medium hover:opacity-90 transition-all active:scale-95 shadow-sm"
+                            onClick={() => {
+                                setActiveTab('HOUSE_GUIDE');
+                                setGuideSection('WIKI');
+                            }}
+                            className="w-full px-6 py-2.5 border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white rounded-xl text-sm font-medium hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-all active:scale-95 shadow-sm"
                         >
-                            Volver a ver el tutorial
+                            Ver Manual de Quango
                         </button>
                     </div>
                 </div>
 
                 {/* Right Column */}
                 <div className="space-y-8">
+                    {/* Tasks Widget */}
+                    {user.role !== UserRole.KITCHEN && (
+                        <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-4">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <ClipboardList className="text-zinc-500" size={20} />
+                                    <h3 className="text-base font-medium text-zinc-900 dark:text-white">Mis Encargos</h3>
+                                </div>
+                                {!houseSettings?.tasksMaintenanceMode && (
+                                    <span className="text-[10px] font-bold px-2 py-0.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 rounded-full uppercase tracking-wider">
+                                        {userTasks.length} Asignados
+                                    </span>
+                                )}
+                            </div>
+
+                            {houseSettings?.tasksMaintenanceMode ? (
+                                <div className="py-8 px-4 text-center bg-amber-50 dark:bg-amber-900/10 border border-dashed border-amber-200 dark:border-amber-900/30 rounded-2xl space-y-3">
+                                    <AlertCircle className="mx-auto text-amber-500" size={32} />
+                                    <div className="space-y-1">
+                                        <p className="text-sm font-bold text-amber-900 dark:text-amber-400">Sistema en Mantenimiento</p>
+                                        <p className="text-[11px] text-amber-700 dark:text-amber-500/80 leading-relaxed">
+                                            Estamos organizando los encargos del nuevo curso. Vuelve pronto.
+                                        </p>
+                                    </div>
+                                </div>
+                            ) : userTasks.length > 0 ? (
+                                <div className="space-y-2">
+                                    {userTasks.map(task => (
+                                        <div key={task.id} className="flex items-center gap-3 p-2 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 rounded-xl transition-colors group">
+                                            <div className="text-zinc-400 group-hover:text-zinc-600 transition-colors">
+                                                <Circle size={14} />
+                                            </div>
+                                            <span className="text-xs text-zinc-600 dark:text-zinc-300 line-clamp-1">{task.title}</span>
+                                        </div>
+                                    ))}
+                                    <button
+                                        onClick={() => setActiveTab('HOUSE_GUIDE')}
+                                        className="w-full py-2 mt-2 text-[10px] font-bold text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 uppercase tracking-widest transition-colors"
+                                    >
+                                        Ver todos mis encargos
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="text-center py-6 bg-zinc-50 dark:bg-zinc-800/30 rounded-xl border border-dashed border-zinc-200 dark:border-zinc-700">
+                                    <p className="text-xs text-zinc-400 italic">No tienes encargos asignados</p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     {/* Personal & Room Info */}
                     <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-6">
                         <div className="flex items-center gap-2">
@@ -508,14 +630,14 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onUpdate, onRest
 
                             <div className="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 space-y-1">
                                 <label className="flex items-center gap-2 text-xs font-medium text-zinc-400 uppercase tracking-wider">
-                                    <Hash size={14} /> Siglas (máx. 3)
+                                    <Hash size={14} /> Siglas (máx. 5)
                                 </label>
                                 <input
                                     type="text"
                                     value={initials}
-                                    onChange={(e) => setInitials(e.target.value.slice(0, 3).toUpperCase())}
-                                    maxLength={3}
-                                    placeholder="ABC"
+                                    onChange={(e) => setInitials(e.target.value.slice(0, 5).toUpperCase())}
+                                    maxLength={5}
+                                    placeholder="SIGLA"
                                     className="w-full text-sm font-medium text-zinc-900 dark:text-white bg-transparent outline-none uppercase"
                                 />
                             </div>
@@ -756,18 +878,51 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onUpdate, onRest
                 </motion.div>
             )}
 
-            {activeTab === 'MESSAGES' && (
-                <motion.div
-                    key="messages"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                >
-                    <MessagingView user={user} />
-                </motion.div>
-            )}
+                {activeTab === 'MESSAGES' && (
+                    <motion.div
+                        key="messages"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                    >
+                        <MessagingView user={user} />
+                    </motion.div>
+                )}
 
-            {activeTab === 'ADMIN_USERS' && user.role === UserRole.ADMIN && (
+                {activeTab === 'HOUSE_GUIDE' && (
+                    <motion.div
+                        key="house-guide"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="space-y-6"
+                    >
+                        <HouseGuideView 
+                            user={user} 
+                            refreshTrigger={guideRefreshTrigger} 
+                            initialSection={guideSection}
+                        />
+                        
+                        {user.role === UserRole.ADMIN && (
+                            <div className="mt-12 pt-12 border-t border-zinc-100 dark:border-zinc-800">
+                                <HouseGuideAdmin onUpdate={() => setGuideRefreshTrigger(prev => prev + 1)} />
+                            </div>
+                        )}
+                    </motion.div>
+                )}
+
+                {activeTab === 'ADMIN_TASKS' && user.role === UserRole.ADMIN && (
+                    <motion.div
+                        key="admin-tasks"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                    >
+                        <TasksAdmin />
+                    </motion.div>
+                )}
+
+                {activeTab === 'ADMIN_USERS' && user.role === UserRole.ADMIN && (
                 <motion.div
                     key="admin-users"
                     initial={{ opacity: 0, y: 10 }}

@@ -3,7 +3,7 @@ import React from 'react';
 interface UserAvatarProps {
     name: string;
     imageUrl?: string;
-    size?: 'sm' | 'md' | 'lg' | 'xl';
+    size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
     className?: string;
 }
 
@@ -25,6 +25,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({ name, imageUrl, size = '
     };
 
     const sizeClasses = {
+        xs: 'w-5 h-5 text-[8px]',
         sm: 'w-6 h-6 text-xs',
         md: 'w-8 h-8 text-sm',
         lg: 'w-10 h-10 text-base',

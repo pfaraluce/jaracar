@@ -132,6 +132,20 @@ export const profileService = {
         if (error) throw new Error(error.message);
     },
 
+    updateDietNumber: async (userId: string, dietNumber: number | null) => {
+        const { error } = await supabase
+            .from('profiles')
+            .update({ diet_number: dietNumber })
+            .eq('id', userId);
+
+        if (error) throw new Error(error.message);
+    },
+
+    compactDietNumbers: async () => {
+        const { error } = await supabase.rpc('compact_diet_numbers');
+        if (error) throw new Error(error.message);
+    },
+
     uploadAvatar: async (userId: string, file: File): Promise<string> => {
         const fileExt = file.name.split('.').pop();
         const fileName = `${userId}.${fileExt}`;

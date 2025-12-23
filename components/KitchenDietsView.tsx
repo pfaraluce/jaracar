@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { User, DietFile } from '../types';
 import { profileService } from '../services/profiles';
-import { FileText, Image as ImageIcon, Download, ExternalLink, Utensils, AlertCircle } from 'lucide-react';
+import { FileText, Image as ImageIcon, Download, ExternalLink, Utensils, AlertCircle, RefreshCcw, Save } from 'lucide-react';
 
 interface DietUserCardProps {
     user: User;
+    onUpdate: () => void;
 }
 
-const DietUserCard: React.FC<DietUserCardProps> = ({ user }) => {
+const DietUserCard: React.FC<DietUserCardProps> = ({ user, onUpdate }) => {
     const [files, setFiles] = useState<DietFile[]>([]);
     const [loading, setLoading] = useState(true);
+    const [editingNumber, setEditingNumber] = useState(false);
+    const [tempNumber, setTempNumber] = useState(user.dietNumber?.toString() || '');
+    const [saving, setSaving] = useState(false);
 
     useEffect(() => {
         loadFiles();
@@ -37,6 +41,22 @@ const DietUserCard: React.FC<DietUserCardProps> = ({ user }) => {
         }
     };
 
+    const handleSaveNumber = async () => {
+        const num = parseInt(tempNumber);
+        if (isNaN(num)) return;
+        setSaving(true);
+        try {
+            await profileService.updateDietNumber(user.id, num);
+            setEditingNumber(false);
+            onUpdate();
+        } catch (error) {
+            console.error('Error updating diet number:', error);
+            setTempNumber(user.dietNumber?.toString() || '');
+        } finally {
+            setSaving(false);
+        }
+    };
+
     return (
         <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-6 shadow-sm">
             <div className="flex items-start justify-between mb-4">
@@ -47,7 +67,27 @@ const DietUserCard: React.FC<DietUserCardProps> = ({ user }) => {
                         </h3>
                         <div className="flex items-center gap-1 px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full">
                             <Utensils size={14} />
-                            <span className="text-xs font-bold">D{user.dietNumber}</span>
+                            {editingNumber ? (
+                                <div className="flex items-center gap-1">
+                                    <input
+                                        type="number"
+                                        value={tempNumber}
+                                        onChange={(e) => setTempNumber(e.target.value)}
+                                        className="w-12 bg-transparent border-none outline-none text-xs font-bold text-amber-700 dark:text-amber-400"
+                                        autoFocus
+                                        onBlur={handleSaveNumber}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleSaveNumber()}
+                                    />
+                                    {saving && <RefreshCcw size={10} className="animate-spin" />}
+                                </div>
+                            ) : (
+                                <span 
+                                    className="text-xs font-bold cursor-pointer hover:underline"
+                                    onClick={() => setEditingNumber(true)}
+                                >
+                                    D{user.dietNumber}
+                                </span>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -112,6 +152,7 @@ const DietUserCard: React.FC<DietUserCardProps> = ({ user }) => {
 export const KitchenDietsView = () => {
     const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
+    const [compacting, setCompacting] = useState(false);
 
     useEffect(() => {
         loadDietUsers();
@@ -129,6 +170,19 @@ export const KitchenDietsView = () => {
         }
     };
 
+    const handleCompactDiets = async () => {
+        if (!confirm('¿Quieres reasignar todos los números de dieta de forma secuencial? Esto rellenará los huecos existentes.')) return;
+        setCompacting(true);
+        try {
+            await profileService.compactDietNumbers();
+            await loadDietUsers();
+        } catch (error) {
+            console.error('Error compacting diets:', error);
+        } finally {
+            setCompacting(false);
+        }
+    };
+
     if (loading) {
         return <div className="p-8 text-center text-zinc-500">Cargando dietas...</div>;
     }
@@ -136,9 +190,20 @@ export const KitchenDietsView = () => {
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">
-                    Dietas Especiales
-                </h2>
+                <div className="flex items-center gap-4">
+                    <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">
+                        Dietas Especiales
+                    </h2>
+                    <button
+                        onClick={handleCompactDiets}
+                        disabled={compacting || users.length === 0}
+                        className="p-2 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-all active:scale-90 flex items-center gap-2"
+                        title="Reasignar números secuencialmente"
+                    >
+                        <RefreshCcw size={18} className={compacting ? 'animate-spin' : ''} />
+                        <span className="text-xs font-medium">Reasignar/Compactar</span>
+                    </button>
+                </div>
                 <div className="px-3 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-400 rounded-full text-sm font-semibold">
                     {users.length} Residentes
                 </div>
@@ -146,7 +211,7 @@ export const KitchenDietsView = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {users.map(user => (
-                    <DietUserCard key={user.id} user={user} />
+                    <DietUserCard key={user.id} user={user} onUpdate={loadDietUsers} />
                 ))}
             </div>
 

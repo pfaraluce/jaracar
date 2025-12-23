@@ -3,7 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Save, Car as CarIcon, Upload, Image as ImageIcon, Link as LinkIcon } from 'lucide-react';
 import { Button } from './ui/Button';
 import { carService } from '../services/cars';
-import { CarStatus } from '../types';
+import { CarStatus, User } from '../types';
+import { adminService } from '../services/admin';
+import { UserSelector } from './UserSelector';
 
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
@@ -19,14 +21,31 @@ export const AddCarModal: React.FC<AddCarModalProps> = ({ isOpen, onClose, onSuc
     const [uploading, setUploading] = useState(false);
     const [showUrlInput, setShowUrlInput] = useState(false);
     const [urlInput, setUrlInput] = useState('');
+    const [users, setUsers] = useState<User[]>([]);
     const [formData, setFormData] = useState({
         name: '',
         plate: '',
         fuelType: 'gasoline' as 'diesel' | 'gasoline' | 'electric',
         nextServiceDate: '',
         imageUrl: '',
-        inWorkshop: false
+        inWorkshop: false,
+        assignedUserId: ''
     });
+
+    React.useEffect(() => {
+        if (isOpen) {
+            fetchUsers();
+        }
+    }, [isOpen]);
+
+    const fetchUsers = async () => {
+        try {
+            const data = await adminService.getUsers();
+            setUsers(data.filter(u => u.status === 'APPROVED'));
+        } catch (error) {
+            console.error('Error fetching users:', error);
+        }
+    };
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleImageUpload = async (file: File) => {
@@ -90,7 +109,8 @@ export const AddCarModal: React.FC<AddCarModalProps> = ({ isOpen, onClose, onSuc
                 imageUrl: formData.imageUrl || 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?auto=format&fit=crop&q=80&w=800',
                 fuelType: formData.fuelType,
                 nextServiceDate: formData.nextServiceDate || undefined,
-                inWorkshop: formData.inWorkshop
+                inWorkshop: formData.inWorkshop,
+                assignedUserId: formData.assignedUserId || undefined
             });
 
             // Success feedback with toast-style notification
@@ -108,7 +128,8 @@ export const AddCarModal: React.FC<AddCarModalProps> = ({ isOpen, onClose, onSuc
                 fuelType: 'gasoline',
                 nextServiceDate: '',
                 imageUrl: '',
-                inWorkshop: false
+                inWorkshop: false,
+                assignedUserId: ''
             });
         } catch (error) {
             console.error(error);
@@ -149,8 +170,16 @@ export const AddCarModal: React.FC<AddCarModalProps> = ({ isOpen, onClose, onSuc
                                 <X size={18} />
                             </button>
                         </div>
-
                         <form onSubmit={handleSubmit} className="p-4 space-y-3">
+                            <div className="mb-4">
+                                <UserSelector
+                                    label="Encargado (Opcional)"
+                                    users={users}
+                                    value={formData.assignedUserId}
+                                    onChange={(userId) => setFormData({ ...formData, assignedUserId: userId })}
+                                    placeholder="Seleccionar encargado..."
+                                />
+                            </div>
                             <div>
                                 <label className="block text-[10px] font-medium text-zinc-500 dark:text-zinc-400 mb-1">Nombre del Vehículo</label>
                                 <input

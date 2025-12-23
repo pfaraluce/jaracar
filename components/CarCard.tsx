@@ -152,6 +152,7 @@ export const CarCard: React.FC<CarCardProps> = ({ car, reservations, isFavorite,
   return (
     <motion.div
       layoutId={`card-${car.id}`}
+      data-tutorial="car-card"
       className={clsx(
         "group relative bg-white dark:bg-zinc-900 rounded-xl border p-3 cursor-pointer transition-all hover:shadow-md flex flex-col h-full",
         statusColor()

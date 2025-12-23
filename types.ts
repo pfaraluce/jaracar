@@ -63,6 +63,7 @@ export interface Car {
   fuelType: 'gasoline' | 'diesel' | 'electric';
   nextServiceDate?: string; // next_revision en DB
   inWorkshop: boolean; // in_workshop en DB - deshabilita reservas
+  assignedUserId?: string; // Nuevo: Encargado del vehículo
 }
 
 export interface Reservation {
@@ -126,6 +127,20 @@ export interface MaintenanceTicket {
   createdAt: string;
 }
 
+export interface Task {
+  id: string;
+  title: string;
+  description: string;
+  assignedUserId: string;
+  assignedUserName?: string;
+  assignedUserAvatar?: string;
+  vehicleId?: string;
+  vehicleName?: string;
+  type: 'general' | 'vehicle';
+  status: 'open' | 'completed';
+  createdAt: string;
+}
+
 export interface Room {
   id: string;
   name: string;
@@ -159,3 +174,51 @@ export interface UserAbsence {
 }
 
 export type ViewState = 'LOGIN' | 'SIGNUP' | 'FORGOT_PASSWORD' | 'RESET_PASSWORD' | 'INVITE_SIGNUP' | 'DASHBOARD';
+
+export interface ScheduleItem {
+  time: string;
+  endTime?: string;
+  activity: string;
+  notes?: string;
+}
+
+export interface HouseSchedules {
+  weekdays: ScheduleItem[];
+  saturdays: ScheduleItem[];
+  sundays: ScheduleItem[];
+}
+
+export interface HouseKey {
+  id: string;
+  name: string;
+  description: string;
+  location?: string;
+}
+
+export interface HouseSettings {
+  id: string;
+  schedules: HouseSchedules;
+  houseKeys: HouseKey[];
+  instructions: string;
+  tasksMaintenanceMode?: boolean;
+  updatedAt: string;
+}
+
+export interface HouseDocument {
+  id: string;
+  fileName: string;
+  filePath: string;
+  fileSize?: number;
+  mimeType?: string;
+  category: 'general' | 'experience';
+  createdAt: string;
+}
+
+export interface AppGuideSection {
+  id: string;
+  title: string;
+  content: string;
+  orderIndex: number;
+  createdAt: string;
+  updatedAt: string;
+}

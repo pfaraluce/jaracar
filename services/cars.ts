@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { Car, CarStatus } from '../types';
+import { tasksService } from './tasks';
 
 export const carService = {
     getCars: async (): Promise<Car[]> => {
@@ -17,7 +18,8 @@ export const carService = {
             status: car.status as CarStatus,
             fuelType: car.fuel_type,
             nextServiceDate: car.next_revision,
-            inWorkshop: car.in_workshop || false
+            inWorkshop: car.in_workshop || false,
+            assignedUserId: car.assigned_user_id
         }));
     },
 
@@ -30,14 +32,15 @@ export const carService = {
                 image_url: car.imageUrl,
                 status: car.status,
                 fuel_type: car.fuelType,
-                next_revision: car.nextServiceDate
+                next_revision: car.nextServiceDate,
+                assigned_user_id: car.assignedUserId
             })
             .select()
             .single();
 
         if (error) throw new Error(error.message);
 
-        return {
+        const newCar = {
             id: data.id,
             name: data.name,
             plate: data.license_plate,
@@ -45,8 +48,23 @@ export const carService = {
             status: data.status as CarStatus,
             fuelType: data.fuel_type,
             nextServiceDate: data.next_revision,
-            inWorkshop: data.in_workshop || false
+            inWorkshop: data.in_workshop || false,
+            assignedUserId: data.assigned_user_id
         };
+
+        // If an encargado is assigned, create a task
+        if (newCar.assignedUserId) {
+            await tasksService.createTask({
+                title: `Encargado del vehículo: ${newCar.name}`,
+                description: `Eres el encargado principal de este vehículo. Asegúrate de que pase las revisiones y esté en buen estado.`,
+                assignedUserId: newCar.assignedUserId,
+                vehicleId: newCar.id,
+                type: 'vehicle',
+                status: 'open'
+            });
+        }
+
+        return newCar;
     },
 
     updateCarStatus: async (id: string, status: CarStatus): Promise<void> => {
@@ -68,6 +86,7 @@ export const carService = {
         if (updates.fuelType !== undefined) dbUpdates.fuel_type = updates.fuelType;
         if (updates.nextServiceDate !== undefined) dbUpdates.next_revision = updates.nextServiceDate;
         if (updates.inWorkshop !== undefined) dbUpdates.in_workshop = updates.inWorkshop;
+        if (updates.assignedUserId !== undefined) dbUpdates.assigned_user_id = updates.assignedUserId;
 
         const { data, error } = await supabase
             .from('cars')
@@ -78,7 +97,7 @@ export const carService = {
 
         if (error) throw new Error(error.message);
 
-        return {
+        const updatedCar = {
             id: data.id,
             name: data.name,
             plate: data.license_plate,
@@ -86,8 +105,36 @@ export const carService = {
             status: data.status as CarStatus,
             fuelType: data.fuel_type,
             nextServiceDate: data.next_revision,
-            inWorkshop: data.in_workshop || false
+            inWorkshop: data.in_workshop || false,
+            assignedUserId: data.assigned_user_id
         };
+
+        // If assignedUserId changed, handle tasks
+        if (updates.assignedUserId !== undefined) {
+            // First, close any existing vehicle tasks for this car
+            const existingTasks = await tasksService.getTasks();
+            const carTasks = existingTasks.filter(t => t.vehicleId === id && t.type === 'vehicle' && t.status === 'open');
+            
+            for (const task of carTasks) {
+                if (task.assignedUserId !== updates.assignedUserId) {
+                    await tasksService.updateTask(task.id, { status: 'completed' });
+                }
+            }
+
+            // If a new user is assigned, create a new task if one doesn't exist for him
+            if (updates.assignedUserId && !carTasks.some(t => t.assignedUserId === updates.assignedUserId)) {
+                await tasksService.createTask({
+                    title: `Encargado del vehículo: ${updatedCar.name}`,
+                    description: `Eres el encargado principal de este vehículo. Asegúrate de que pase las revisiones y esté en buen estado.`,
+                    assignedUserId: updates.assignedUserId,
+                    vehicleId: id,
+                    type: 'vehicle',
+                    status: 'open'
+                });
+            }
+        }
+
+        return updatedCar;
     },
 
     // Upload image to Supabase Storage

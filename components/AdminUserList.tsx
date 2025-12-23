@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { User, UserRole, Room, RoomBed } from '../types';
 import { adminService } from '../services/admin';
 import { UserAvatar } from './UserAvatar';
-import { Search, UserPlus, Filter, Shield, AlertCircle, Check, X, Mail, Edit, ShieldOff, CheckCircle, AlertTriangle, MessageSquare, Lock, Hotel } from 'lucide-react';
+import { Search, UserPlus, Filter, Shield, AlertCircle, Check, X, Mail, Edit, ShieldOff, CheckCircle, AlertTriangle, MessageSquare, Lock, Hotel, Utensils, RefreshCcw } from 'lucide-react';
 
 export const AdminUserList: React.FC = () => {
     const [users, setUsers] = useState<User[]>([]);
@@ -20,6 +20,9 @@ export const AdminUserList: React.FC = () => {
     const [permissionUser, setPermissionUser] = useState<User | null>(null);
     const [isAdvancedMode, setIsAdvancedMode] = useState(false);
     const [inviting, setInviting] = useState(false);
+    const [compacting, setCompacting] = useState(false);
+    const [editingDietId, setEditingDietId] = useState<string | null>(null);
+    const [tempDietNumber, setTempDietNumber] = useState('');
 
     // Room assignment state
     const [rooms, setRooms] = useState<Room[]>([]);
@@ -224,6 +227,37 @@ export const AdminUserList: React.FC = () => {
         }
     };
 
+    const handleUpdateDietNumber = async (userId: string, newNumber: string) => {
+        const num = parseInt(newNumber);
+        if (isNaN(num)) return;
+        try {
+            const { profileService } = await import('../services/profiles');
+            await profileService.updateDietNumber(userId, num);
+            setEditingDietId(null);
+            showToast('Número de dieta actualizado', 'success');
+            fetchUsers();
+        } catch (error) {
+            console.error('Error updating diet number:', error);
+            showToast('Error al actualizar número de dieta', 'error');
+        }
+    };
+
+    const handleCompactDiets = async () => {
+        if (!confirm('¿Quieres reasignar todos los números de dieta secuencialmente?')) return;
+        setCompacting(true);
+        try {
+            const { profileService } = await import('../services/profiles');
+            await profileService.compactDietNumbers();
+            showToast('Números de dieta compactados', 'success');
+            fetchUsers();
+        } catch (error) {
+            console.error('Error compacting diets:', error);
+            showToast('Error al compactar dietas', 'error');
+        } finally {
+            setCompacting(false);
+        }
+    };
+
     const [showRejected, setShowRejected] = useState(false);
 
     const filteredUsers = users.filter(user => {
@@ -295,15 +329,16 @@ export const AdminUserList: React.FC = () => {
                             <tr>
                                 <th className="px-4 py-2.5">Usuario</th>
                                 <th className="px-4 py-2.5">Estado</th>
+                                <th className="px-4 py-2.5">Dieta</th>
                                 <th className="px-4 py-2.5">Rol</th>
                                 <th className="px-4 py-2.5">Habitación</th>
-                                <th className="px-4 py-2.5 text-right">Permisos</th>
+                                <th className="px-4 py-2.5 text-right">Acciones</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
                             {filteredUsers.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="px-4 py-8 text-center text-zinc-500 dark:text-zinc-400">
+                                    <td colSpan={6} className="px-4 py-8 text-center text-zinc-500 dark:text-zinc-400">
                                         No se encontraron usuarios {filter === 'PENDING' ? 'pendientes' : ''}
                                     </td>
                                 </tr>
@@ -320,11 +355,42 @@ export const AdminUserList: React.FC = () => {
                                             </div>
                                         </td>
                                         <td className="px-4 py-2.5">
-                                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${user.status === 'APPROVED' ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-100 dark:border-emerald-800' :
-                                                'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-100 dark:border-amber-800'
+                                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border ${user.status === 'APPROVED'
+                                                ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-100 dark:border-emerald-800'
+                                                : 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border-amber-100 dark:border-amber-800'
                                                 }`}>
                                                 {user.status === 'APPROVED' ? 'Aprobado' : 'Pendiente'}
                                             </span>
+                                        </td>
+                                        <td className="px-4 py-2.5">
+                                            {user.hasDiet ? (
+                                                <div className="flex items-center gap-1">
+                                                    <Utensils size={12} className="text-amber-500" />
+                                                    {editingDietId === user.id ? (
+                                                        <input
+                                                            type="number"
+                                                            value={tempDietNumber}
+                                                            onChange={(e) => setTempDietNumber(e.target.value)}
+                                                            className="w-12 px-1 py-0.5 text-xs border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 rounded outline-none"
+                                                            autoFocus
+                                                            onBlur={() => handleUpdateDietNumber(user.id, tempDietNumber)}
+                                                            onKeyDown={(e) => e.key === 'Enter' && handleUpdateDietNumber(user.id, tempDietNumber)}
+                                                        />
+                                                    ) : (
+                                                        <span
+                                                            className="text-xs font-bold text-amber-600 dark:text-amber-400 cursor-pointer hover:underline"
+                                                            onClick={() => {
+                                                                setEditingDietId(user.id);
+                                                                setTempDietNumber(user.dietNumber?.toString() || '');
+                                                            }}
+                                                        >
+                                                            D{user.dietNumber}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <span className="text-[10px] text-zinc-400 italic">No asignada</span>
+                                            )}
                                         </td>
                                         <td className="px-4 py-2.5">
                                             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium ${user.role === UserRole.ADMIN ? 'bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400' : 'text-zinc-600 dark:text-zinc-400'
@@ -397,6 +463,27 @@ export const AdminUserList: React.FC = () => {
                         </tbody>
                     </table>
                 </div>
+            </div>
+
+            {/* Diet Management Section */}
+            <div className="bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 bg-amber-100 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-lg">
+                        <Utensils size={20} />
+                    </div>
+                    <div>
+                        <h4 className="text-sm font-semibold text-zinc-900 dark:text-white">Gestión de Dietas</h4>
+                        <p className="text-xs text-zinc-500">Compactar números para rellenar huecos vacíos en la secuencia.</p>
+                    </div>
+                </div>
+                <button
+                    onClick={handleCompactDiets}
+                    disabled={compacting}
+                    className="w-full md:w-auto px-4 py-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-all flex items-center justify-center gap-2 shadow-sm"
+                >
+                    <RefreshCcw size={14} className={compacting ? 'animate-spin' : ''} />
+                    {compacting ? 'Procesando...' : 'Compactar Números'}
+                </button>
             </div>
 
             {/* Rejected Users Section */}

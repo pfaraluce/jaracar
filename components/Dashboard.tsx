@@ -131,6 +131,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
   const NavItem = ({ view, icon: Icon, label }: { view: DashboardView; icon: any; label: string }) => (
     <button
       onClick={() => handleNavigate(view)}
+      data-tutorial={`nav-${view.toLowerCase()}`}
       className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${currentView === view
         ? 'bg-zinc-900 dark:bg-white text-white dark:text-black'
         : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'
@@ -144,6 +145,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
   const MobileNavItem = ({ view, icon: Icon, label, isActive }: { view?: DashboardView; icon: any; label: string; isActive: boolean }) => (
     <button
       onClick={() => view && handleNavigate(view)}
+      data-tutorial={`nav-${view?.toLowerCase()}`}
       className={`flex items-center justify-center p-2 transition-colors ${isActive
         ? 'text-zinc-900 dark:text-white'
         : 'text-zinc-400 dark:text-zinc-500'
@@ -196,8 +198,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
           {/* User Profile Footer */}
           <div className="p-4 border-t border-zinc-200 dark:border-zinc-800">
             <div className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
-              <button onClick={() => setCurrentView('PROFILE')} className="flex items-center gap-3 flex-1 text-left">
-                <UserAvatar name={user.name} imageUrl={user.avatarUrl} size="sm" />
+              <button onClick={() => setCurrentView('PROFILE')} data-tutorial="nav-profile" className="flex items-center gap-3 flex-1 text-left">
+                <div data-tutorial="user-avatar">
+                  <UserAvatar name={user.name} imageUrl={user.avatarUrl} size="sm" />
+                </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-zinc-900 dark:text-white truncate">{user.name}</p>
                   <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">{user.email}</p>
