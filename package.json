@@ -14,6 +14,7 @@
     "@supabase/supabase-js": "^2.86.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "firebase": "^12.7.0",
     "framer-motion": "^12.23.24",
     "ical.js": "^2.2.1",
     "lucide-react": "^0.555.0",
@@ -35,5 +36,18 @@
     "vite": "^6.2.0",
     "vite-plugin-pwa": "^1.2.0",
     "workbox-window": "^7.4.0"
-  }
+  },
+  "description": "<div align=\"center\">\r <img width=\"1200\" height=\"475\" alt=\"Quango Banner\" src=\"https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6\" />\r </div>",
+  "main": "debug-cars.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pfaraluce/jaracar.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/pfaraluce/jaracar/issues"
+  },
+  "homepage": "https://github.com/pfaraluce/jaracar#readme"
 }

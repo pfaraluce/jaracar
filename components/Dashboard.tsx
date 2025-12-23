@@ -11,6 +11,7 @@ import { VehiclesView } from './VehiclesView';
 import { MealsView } from './MealsView';
 import { MaintenanceView } from './MaintenanceView';
 import { CalendarView } from './CalendarView';
+import { initializeNotifications, onMessageListener } from '../services/notifications';
 
 import {
   LogOut,
@@ -71,6 +72,37 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
     if (!hasSeenWelcome) {
       setShowWelcome(true);
     }
+  }, []);
+
+  // Initialize FCM notifications
+  useEffect(() => {
+    const initFCM = async () => {
+      try {
+        await initializeNotifications();
+      } catch (error) {
+        console.error('Error initializing notifications:', error);
+      }
+    };
+
+    initFCM();
+
+    // Listen for foreground messages
+    const unsubscribe = onMessageListener((payload) => {
+      // Show browser notification if permission is granted
+      if (Notification.permission === 'granted') {
+        new Notification(payload.notification?.title || 'Nueva notificación', {
+          body: payload.notification?.body || '',
+          icon: '/icon-192x192.png',
+          badge: '/icon-192x192.png'
+        });
+      }
+    });
+
+    return () => {
+      if (typeof unsubscribe === 'function') {
+        unsubscribe();
+      }
+    };
   }, []);
 
   const handleWelcomeComplete = () => {

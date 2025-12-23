@@ -10,6 +10,8 @@ import { useTheme } from '../contexts/ThemeContext';
 import { profileService } from '../services/profiles';
 import { absencesService } from '../services/absences';
 import { RoomsManagementView } from './RoomsManagementView';
+import { NotificationSettings } from './NotificationSettings';
+import { AdminNotifications } from './AdminNotifications';
 
 interface ProfileModalProps {
     user: User;
@@ -21,7 +23,7 @@ interface ProfileModalProps {
 }
 
 export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClose, onUpdate, onRestartTutorial, onLogout }) => {
-    const [activeTab, setActiveTab] = useState<'PROFILE' | 'ADMIN' | 'ROOMS'>('PROFILE');
+    const [activeTab, setActiveTab] = useState<'PROFILE' | 'ADMIN' | 'ROOMS' | 'NOTIFICATIONS'>('PROFILE');
     const [uploading, setUploading] = useState(false);
     const [isEditingName, setIsEditingName] = useState(false);
     const [editedName, setEditedName] = useState(user.name);
@@ -313,7 +315,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClos
                     initial={{ opacity: 0, scale: 0.95, y: 20 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                    className={`relative w-full h-full sm:h-auto bg-white dark:bg-zinc-900 sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col transition-all duration-300 border border-zinc-200 dark:border-zinc-800 ${activeTab === 'ADMIN' || activeTab === 'ROOMS' ? 'sm:max-w-4xl' : 'sm:max-w-md'
+                    className={`relative w-full h-full sm:h-auto bg-white dark:bg-zinc-900 sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col transition-all duration-300 border border-zinc-200 dark:border-zinc-800 ${activeTab === 'ADMIN' || activeTab === 'ROOMS' || activeTab === 'NOTIFICATIONS' ? 'sm:max-w-4xl' : 'sm:max-w-md'
                         } sm:max-h-[90vh]`}
                 >
                     {/* Header */}
@@ -341,6 +343,13 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClos
                                             }`}
                                     >
                                         Habitaciones
+                                    </button>
+                                    <button
+                                        onClick={() => setActiveTab('NOTIFICATIONS')}
+                                        className={`text-sm font-medium transition-colors ${activeTab === 'NOTIFICATIONS' ? 'text-zinc-900 dark:text-white' : 'text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300'
+                                            }`}
+                                    >
+                                        Notificaciones
                                     </button>
                                 </>
                             )}
@@ -464,6 +473,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClos
                                             <span className="text-xs font-medium">Sistema</span>
                                         </button>
                                     </div>
+                                </div>
+
+                                {/* Notification Settings Section */}
+                                <div className="space-y-3 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                                    <NotificationSettings userId={user.id} userRole={user.role} />
                                 </div>
 
                                 {/* Personal Info Section */}
@@ -800,8 +814,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ user, isOpen, onClos
                             </div>
                         ) : activeTab === 'ADMIN' ? (
                             <AdminUserList />
-                        ) : (
+                        ) : activeTab === 'ROOMS' ? (
                             <RoomsManagementView />
+                        ) : (
+                            <AdminNotifications />
                         )}
                     </div>
                 </motion.div>
