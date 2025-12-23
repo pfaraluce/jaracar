@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { User, UserRole, Room, RoomBed } from '../types';
 import { adminService } from '../services/admin';
 import { UserAvatar } from './UserAvatar';
-import { Search, UserPlus, Filter, Shield, AlertCircle, Check, X, Mail, Edit, ShieldOff, CheckCircle, AlertTriangle, MessageSquare, Lock, Hotel, Utensils, RefreshCcw } from 'lucide-react';
+import { Search, UserPlus, Filter, Shield, AlertCircle, Check, X, Mail, Edit, ShieldOff, CheckCircle, AlertTriangle, MessageSquare, Lock, Hotel, Utensils, RefreshCcw, Trash2, Loader2 } from 'lucide-react';
 
 export const AdminUserList: React.FC = () => {
     const [users, setUsers] = useState<User[]>([]);
@@ -28,6 +28,26 @@ export const AdminUserList: React.FC = () => {
     const [rooms, setRooms] = useState<Room[]>([]);
     const [beds, setBeds] = useState<RoomBed[]>([]);
     const [loadingRooms, setLoadingRooms] = useState(true);
+
+    // Delete User State
+    const [userToDelete, setUserToDelete] = useState<User | null>(null);
+    const [isDeletingUser, setIsDeletingUser] = useState(false);
+
+    const handleDeleteUser = async () => {
+        if (!userToDelete) return;
+        setIsDeletingUser(true);
+        try {
+            await adminService.deleteUser(userToDelete.id);
+            showToast('Usuario eliminado permanentemente', 'success');
+            setUserToDelete(null);
+            fetchUsers();
+        } catch (error) {
+            console.error('Error deleting user:', error);
+            showToast('Error al eliminar usuario', 'error');
+        } finally {
+            setIsDeletingUser(false);
+        }
+    };
 
     const showToast = (message: string, type: 'success' | 'error' | 'info') => {
         setToast({ message, type });
@@ -457,6 +477,14 @@ export const AdminUserList: React.FC = () => {
                                                 >
                                                     <Lock size={16} />
                                                 </button>
+
+                                                <button
+                                                    onClick={() => setUserToDelete(user)}
+                                                    className="p-1.5 text-zinc-400 hover:text-red-600 dark:text-zinc-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                                    title="Eliminar usuario"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
@@ -490,13 +518,13 @@ export const AdminUserList: React.FC = () => {
 
             {/* Rejected Users Section */}
             {rejectedUsers.length > 0 && (
-                <div className="mt-8 border border-red-200 dark:border-red-900/30 rounded-xl overflow-hidden bg-red-50/30 dark:bg-red-900/5">
+                <div className="mt-8 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden bg-zinc-50/50 dark:bg-zinc-900/50">
                     <button
                         onClick={() => setShowRejected(!showRejected)}
-                        className="w-full px-4 py-3 flex items-center justify-between text-sm font-medium text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                        className="w-full px-4 py-3 flex items-center justify-between text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                     >
                         <div className="flex items-center gap-2">
-                            <ShieldOff size={16} />
+                            <ShieldOff size={16} className="text-zinc-400" />
                             Usuarios Rechazados ({rejectedUsers.length})
                         </div>
                         <span className="text-xs">{showRejected ? 'Ocultar' : 'Mostrar'}</span>
@@ -510,11 +538,11 @@ export const AdminUserList: React.FC = () => {
                                 exit={{ height: 0, opacity: 0 }}
                                 className="overflow-hidden"
                             >
-                                <div className="border-t border-red-200 dark:border-red-900/30 overflow-x-auto">
+                                <div className="border-t border-zinc-200 dark:border-zinc-800 overflow-x-auto">
                                     <table className="w-full text-sm text-left">
-                                        <tbody className="divide-y divide-red-100 dark:divide-red-900/30">
+                                        <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
                                             {rejectedUsers.map(user => (
-                                                <tr key={user.id} className="hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors">
+                                                <tr key={user.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-800/10 transition-colors">
                                                     <td className="px-4 py-2.5">
                                                         <div className="flex items-center gap-3">
                                                             <UserAvatar name={user.name} imageUrl={user.avatarUrl} size="sm" className="opacity-60" />
@@ -529,12 +557,19 @@ export const AdminUserList: React.FC = () => {
                                                             Rechazado
                                                         </span>
                                                     </td>
-                                                    <td className="px-4 py-2.5 text-right">
+                                                    <td className="px-4 py-2.5 text-right flex items-center justify-end gap-2">
                                                         <button
                                                             onClick={() => handleStatusChange(user.id, 'PENDING')}
-                                                            className="px-3 py-1 text-xs font-medium text-red-600 dark:text-red-400 bg-white dark:bg-zinc-800 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                                            className="px-3 py-1 text-xs font-medium text-zinc-600 dark:text-zinc-400 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors"
                                                         >
                                                             Restaurar
+                                                        </button>
+                                                        <button
+                                                            onClick={() => setUserToDelete(user)}
+                                                            className="p-1.5 text-zinc-400 hover:text-red-600 dark:text-zinc-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                                            title="Eliminar usuario definitivamente"
+                                                        >
+                                                            <Trash2 size={16} />
                                                         </button>
                                                     </td>
                                                 </tr>
@@ -750,6 +785,41 @@ export const AdminUserList: React.FC = () => {
                     </motion.div>
                 )}
             </AnimatePresence>
+            {/* Delete User Confirmation Modal */}
+            {userToDelete && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setUserToDelete(null)} />
+                    <div className="relative w-full max-w-sm bg-white dark:bg-zinc-900 rounded-xl shadow-2xl p-6 overflow-hidden border border-zinc-200 dark:border-zinc-800">
+                        <div className="flex flex-col items-center text-center space-y-4">
+                            <div className="p-3 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-full">
+                                <AlertTriangle size={32} />
+                            </div>
+                            <h3 className="text-lg font-bold text-zinc-900 dark:text-white">¿Eliminar usuario?</h3>
+                            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                                Estás a punto de eliminar a <span className="font-bold text-zinc-900 dark:text-white">{userToDelete.name}</span>. Esta acción es irreversible.
+                            </p>
+
+                            <div className="flex gap-3 w-full pt-2">
+                                <button
+                                    onClick={() => setUserToDelete(null)}
+                                    className="flex-1 px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={handleDeleteUser}
+                                    disabled={isDeletingUser}
+                                    className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
+                                >
+                                    {isDeletingUser ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                                    Eliminar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+            
         </div >
     );
 };

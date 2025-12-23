@@ -210,7 +210,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ user, onNavigate }) => {
                 const template = templates.find(t => t.dayOfWeek === dayOfWeek && t.mealType === type);
                 if (template) return { status: 'template' as const, option: template.option, isBag: template.isBag };
 
-                return undefined; // No service/plan
+                return { status: 'template' as const, option: 'skip', isBag: false };
             };
 
             const mealsData = {
@@ -456,7 +456,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ user, onNavigate }) => {
                                 {/* Meals List - Color Coded */}
                                 <div className="space-y-1">
                                     {[
-                                        { key: 'breakfast', label: 'Desayuno', options: ['standard', 'early', 'skip'], data: dailyMeals.breakfast },
+                                        { key: 'breakfast', label: 'Desayuno', options: ['standard', 'early', 'bag', 'skip'], data: dailyMeals.breakfast },
                                         { key: 'lunch', label: 'Comida', options: ['standard', 'early', 'late', 'skip'], data: dailyMeals.lunch },
                                         { key: 'dinner', label: 'Cena', options: ['standard', 'late', 'skip'], data: dailyMeals.dinner }
                                     ].map((meal) => {
@@ -508,7 +508,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ user, onNavigate }) => {
                                                                         key={opt}
                                                                         onClick={(e) => {
                                                                             e.stopPropagation();
-                                                                            handleMealUpdate(meal.key as any, opt, false);
+                                                                            handleMealUpdate(meal.key as any, opt, opt === 'bag');
                                                                             setExpandedMeal(null);
                                                                         }}
                                                                         className={`p-2 rounded-lg transition-all ${isSelected

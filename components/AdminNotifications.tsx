@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Send, Loader2, Check, AlertCircle, Bell, Info } from 'lucide-react';
 import { supabase } from '../services/supabase';
+import { messagingService } from '../services/messages';
 
 export const AdminNotifications: React.FC = () => {
     const [title, setTitle] = useState('');
@@ -27,6 +28,10 @@ export const AdminNotifications: React.FC = () => {
         setSuccess(false);
 
         try {
+            // Persist message in database first
+            await messagingService.sendGlobalMessage(title.trim(), message.trim());
+
+            // Then broadcast push notification
             const { error: invokeError } = await supabase.functions.invoke('broadcast-notification', {
                 body: {
                     title: title.trim(),
@@ -40,6 +45,7 @@ export const AdminNotifications: React.FC = () => {
             setMessage('');
             setTimeout(() => setSuccess(false), 5000);
         } catch (err: any) {
+            console.error('Error sending global notification:', err);
             setError(err.message || 'Error al enviar la notificación');
         } finally {
             setSending(false);

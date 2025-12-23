@@ -1,24 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { kitchenService, KitchenConfig, MealGuest, DailyLock } from '../services/kitchen';
-import { Settings, Users, Trash2, Save, Clock, Lock, Unlock } from 'lucide-react';
+import { kitchenService } from '../services/kitchen';
+import { Settings, Users, Save, Clock, Lock, Unlock, CalendarDays } from 'lucide-react';
 import { format, isAfter, startOfToday, isSameDay } from 'date-fns';
+import { HolidaysManager } from './HolidaysManager';
+import { KitchenConfig, Holiday } from '../types';
 
 interface KitchenAdminPanelProps {
     selectedDate: Date;
     onUpdate?: () => void;
+    holidays?: Holiday[];
 }
 
-const WEEKDAYS = [
-    { key: '1', label: 'Lunes' },
-    { key: '2', label: 'Martes' },
-    { key: '3', label: 'Miércoles' },
-    { key: '4', label: 'Jueves' },
-    { key: '5', label: 'Viernes' },
-    { key: '6', label: 'Sábado' },
-    { key: '0', label: 'Domingo' },
-];
-
-export const KitchenAdminPanel: React.FC<KitchenAdminPanelProps> = ({ selectedDate, onUpdate }) => {
+export const KitchenAdminPanel: React.FC<KitchenAdminPanelProps> = ({ selectedDate, onUpdate, holidays = [] }) => {
     const [config, setConfig] = useState<KitchenConfig | null>(null);
     const [isLocked, setIsLocked] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -33,10 +26,8 @@ export const KitchenAdminPanel: React.FC<KitchenAdminPanelProps> = ({ selectedDa
     const [newGuestNotes, setNewGuestNotes] = useState('');
 
     const dateStr = selectedDate.toISOString().split('T')[0];
-    const dayKey = selectedDate.getDay().toString(); // 0-6
-
-    // Security: Only allow locking if today (or past, though past usually stays locked)
-    // Actually, user said "prevent closing future days".
+    
+    // Security: Only allow locking if today (or past)
     const today = startOfToday();
     const isFuture = isAfter(selectedDate, today) && !isSameDay(selectedDate, today);
     const canLock = !isFuture;
@@ -52,28 +43,13 @@ export const KitchenAdminPanel: React.FC<KitchenAdminPanelProps> = ({ selectedDa
                 kitchenService.getDailyLockStatus(dateStr)
             ]);
 
-            // Auto-lock Logic: If not locked, today, and past cutoff -> Lock it
-            let effectiveLocked = locked;
-            const now = new Date();
-            if (!locked && isSameDay(selectedDate, now)) {
-                const sKey = selectedDate.getDay().toString();
-                const scheduleTime = cfg.weekly_schedule?.[sKey];
-
-                if (scheduleTime) {
-                    const [h, m] = scheduleTime.split(':').map(Number);
-                    const cutoff = new Date(now);
-                    cutoff.setHours(h, m, 0, 0);
-
-                    if (now > cutoff) {
-                        effectiveLocked = true;
-                        // Fire and forget update to persist the lock
-                        kitchenService.setDayLock(dateStr, true).catch(e => console.error("Auto-lock update failed", e));
-                    }
-                }
-            }
-
+            // Auto-lock Logic (Simplified for display, but server/client logic should be unified eventually)
+            // Here we just accept what the DB says for isLocked, relying on the DailyOrderManager to handle the "virtual" locking for users.
+            // However, for the Kitchen to SEE if it's "effectively" locked by time, we might want to check.
+            // But usually Kitchen manually locks to "Close" the day.
+            
             setConfig(cfg);
-            setIsLocked(effectiveLocked);
+            setIsLocked(locked);
         } catch (error) {
             console.error(error);
         } finally {
@@ -86,26 +62,38 @@ export const KitchenAdminPanel: React.FC<KitchenAdminPanelProps> = ({ selectedDa
         setSavingConfig(true);
         try {
             await kitchenService.updateConfig(config.id, {
-                weekly_schedule: config.weekly_schedule
+                schedule_weekdays: config.schedule_weekdays,
+                schedule_saturday: config.schedule_saturday,
+                schedule_sunday_holiday: config.schedule_sunday_holiday,
+                overrides: config.overrides
             });
             setShowConfig(false);
+            alert('Configuración guardada');
         } catch (error) {
             console.error(error);
-            alert('Error');
+            alert('Error al guardar configuración');
         } finally {
             setSavingConfig(false);
         }
     };
 
-    const handleScheduleChange = (key: string, value: string) => {
+    const handleScheduleChange = (key: keyof KitchenConfig, value: string) => {
         if (!config) return;
         setConfig({
             ...config,
-            weekly_schedule: {
-                ...config.weekly_schedule,
-                [key]: value
-            }
+            [key]: value
         });
+    };
+
+    const handleOverrideChange = (date: string, time: string) => {
+        if (!config) return;
+        const newOverrides = { ...config.overrides };
+        if (time) {
+            newOverrides[date] = time;
+        } else {
+            delete newOverrides[date];
+        }
+        setConfig({ ...config, overrides: newOverrides });
     };
 
     const handleToggleLock = async () => {
@@ -144,7 +132,18 @@ export const KitchenAdminPanel: React.FC<KitchenAdminPanelProps> = ({ selectedDa
 
     if (loading) return null;
 
-    const currentDaySchedule = config?.weekly_schedule?.[dayKey];
+    // Helper to determine closing time for TODAY (selectedDate) for display
+    const getClosingTimeDisplay = () => {
+        if (!config) return '--:--';
+        const isHoliday = holidays.some(h => h.date === dateStr);
+
+        if (config.overrides && config.overrides[dateStr]) return config.overrides[dateStr];
+        
+        const day = selectedDate.getDay();
+        if (day === 0 || isHoliday) return config.schedule_sunday_holiday || '--:--';
+        if (day === 6) return config.schedule_saturday || '--:--';
+        return config.schedule_weekdays || '--:--';
+    };
 
     return (
         <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-4 mb-6 shadow-sm">
@@ -181,14 +180,12 @@ export const KitchenAdminPanel: React.FC<KitchenAdminPanelProps> = ({ selectedDa
             <div className="flex items-center gap-4 text-xs">
                 <div className="flex items-center gap-2 text-zinc-500">
                     <Clock size={14} />
-                    <span>Envío automático:</span>
-                    {currentDaySchedule ? (
-                        <span className="font-mono bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded">{currentDaySchedule}</span>
-                    ) : (
-                        <span className="italic">Manual</span>
-                    )}
+                    <span>Cierre programado:</span>
+                    <span className="font-mono bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded">
+                        {getClosingTimeDisplay()}
+                    </span>
                     <button onClick={() => setShowConfig(!showConfig)} className="text-indigo-600 hover:underline ml-1">
-                        Editar
+                        Configurar
                     </button>
                 </div>
                 <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-700"></div>
@@ -200,30 +197,73 @@ export const KitchenAdminPanel: React.FC<KitchenAdminPanelProps> = ({ selectedDa
 
             {/* Expandable Config */}
             {showConfig && (
-                <div className="mt-4 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-zinc-200 dark:border-zinc-700">
-                    <p className="text-[10px] text-zinc-400 uppercase font-bold mb-2">Horario Semanal de Envíos</p>
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
-                        {WEEKDAYS.map(day => (
-                            <div key={day.key}>
-                                <label className={`text-[10px] uppercase font-bold mb-1 block ${day.key === dayKey ? 'text-indigo-600' : 'text-zinc-400'}`}>
-                                    {day.label}
-                                </label>
-                                <input
-                                    type="time"
-                                    value={config?.weekly_schedule?.[day.key] || ''}
-                                    onChange={e => handleScheduleChange(day.key, e.target.value)}
-                                    className={`w-full px-2 py-1 rounded border text-xs text-center ${day.key === dayKey ? 'border-indigo-300 bg-white' : 'border-zinc-200 bg-zinc-50 dark:bg-zinc-800 dark:border-zinc-700'}`}
-                                />
+                <div className="mt-4 p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-zinc-200 dark:border-zinc-700 animate-in slide-in-from-top-2">
+                    <div className="grid md:grid-cols-2 gap-6">
+                        {/* Closing Times */}
+                        <div className="space-y-4">
+                            <h4 className="font-bold text-xs uppercase text-zinc-500 flex items-center gap-2">
+                                <Clock size={14} /> Horarios de Cierre
+                            </h4>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="text-[10px] uppercase text-zinc-400 font-bold block mb-1">Lunes - Viernes</label>
+                                    <input
+                                        type="time"
+                                        value={config?.schedule_weekdays || ''}
+                                        onChange={e => handleScheduleChange('schedule_weekdays', e.target.value)}
+                                        className="w-full text-xs p-2 rounded border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] uppercase text-zinc-400 font-bold block mb-1">Sábados</label>
+                                    <input
+                                        type="time"
+                                        value={config?.schedule_saturday || ''}
+                                        onChange={e => handleScheduleChange('schedule_saturday', e.target.value)}
+                                        className="w-full text-xs p-2 rounded border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-[10px] uppercase text-zinc-400 font-bold block mb-1">Domingos / Festivos</label>
+                                    <input
+                                        type="time"
+                                        value={config?.schedule_sunday_holiday || ''}
+                                        onChange={e => handleScheduleChange('schedule_sunday_holiday', e.target.value)}
+                                        className="w-full text-xs p-2 rounded border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900"
+                                    />
+                                </div>
                             </div>
-                        ))}
+
+                            {/* Overrides */}
+                            <div className="pt-2 border-t border-zinc-200 dark:border-zinc-700">
+                                <label className="text-[10px] uppercase text-zinc-400 font-bold block mb-2">Override (Excepción para hoy: {dateStr})</label>
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="time"
+                                        value={config?.overrides?.[dateStr] || ''}
+                                        onChange={e => handleOverrideChange(dateStr, e.target.value)}
+                                        className="text-xs p-2 rounded border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900"
+                                    />
+                                    <span className="text-[10px] text-zinc-400">
+                                        Fija una hora específica solo para este día. Borra para usar horario estándar.
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Holidays Manager */}
+                        <div className="pl-6 border-l border-zinc-200 dark:border-zinc-700">
+                            <HolidaysManager />
+                        </div>
                     </div>
-                    <div className="flex justify-end mt-3">
+
+                    <div className="flex justify-end mt-4 pt-4 border-t border-zinc-200 dark:border-zinc-700">
                         <button
                             onClick={handleSaveConfig}
                             disabled={savingConfig}
-                            className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900 dark:bg-white text-white dark:text-black rounded text-xs font-medium"
+                            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 transition-colors"
                         >
-                            <Save size={12} /> Guardar
+                            <Save size={14} /> GUARDAR CONFIGURACIÓN
                         </button>
                     </div>
                 </div>

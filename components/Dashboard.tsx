@@ -15,6 +15,7 @@ import { ProfileView } from './ProfileView';
 import { AdminUserList } from './AdminUserList';
 import { RoomsManagementView } from './RoomsManagementView';
 import { initializeNotifications, onMessageListener } from '../services/notifications';
+import { messagingService } from '../services/messages';
 
 import {
   LogOut,
@@ -56,9 +57,26 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
   const [currentView, setCurrentView] = useState<DashboardView>(getInitialView);
   const [showWelcome, setShowWelcome] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   // Main scroll container ref
   const mainScrollRef = React.useRef<HTMLDivElement>(null);
+
+  const fetchUnreadCount = async () => {
+    try {
+      const count = await messagingService.getUnreadCount();
+      setUnreadCount(count);
+    } catch (error) {
+      console.error('Error fetching unread count:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchUnreadCount();
+    // Poll every minute for new messages count, or use realtime if preferred later
+    const interval = setInterval(fetchUnreadCount, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   const scrollToTop = () => {
     if (mainScrollRef.current) {
@@ -96,6 +114,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
 
     // Listen for foreground messages
     const unsubscribe = onMessageListener((payload) => {
+      // Refresh unread count when a new notification arrives
+      fetchUnreadCount();
+
       // Show browser notification if permission is granted
       if (Notification.permission === 'granted') {
         new Notification(payload.notification?.title || 'Nueva notificación', {
@@ -199,8 +220,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
           <div className="p-4 border-t border-zinc-200 dark:border-zinc-800">
             <div className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
               <button onClick={() => setCurrentView('PROFILE')} data-tutorial="nav-profile" className="flex items-center gap-3 flex-1 text-left">
-                <div data-tutorial="user-avatar">
+                <div data-tutorial="user-avatar" className="relative">
                   <UserAvatar name={user.name} imageUrl={user.avatarUrl} size="sm" />
+                   {unreadCount > 0 && (
+                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center border-2 border-white dark:border-zinc-900">
+                        <span className="text-[10px] font-bold text-white">{unreadCount > 9 ? '9+' : unreadCount}</span>
+                      </div>
+                    )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-zinc-900 dark:text-white truncate">{user.name}</p>
@@ -249,12 +275,25 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
                 onRestartTutorial={handleStartTutorial}
               />
             )}
+            {currentView === 'MESSAGES' && (
+               <MessagingView 
+                 user={user} 
+                 onUnreadUpdate={fetchUnreadCount}
+               />
+            )}
           </div>
         </main>
 
         {/* Mobile Bottom Navigation */}
         <nav className="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-lg border-t border-zinc-200 dark:border-zinc-800 pb-[calc(env(safe-area-inset-bottom)+1rem)] lg:hidden z-30">
           <div className="flex items-center justify-around py-3">
+            <button
+              onClick={() => handleNavigate('HOME')}
+              className="flex items-center justify-center p-2"
+              aria-label="Inicio"
+            >
+              <Logo variant="mini" size="sm" />
+            </button>
             {hasAccess(user, 'vehicles') && (
               <MobileNavItem view="VEHICLES" icon={Car} label="Coches" isActive={currentView === 'VEHICLES'} />
             )}
@@ -273,8 +312,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
               className="flex items-center justify-center p-2"
               aria-label="Perfil"
             >
-              <div className={`p-0.5 rounded-full border-2 ${currentView === 'PROFILE' ? 'border-zinc-900 dark:border-white' : 'border-transparent'}`}>
+              <div className={`p-0.5 rounded-full border-2 relative ${currentView === 'PROFILE' ? 'border-zinc-900 dark:border-white' : 'border-transparent'}`}>
                 <UserAvatar name={user.name} imageUrl={user.avatarUrl} size="sm" className="w-5 h-5" />
+                {unreadCount > 0 && (
+                  <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 rounded-full flex items-center justify-center border-[1.5px] border-white dark:border-zinc-900">
+                    <span className="text-[9px] font-bold text-white">{unreadCount > 9 ? '+' : unreadCount}</span>
+                  </div>
+                )}
               </div>
             </button>
           </div>

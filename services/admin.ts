@@ -120,5 +120,13 @@ export const adminService = {
         await updateRoleWithRetry();
 
         return data;
+    },
+
+    deleteUser: async (userId: string) => {
+        const { error } = await supabase.functions.invoke('delete-account', {
+            body: { targetUserId: userId }
+        });
+
+        if (error) throw new Error(error.message);
     }
 };

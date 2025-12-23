@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { CalendarEvent, EpactaMetadata } from './icalParser';
+import { CalendarEvent, EpactaMetadata, parseEpactaDescription } from './icalParser';
 
 export interface CalendarSource {
     id: string;
@@ -58,58 +58,100 @@ export const calendarService = {
         if (error) throw error;
 
         // Map DB fields to CalendarEvent interface
-        return data.map(dbEvent => ({
-            id: dbEvent.id, // Internal ID
-            title: dbEvent.title,
-            description: dbEvent.description,
-            start: new Date(dbEvent.start_time),
-            end: dbEvent.end_time ? new Date(dbEvent.end_time) : undefined,
-            allDay: dbEvent.all_day,
-            location: dbEvent.location,
-            metadata: dbEvent.metadata, // JSONB works as object directly in Supabase JS
-            calendarId: dbEvent.calendar_id
-        }));
+        return data.map(dbEvent => {
+            const description = dbEvent.description_override || dbEvent.description;
+            return {
+                id: dbEvent.id, // Internal ID
+                title: dbEvent.title,
+                description: description,
+                rawDescription: dbEvent.description,
+                descriptionOverride: dbEvent.description_override,
+                start: new Date(dbEvent.start_time),
+                end: dbEvent.end_time ? new Date(dbEvent.end_time) : undefined,
+                allDay: dbEvent.all_day,
+                location: dbEvent.location,
+                metadata: dbEvent.metadata, 
+                calendarId: dbEvent.calendar_id
+            };
+        });
+    },
+
+    async updateEventOverride(eventId: string, descriptionOverride: string | null) {
+        // 1. Fetch current event to get raw description if clearing override
+        const { data: event, error: fetchError } = await supabase
+            .from('calendar_events')
+            .select('*')
+            .eq('id', eventId)
+            .single();
+
+        if (fetchError) throw fetchError;
+
+        const effectiveDescription = descriptionOverride || event.description;
+        const newMetadata = parseEpactaDescription(effectiveDescription);
+
+        const { error } = await supabase
+            .from('calendar_events')
+            .update({
+                description_override: descriptionOverride,
+                metadata: newMetadata
+            })
+            .eq('id', eventId);
+
+        if (error) throw error;
     },
 
     async syncEvents(calendarId: string, events: CalendarEvent[]) {
-        // 1. Delete existing cache for this calendar
-        // Strategy: "Replace All" for simplicity and to handle deletions in source.
+        // 1. Fetch existing events for this calendar to preserve overrides
+        const { data: existingEvents } = await supabase
+            .from('calendar_events')
+            .select('external_uid, description_override')
+            .eq('calendar_id', calendarId);
+
+        const overrideMap = new Map(existingEvents?.map(e => [e.external_uid, e.description_override]) || []);
+
+        // 2. Prepare DB objects
+        const allDbEvents = events.map(ev => {
+            const existingOverride = overrideMap.get(ev.id);
+            const metadata = existingOverride ? parseEpactaDescription(existingOverride) : ev.metadata;
+            
+            return {
+                calendar_id: calendarId,
+                external_uid: ev.id,
+                title: ev.title,
+                description: ev.description?.substring(0, 1000),
+                start_time: ev.start.toISOString(),
+                end_time: ev.end ? ev.end.toISOString() : null,
+                all_day: ev.allDay,
+                location: ev.location,
+                metadata: metadata
+            };
+        });
+
+        // 3. Delete those that are no longer in the source (to handle deletions)
+        // Extract external_uids from the new set
+        const newUids = events.map(e => e.id);
         const { error: deleteError } = await supabase
             .from('calendar_events')
             .delete()
-            .eq('calendar_id', calendarId);
+            .eq('calendar_id', calendarId)
+            .not('external_uid', 'in', `(${newUids.join(',')})`);
 
-        if (deleteError) throw deleteError;
+        if (deleteError) {
+            console.error("Cleanup of old events failed", deleteError);
+            // Non-critical, continue
+        }
 
-        if (events.length === 0) return;
-
-        // 2. Prepare DB objects
-        const allDbEvents = events.map(ev => ({
-            calendar_id: calendarId,
-            external_uid: ev.id,
-            title: ev.title,
-            description: ev.description?.substring(0, 1000),
-            start_time: ev.start.toISOString(),
-            end_time: ev.end ? ev.end.toISOString() : null,
-            all_day: ev.allDay,
-            location: ev.location,
-            metadata: ev.metadata
-        }));
-
-        // 3. Batch Insert (Chunk size 100 to avoid 400 Bad Request / Payload limit)
+        // 4. Batch Upsert 
         const BATCH_SIZE = 100;
-
-        // Use a loop to process batches sequentially or Promise.all for parallel
-        // Sequential is safer for rate limits, though basic insert shouldn't be rate limited easily.
         for (let i = 0; i < allDbEvents.length; i += BATCH_SIZE) {
             const batch = allDbEvents.slice(i, i + BATCH_SIZE);
 
             const { error: insertError } = await supabase
                 .from('calendar_events')
-                .insert(batch);
+                .upsert(batch, { onConflict: 'calendar_id,external_uid' });
 
             if (insertError) {
-                console.error("Batch insert failed", insertError);
+                console.error("Batch upsert failed", insertError);
                 throw insertError;
             }
         }

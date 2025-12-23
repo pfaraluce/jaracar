@@ -21,9 +21,11 @@ import { EpactaEvent } from './EpactaEvent';
 
 interface CalendarGridProps {
     events: CalendarEvent[];
+    isAdmin?: boolean;
+    onUpdateEvents?: () => void;
 }
 
-export const CalendarGrid: React.FC<CalendarGridProps> = ({ events }) => {
+export const CalendarGrid: React.FC<CalendarGridProps> = ({ events, isAdmin = false, onUpdateEvents }) => {
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
@@ -190,7 +192,12 @@ export const CalendarGrid: React.FC<CalendarGridProps> = ({ events }) => {
                                             </div>
 
                                             {/* RENDER EPACTA COMPONENT */}
-                                            <EpactaEvent event={ev} compact={true} />
+                                            <EpactaEvent 
+                                                event={ev} 
+                                                compact={true} 
+                                                isAdmin={isAdmin} 
+                                                onUpdate={onUpdateEvents} 
+                                            />
                                         </div>
                                     ))}
                                 </div>

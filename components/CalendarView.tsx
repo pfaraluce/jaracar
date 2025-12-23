@@ -2,8 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { User } from '../types';
 import { calendarService, CalendarSource } from '../services/calendar';
 import { Plus, Trash2, Calendar as CalendarIcon, Info, RefreshCw, AlertTriangle, CheckSquare, Square, EyeOff, Eye } from 'lucide-react';
+import { kitchenService } from '../services/kitchen';
+import { profileService } from '../services/profiles';
 import { CalendarGrid } from './CalendarGrid';
 import { parseICS, CalendarEvent } from '../services/icalParser';
+import { HolidaysManager } from './HolidaysManager';
+import { Cake, CalendarDays as CalendarIconFilled, X } from 'lucide-react';
 
 interface CalendarViewProps {
     user: User;
@@ -30,6 +34,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ user }) => {
     const [newCalendar, setNewCalendar] = useState({ name: '', url: '', isEpacta: false });
     const [isAdding, setIsAdding] = useState(false);
     const [addError, setAddError] = useState<string | null>(null);
+    const [isHolidaysOpen, setIsHolidaysOpen] = useState(false);
 
     // Unified View State
     const [activeCalendarIds, setActiveCalendarIds] = useState<Set<string>>(new Set());
@@ -69,27 +74,68 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ user }) => {
 
     const fetchCachedEvents = async (overrideIds?: string[]) => {
         setLoadingEvents(true);
-        const targetIds = overrideIds || Array.from(activeCalendarIds);
-        if (targetIds.length === 0) {
-            setAllEvents([]);
-            setLoadingEvents(false);
-            return;
-        }
-
+        
         try {
-            const cached = await calendarService.getCachedEvents(targetIds);
+            const targetIds = overrideIds || Array.from(activeCalendarIds);
+            
+            // 1. Fetch Calendar Events (if any)
+            let calendarEvents: CalendarEvent[] = [];
+            if (targetIds.length > 0) {
+                 const cached = await calendarService.getCachedEvents(targetIds);
+                 calendarEvents = cached.map(ev => {
+                    const calIndex = calendars.findIndex(c => c.id === ev.calendarId);
+                    const color = calIndex >= 0
+                        ? CALENDAR_COLORS[calIndex % CALENDAR_COLORS.length]
+                        : '#71717a';
+                    return { ...ev, color };
+                });
+            }
 
-            // Assign colors based on calendar index
-            const valid = cached.map(ev => {
-                const calIndex = calendars.findIndex(c => c.id === ev.calendarId);
-                // If not found (calIndex -1), use Gray. Otherwise use the palette.
-                const color = calIndex >= 0
-                    ? CALENDAR_COLORS[calIndex % CALENDAR_COLORS.length]
-                    : '#71717a';
-                return { ...ev, color };
+            // 2. Fetch Special Events (Holidays & Birthdays)
+            // We always show these, regardless of calendar selection? Or maybe we treat them as a "System" calendar?
+            // For now, ALWAYS show them.
+            
+            const [holidays, profiles] = await Promise.all([
+                kitchenService.getHolidays(),
+                profileService.getAllProfiles()
+            ]);
+
+            const holidayEvents: CalendarEvent[] = holidays.map(h => ({
+                id: `hol-${h.id}`,
+                title: `Festivo: ${h.name}`,
+                start: new Date(h.date),
+                end: new Date(h.date),
+                allDay: true,
+                color: '#d946ef', // Fuchsia
+                calendarId: 'system-holidays'
+            }));
+
+            const birthdayEvents: CalendarEvent[] = [];
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            const yearsToGenerate = [currentYear - 1, currentYear, currentYear + 1, currentYear + 2, currentYear + 3];
+
+            profiles.filter(p => p.birthday).forEach(p => {
+                const bdate = new Date(p.birthday!);
+                
+                yearsToGenerate.forEach(year => {
+                     const thisYearParams = new Date(year, bdate.getMonth(), bdate.getDate());
+                     
+                     birthdayEvents.push({
+                        id: `bday-${p.id}-${year}`,
+                        title: `Cumpleaños: ${p.name}`,
+                        start: thisYearParams,
+                        end: thisYearParams,
+                        allDay: true,
+                        color: '' + (user.role === 'KITCHEN' ? '#ec4899' : '#ec4899'), // Keep consistent for now
+                        calendarId: 'system-birthdays'
+                     });
+                });
             });
+                
+            // Combine
+            setAllEvents([...calendarEvents, ...holidayEvents, ...birthdayEvents]);
 
-            setAllEvents(valid);
         } catch (error) {
             console.error("Cache fetch failed", error);
         } finally {
@@ -98,61 +144,107 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ user }) => {
     };
 
     // Proxy fetcher - Updated Priority
-    const fetchWithProxy = async (url: string) => {
+    const fetchWithProxy = async (url: string, timeoutMs: number = 10000) => {
         const proxies = [
-            'https://corsproxy.io/?', // Try this first
-            'https://api.allorigins.win/raw?url='
+            { name: 'AllOrigins Raw', url: 'https://api.allorigins.win/raw?url=', type: 'raw' },
+            { name: 'AllOrigins JSON', url: 'https://api.allorigins.win/get?url=', type: 'json' },
+            { name: 'CodeTabs', url: 'https://api.codetabs.com/v1/proxy?quest=', type: 'raw' },
+            { name: 'CORSProxy.io', url: 'https://corsproxy.io/?', type: 'raw' },
+            { name: 'Worker Fallback', url: 'https://cors-anywhere.azm.workers.dev/', type: 'raw' }
         ];
 
         let lastError;
         for (const proxy of proxies) {
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), timeoutMs);
+
             try {
-                const target = proxy + encodeURIComponent(url);
-                const response = await fetch(target);
-                if (response.ok) return await response.text();
-            } catch (e) {
+                console.log(`[Sync] Intentando con ${proxy.name}...`);
+                const target = proxy.url.includes('?') ? (proxy.url + encodeURIComponent(url)) : (proxy.url + url);
+                
+                const response = await fetch(target, { 
+                    signal: controller.signal,
+                    headers: proxy.name === 'CORSProxy.io' ? {} : { 'Origin': window.location.origin }
+                });
+                
+                if (!response.ok) {
+                    clearTimeout(id);
+                    throw new Error(`Status ${response.status}`);
+                }
+
+                let text = '';
+                if (proxy.type === 'json') {
+                    const json = await response.json();
+                    text = json.contents;
+                } else {
+                    text = await response.text();
+                }
+
+                clearTimeout(id);
+
+                if (text && text.includes('BEGIN:VCALENDAR')) {
+                    console.log(`[Sync] ¡Éxito con ${proxy.name}!`);
+                    return text;
+                }
+                
+                throw new Error("Respuesta no es un iCal válido");
+
+            } catch (e: any) {
+                clearTimeout(id);
                 lastError = e;
-                continue;
+                console.warn(`[Sync] ${proxy.name} falló: ${e.message}`);
             }
         }
-        throw lastError || new Error('All proxies failed');
+        throw lastError || new Error('Todos los proxies fallaron');
     };
 
     const handleForceSync = async () => {
         setIsSyncing(true);
-        // Sync active calendars
-        const targetCalendars = calendars.filter(c => activeCalendarIds.has(c.id));
+        try {
+            // Sync active calendars sequentially to avoid rate limits and better logging
+            const targetCalendars = calendars.filter(c => activeCalendarIds.has(c.id));
+            console.log(`[Sync] Iniciando sincronización de ${targetCalendars.length} calendarios...`);
 
-        await Promise.all(targetCalendars.map(async (cal) => {
-            if (!cal.url) return;
-            try {
-                let icsText = '';
-                if (cal.url.includes('calendar.google.com') && cal.url.endsWith('.ics')) {
-                    icsText = await fetchWithProxy(cal.url);
-                } else {
-                    try {
-                        const res = await fetch(cal.url);
-                        if (!res.ok) throw new Error('Direct fetch failed');
-                        icsText = await res.text();
-                    } catch {
+            for (const cal of targetCalendars) {
+                if (!cal.url) continue;
+                try {
+                    console.log(`[Sync] Procesando: ${cal.name}...`);
+                    let icsText = '';
+                    if (cal.url.includes('calendar.google.com')) {
                         icsText = await fetchWithProxy(cal.url);
+                    } else {
+                        try {
+                            const controller = new AbortController();
+                            const id = setTimeout(() => controller.abort(), 8000);
+                            const res = await fetch(cal.url, { signal: controller.signal });
+                            if (!res.ok) {
+                                clearTimeout(id);
+                                throw new Error('Direct fetch failed');
+                            }
+                            icsText = await res.text();
+                            clearTimeout(id);
+                        } catch {
+                            icsText = await fetchWithProxy(cal.url);
+                        }
                     }
+
+                    const parsed = parseICS(icsText, cal.is_epacta);
+                    await calendarService.syncEvents(cal.id, parsed);
+                    console.log(`[Sync] ✅ ${cal.name} sincronizado correctamente.`);
+
+                } catch (error: any) {
+                    console.error(`[Sync] ❌ Error en ${cal.name}:`, error.message);
                 }
-
-                // Pass isEpacta flag to parser!
-                const parsed = parseICS(icsText, cal.is_epacta);
-
-                // Save to DB
-                await calendarService.syncEvents(cal.id, parsed);
-
-            } catch (error) {
-                console.error(`Failed to sync calendar ${cal.name}`, error);
             }
-        }));
 
-        // After sync, reload cache
-        await fetchCachedEvents();
-        setIsSyncing(false);
+            // After sync, reload cache
+            await fetchCachedEvents();
+            console.log(`[Sync] Sincronización global finalizada.`);
+        } catch (error) {
+            console.error("Global sync failed", error);
+        } finally {
+            setIsSyncing(false);
+        }
     };
 
     const toggleCalendar = (id: string) => {
@@ -227,15 +319,40 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ user }) => {
                 </div>
 
                 {user.role === 'ADMIN' && (
-                    <button
-                        onClick={() => setIsAddOpen(true)}
-                        className="flex items-center gap-2 px-4 py-2 bg-zinc-900 dark:bg-white text-white dark:text-black rounded-lg hover:opacity-90 transition-all font-medium text-sm"
-                    >
-                        <Plus size={16} />
-                        <span className="hidden sm:inline">Añadir</span>
-                    </button>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => setIsHolidaysOpen(true)}
+                            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-200 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-all font-medium text-sm"
+                        >
+                            <CalendarIconFilled size={16} className="text-fuchsia-600 dark:text-fuchsia-400" />
+                            <span className="hidden sm:inline">Gestionar Festivos</span>
+                        </button>
+                        <button
+                            onClick={() => setIsAddOpen(true)}
+                            className="flex items-center gap-2 px-4 py-2 bg-zinc-900 dark:bg-white text-white dark:text-black rounded-lg hover:opacity-90 transition-all font-medium text-sm"
+                        >
+                            <Plus size={16} />
+                            <span className="hidden sm:inline">Añadir</span>
+                        </button>
+                    </div>
                 )}
             </div>
+
+            {/* Modal Gestionar Festivos */}
+            {isHolidaysOpen && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-zinc-900 rounded-xl max-w-2xl w-full p-6 shadow-xl relative max-h-[90vh] overflow-y-auto">
+                        <button 
+                            onClick={() => setIsHolidaysOpen(false)}
+                            className="absolute top-4 right-4 p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                        >
+                            <X size={20} className="text-zinc-500" />
+                        </button>
+                        <h3 className="text-lg font-bold text-zinc-900 dark:text-white mb-4">Gestionar Festivos</h3>
+                        <HolidaysManager />
+                    </div>
+                </div>
+            )}
 
             {/* Modal Añadir */}
             {isAddOpen && (
@@ -323,7 +440,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ user }) => {
             <div className="flex-1 flex flex-col lg:flex-row gap-6 overflow-visible lg:overflow-hidden">
                 {/* Main Content Grid */}
                 <div className="h-[65vh] lg:h-auto flex-1 bg-white dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm overflow-hidden flex flex-col relative order-first">
-                    <CalendarGrid events={allEvents} />
+                    <CalendarGrid 
+                        events={allEvents} 
+                        isAdmin={user.role === 'ADMIN'} 
+                        onUpdateEvents={fetchCachedEvents}
+                    />
 
                     {/* Loading Overlay */}
                     {(loadingEvents || isSyncing) && (

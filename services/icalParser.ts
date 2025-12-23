@@ -10,12 +10,13 @@ export interface EpactaMetadata {
     plegaria?: string;
     flores?: boolean;
     exposicion?: 'Simple' | 'Solemne';
+    familyFeast?: 'A' | 'B' | 'C' | 'D';
     alerts?: string[];
     externalLinks?: { url: string; text: string }[];
     otros?: string[];
 }
 
-const parseEpactaDescription = (desc: string): EpactaMetadata => {
+export const parseEpactaDescription = (desc: string): EpactaMetadata => {
     if (!desc) return {};
 
     // 1. Clean up newlines that might break HTML tags in the description
@@ -165,8 +166,19 @@ export const parseICS = (icsData: string, isEpacta: boolean = false): CalendarEv
                 };
 
                 // Epacta Parsing Logic
-                if (isEpacta && event.description) {
-                    baseEvent.metadata = parseEpactaDescription(event.description);
+                if (isEpacta) {
+                    if (event.description) {
+                        baseEvent.metadata = parseEpactaDescription(event.description);
+                    }
+                    
+                    // Parse Family Feast from Summary
+                    if (event.summary) {
+                        const famMatch = event.summary.match(/\[fam ([A-D])\]/i);
+                        if (famMatch) {
+                            if (!baseEvent.metadata) baseEvent.metadata = {};
+                            baseEvent.metadata.familyFeast = famMatch[1].toUpperCase() as 'A' | 'B' | 'C' | 'D';
+                        }
+                    }
                 }
 
                 events.push(baseEvent);
@@ -214,6 +226,8 @@ export interface CalendarEvent {
     id: string;
     title: string;
     description?: string;
+    rawDescription?: string;
+    descriptionOverride?: string;
     start: Date;
     end?: Date;
     location?: string;

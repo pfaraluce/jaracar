@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { User, UserRole, DietFile, UserAbsence, Task, HouseSettings } from '../types';
-import { Camera, Shield, Mail, Loader2, Moon, Sun, Monitor, Edit2, Check, Calendar, Hash, Utensils, Upload, FileText, Trash2, LogOut, Hotel, ChevronDown, ChevronUp, Plus, User as UserIcon, Users, ClipboardList, ExternalLink, BookOpen, Settings, AlertCircle, Circle } from 'lucide-react';
+import { Camera, Shield, Mail, Loader2, Moon, Sun, Monitor, Edit2, Check, Calendar, Hash, Utensils, Upload, FileText, Trash2, LogOut, Hotel, ChevronDown, ChevronUp, Plus, User as UserIcon, Users, ClipboardList, ExternalLink, BookOpen, Settings, AlertCircle, Circle, AlertTriangle } from 'lucide-react';
 import { UserAvatar } from './UserAvatar';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../services/supabase';
@@ -64,6 +64,26 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onUpdate, onRest
     const [guideRefreshTrigger, setGuideRefreshTrigger] = useState(0);
     const [guideSection, setGuideSection] = useState<any>(undefined);
     const [showGuideAdmin, setShowGuideAdmin] = useState(false);
+
+    // Delete Account State
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deleteConfirmation, setDeleteConfirmation] = useState('');
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const handleDeleteAccount = async () => {
+        if (deleteConfirmation !== 'ELIMINAR') return;
+        setIsDeleting(true);
+        try {
+            await profileService.deleteSelf();
+            onLogout(); // Force logout after deletion
+        } catch (err: any) {
+            console.error('Error deleting account:', err);
+            setError(err.message || 'Error al eliminar la cuenta');
+            setShowDeleteModal(false);
+        } finally {
+            setIsDeleting(false);
+        }
+    };
 
     // Sync state with user prop
     useEffect(() => {
@@ -876,7 +896,25 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onUpdate, onRest
                     </button>
                     </div>
                 </div>
-                </motion.div>
+
+                {/* Danger Zone */}
+            <div className="border border-red-200 dark:border-red-900/30 rounded-2xl overflow-hidden bg-red-50/10 dark:bg-red-900/5 mt-8">
+                <div className="p-6">
+                    <h3 className="text-base font-bold text-red-600 dark:text-red-400 flex items-center gap-2 mb-2">
+                        <AlertTriangle size={20} /> Zona de Peligro
+                    </h3>
+                    <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-6">
+                        Eliminar tu cuenta es una acción irreversible. Perderás acceso a la plataforma y todos tus datos serán eliminados permanentemente.
+                    </p>
+                    <button
+                        onClick={() => setShowDeleteModal(true)}
+                        className="px-4 py-2 bg-white dark:bg-zinc-900 border border-red-200 dark:border-red-900/50 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl text-sm font-medium transition-colors shadow-sm"
+                    >
+                        Eliminar mi cuenta
+                    </button>
+                </div>
+            </div>
+            </motion.div>
             )}
 
                 {activeTab === 'MESSAGES' && (
@@ -964,6 +1002,67 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onUpdate, onRest
                 </motion.div>
             )}
         </AnimatePresence>
+
+        {/* Delete Account Modal */}
+            <AnimatePresence>
+                {showDeleteModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setShowDeleteModal(false)}
+                            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="relative w-full max-w-md bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl p-6 overflow-hidden border border-zinc-200 dark:border-zinc-800"
+                        >
+                            <div className="flex flex-col items-center text-center space-y-4">
+                                <div className="p-3 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-full">
+                                    <AlertTriangle size={32} />
+                                </div>
+                                <h3 className="text-xl font-bold text-zinc-900 dark:text-white">¿Estás seguro?</h3>
+                                <p className="text-sm text-zinc-600 dark:text-zinc-400">
+                                    Esta acción eliminará permanentemente tu cuenta y todos los datos asociados. <span className="font-bold text-red-600 dark:text-red-400">Esta acción no se puede deshacer.</span>
+                                </p>
+                                
+                                <div className="w-full space-y-2 text-left">
+                                    <label className="text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                                        Escribe "ELIMINAR" para confirmar
+                                    </label>
+                                    <input 
+                                        type="text" 
+                                        value={deleteConfirmation}
+                                        onChange={(e) => setDeleteConfirmation(e.target.value)}
+                                        placeholder="ELIMINAR"
+                                        className="w-full px-4 py-2 border border-zinc-200 dark:border-zinc-700 rounded-xl bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-white outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all font-medium placeholder:text-zinc-400"
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3 w-full pt-2">
+                                    <button
+                                        onClick={() => setShowDeleteModal(false)}
+                                        className="px-4 py-2.5 text-sm font-medium text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-xl transition-colors"
+                                    >
+                                        Cancelar
+                                    </button>
+                                    <button
+                                        onClick={handleDeleteAccount}
+                                        disabled={deleteConfirmation !== 'ELIMINAR' || isDeleting}
+                                        className="px-4 py-2.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-lg shadow-red-500/20 disabled:opacity-50 disabled:shadow-none transition-all flex items-center justify-center gap-2"
+                                    >
+                                        {isDeleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                                        Eliminar Cuenta
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

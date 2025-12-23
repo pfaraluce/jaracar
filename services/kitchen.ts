@@ -1,10 +1,5 @@
 import { supabase } from './supabase';
-
-export interface KitchenConfig {
-    id: string;
-    // Keys: "0" (Sun) -> "6" (Sat). Value: "HH:mm" or null/empty
-    weekly_schedule: Record<string, string>;
-}
+import { KitchenConfig, Holiday } from '../types';
 
 export interface MealGuest {
     id: string;
@@ -34,7 +29,14 @@ export const kitchenService = {
 
         if (error) {
             if (error.code === 'PGRST116') {
-                return { id: 'dummy', weekly_schedule: {} };
+                return { 
+                    id: 'dummy', 
+                    weekly_schedule: {},
+                    schedule_weekdays: '',
+                    schedule_saturday: '',
+                    schedule_sunday_holiday: '',
+                    overrides: {}
+                };
             }
             throw error;
         }
@@ -51,6 +53,47 @@ export const kitchenService = {
 
         if (error) throw error;
         return data;
+    },
+
+    // --- Holidays ---
+    async getHolidays(): Promise<Holiday[]> {
+        const { data, error } = await supabase
+            .from('holidays')
+            .select('*')
+            .order('date', { ascending: true });
+
+        if (error) throw error;
+        return data.map((h: any) => ({
+            id: h.id,
+            name: h.name,
+            date: h.date,
+            createdAt: h.created_at
+        }));
+    },
+
+    async addHoliday(name: string, date: string): Promise<Holiday> {
+        const { data, error } = await supabase
+            .from('holidays')
+            .insert({ name, date })
+            .select()
+            .single();
+
+        if (error) throw error;
+        return {
+            id: data.id,
+            name: data.name,
+            date: data.date,
+            createdAt: data.created_at
+        };
+    },
+
+    async deleteHoliday(id: string): Promise<void> {
+        const { error } = await supabase
+            .from('holidays')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw error;
     },
 
     // --- Locks ---

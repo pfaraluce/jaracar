@@ -64,9 +64,13 @@ export const mealService = {
     // --- Orders ---
 
     async getMyOrders(startDate: string, endDate: string): Promise<MealOrder[]> {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Not authenticated');
+
         const { data, error } = await supabase
             .from('meal_orders')
             .select('*')
+            .eq('user_id', user.id)
             .gte('date', startDate)
             .lte('date', endDate);
 
@@ -79,6 +83,7 @@ export const mealService = {
             mealType: d.meal_type,
             option: d.option,
             isBag: d.is_bag,
+            bagTime: d.bag_time,
             status: d.status
         }));
     },
@@ -166,6 +171,7 @@ export const mealService = {
                 mealType: mealType,
                 option: explicitOrder.option,
                 isBag: explicitOrder.is_bag,
+                bagTime: explicitOrder.bag_time,
                 status: explicitOrder.status
             });
             return;
@@ -318,7 +324,7 @@ export const mealService = {
         return results;
     },
 
-    async upsertOrder(userId: string, date: string, mealType: string, option: string, isBag: boolean): Promise<void> {
+    async upsertOrder(userId: string, date: string, mealType: string, option: string, isBag: boolean, bagTime?: string | null): Promise<void> {
         const { error } = await supabase
             .from('meal_orders')
             .upsert({
@@ -327,6 +333,7 @@ export const mealService = {
                 meal_type: mealType,
                 option,
                 is_bag: isBag,
+                bag_time: (isBag && arguments[5]) ? arguments[5] : null, // handle bagTime if passed
                 status: 'confirmed'
             }, { onConflict: 'user_id,date,meal_type' });
 

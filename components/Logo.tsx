@@ -4,9 +4,10 @@ import { useTheme } from '../contexts/ThemeContext';
 interface LogoProps {
     className?: string;
     size?: 'sm' | 'md' | 'lg';
+    variant?: 'default' | 'mini';
 }
 
-export const Logo: React.FC<LogoProps> = ({ className = '', size = 'md' }) => {
+export const Logo: React.FC<LogoProps> = ({ className = '', size = 'md', variant = 'default' }) => {
     const [systemTheme, setSystemTheme] = useState<'light' | 'dark'>('light');
 
     // Try to use ThemeContext if available, otherwise use system theme
@@ -36,9 +37,9 @@ export const Logo: React.FC<LogoProps> = ({ className = '', size = 'md' }) => {
         ? (contextTheme === 'dark' || (contextTheme === 'system' && systemTheme === 'dark'))
         : systemTheme === 'dark';
 
-    const logoSrc = isDark
-        ? '/logo-quango-white.svg'
-        : '/logo-quango-black.svg';
+    const logoSrc = variant === 'mini' 
+        ? (isDark ? '/q-white.svg' : '/q-black.svg')
+        : (isDark ? '/logo-quango-white.svg' : '/logo-quango-black.svg');
 
     // Size mappings
     const sizeClasses = {

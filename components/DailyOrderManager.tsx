@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { MealOrder, MealTemplate, UserAbsence } from '../types';
-import { mealService } from '../services/meals';
-import { kitchenService, DailyLock, KitchenConfig } from '../services/kitchen';
-import { absencesService } from '../services/absences';
-import { X, Clock, AlertCircle } from 'lucide-react';
-import { format, addDays } from 'date-fns';
+import { format, addDays, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { MealOrder, MealTemplate, UserAbsence, KitchenConfig, Holiday, User } from '../types';
+import { mealService } from '../services/meals';
+import { kitchenService, DailyLock } from '../services/kitchen';
+import { absencesService } from '../services/absences';
+import { X, Clock, AlertCircle, Cake, CalendarDays, Rocket } from 'lucide-react';
+import { calendarService } from '../services/calendar';
+import { CalendarEvent } from '../services/icalParser';
+import { profileService } from '../services/profiles';
+import { UserAvatar } from './UserAvatar';
 
 interface DailyOrderManagerProps {
     userId: string;
@@ -34,14 +38,21 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId, cu
     const [templates, setTemplates] = useState<MealTemplate[]>([]);
     const [absences, setAbsences] = useState<UserAbsence[]>([]);
     const [locks, setLocks] = useState<DailyLock[]>([]);
-    const [kitchenConfig, setKitchenConfig] = useState<KitchenConfig | null>(null);
+    const [config, setConfig] = useState<KitchenConfig | null>(null);
+    const [holidays, setHolidays] = useState<Holiday[]>([]);
+    const [familyFeasts, setFamilyFeasts] = useState<CalendarEvent[]>([]);
+    const [userProfiles, setUserProfiles] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [editingMeal, setEditingMeal] = useState<{
         date: Date;
         mealType: string;
         currentOption: string;
         isFromTemplate: boolean;
+        bagTime?: string; // Add bagTime state
     } | null>(null);
+
+    // Initial Bag time state for the modal
+    const [selectedBagTime, setSelectedBagTime] = useState<string>('14:00');
 
     // Prep change confirmation modal
     const [showPrepWarning, setShowPrepWarning] = useState(false);
@@ -71,12 +82,15 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId, cu
             const cached = localStorage.getItem(cacheKey);
             if (cached) {
                 try {
-                    const { orders: cachedOrders, templates: cachedTemplates, absences: cachedAbsences, locks: cachedLocks, config: cachedConfig } = JSON.parse(cached);
+                    const { orders: cachedOrders, templates: cachedTemplates, absences: cachedAbsences, locks: cachedLocks, config: cachedConfig, holidays: cachedHolidays, profiles: cachedProfiles, familyFeasts: cachedFeasts } = JSON.parse(cached);
                     setOrders(cachedOrders);
                     setTemplates(cachedTemplates);
                     setAbsences(cachedAbsences || []);
                     setLocks(cachedLocks);
-                    setKitchenConfig(cachedConfig);
+                    setConfig(cachedConfig);
+                    setHolidays(cachedHolidays || []);
+                    setUserProfiles(cachedProfiles || []);
+                    setFamilyFeasts(cachedFeasts || []);
                     setLoading(false);
                 } catch (e) {
                     console.error('Cache parse error:', e);
@@ -96,26 +110,41 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId, cu
                     .then(isLocked => ({ date: format(day, 'yyyy-MM-dd'), isLocked }))
             );
 
-            const [ordersData, templatesData, absencesData, locksData, configData] = await Promise.all([
+            const [ordersData, templatesData, absencesData, locksData, configData, holidaysData, profilesData, familyFeastsData] = await Promise.all([
                 mealService.getMyOrders(format(startOfView, 'yyyy-MM-dd'), format(endOfView, 'yyyy-MM-dd')),
                 mealService.getMyTemplates(),
                 absencesService.getAbsencesInRange(format(startOfView, 'yyyy-MM-dd'), format(endOfView, 'yyyy-MM-dd')),
                 Promise.all(locksPromises),
-                kitchenService.getConfig()
+                kitchenService.getConfig(),
+                kitchenService.getHolidays(),
+                profileService.getAllProfiles(),
+                calendarService.getCalendars().then(async cals => {
+                    const epactaCals = cals.filter(c => c.is_epacta);
+                    if (epactaCals.length === 0) return [];
+                    const events = await calendarService.getCachedEvents(epactaCals.map(c => c.id));
+                    // Return all as we need to filter per day later in the loop/render
+                    return events;
+                }) as Promise<CalendarEvent[]>
             ]);
 
             setOrders(ordersData);
             setTemplates(templatesData);
             setAbsences(absencesData);
             setLocks(locksData as any);
-            setKitchenConfig(configData);
+            setConfig(configData);
+            setHolidays(holidaysData);
+            setUserProfiles(profilesData);
+            setFamilyFeasts(familyFeastsData);
 
             localStorage.setItem(cacheKey, JSON.stringify({
                 orders: ordersData,
                 templates: templatesData,
                 absences: absencesData,
                 locks: locksData,
-                config: configData
+                config: configData,
+                holidays: holidaysData,
+                profiles: profilesData,
+                familyFeasts: familyFeastsData
             }));
         } catch (e) {
             console.error(e);
@@ -138,7 +167,7 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId, cu
 
         // 2. Absence Check
         if (isUserAbsent(date)) {
-            return { option: 'skip', source: 'absence', date: dateStr, status: 'pending', mealType, isBag: false };
+            return { option: 'skip', source: 'absence', date: dateStr, status: 'pending', mealType, isBag: false, bagTime: undefined };
         }
 
         // 3. Template
@@ -146,21 +175,44 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId, cu
         if (dayOfWeek === 0) dayOfWeek = 7; // Convert to 1-7 (Mon-Sun)
 
         const template = templates.find(t => t.dayOfWeek === dayOfWeek && t.mealType === mealType);
-        return template ? { ...template, source: 'template', date: dateStr, status: 'pending' } : null;
+        return template ? { ...template, source: 'template', date: dateStr, status: 'pending', bagTime: undefined } : null;
     };
 
     const isDayTimeLocked = (targetDate: Date) => {
-        if (!kitchenConfig || !kitchenConfig.weekly_schedule) return false;
+        if (!config) return false;
 
         const now = new Date();
         const dateStr = format(targetDate, 'yyyy-MM-dd');
         const todayStr = format(now, 'yyyy-MM-dd');
 
-        if (dateStr < todayStr) return true;
-        if (dateStr > todayStr) return false;
+        if (dateStr < todayStr) return true; // Past is always locked
+        if (dateStr > todayStr) return false; // Future is initially open (unless specific override?) 
 
-        const dayOfWeek = targetDate.getDay().toString();
-        const cutoffTime = kitchenConfig.weekly_schedule[dayOfWeek];
+        // Current Logic for Today: Check Cutoff Time based on Hierarchy
+        // Hierarchy: Override > Holiday/Sunday > Saturday > Weekday
+        
+        let cutoffTime = '';
+        const dayOfWeek = targetDate.getDay(); // 0 (Sun) - 6 (Sat)
+        const isHoliday = holidays.some(h => h.date === dateStr);
+
+        // 1. Override
+        if (config.overrides && config.overrides[dateStr]) {
+            cutoffTime = config.overrides[dateStr];
+        }
+        // 2. Sunday or Holiday
+        else if (dayOfWeek === 0 || isHoliday) {
+            cutoffTime = config.schedule_sunday_holiday || '';
+        }
+        // 3. Saturday
+        else if (dayOfWeek === 6) {
+            cutoffTime = config.schedule_saturday || '';
+        }
+        // 4. Weekday
+        else {
+            cutoffTime = config.schedule_weekdays || '';
+        }
+
+        // If no time set, it's open (or should it be closed? Assuming open if unset, but usually set)
         if (!cutoffTime) return false;
 
         const [h, m] = cutoffTime.split(':').map(Number);
@@ -194,6 +246,19 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId, cu
         const isTodayDbLocked = locks.find(l => l.date === dateStr)?.isLocked || false;
         const isTodayLocked = isTodayDbLocked || isDateLocked;
 
+        // Special Locking Rules for Bags
+        if (intendedOption === 'bag' || intendedOption === 'tupper') {
+             // Breakfast Bag/Tupper: Treated like Early Breakfast (Must be done day before)
+             if (mealType === 'breakfast') {
+                 if (isPrevLocked) return true;
+             } 
+             // Lunch/Dinner Bag: Treated like Standard (Can be done same day if not too late)
+             else {
+                 if (isTodayLocked) return true;
+             }
+             return false;
+        }
+
         if (mealType === 'breakfast') {
             if (isPrevLocked) return true;
         }
@@ -221,8 +286,13 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId, cu
             date,
             mealType,
             currentOption,
-            isFromTemplate: meal?.source === 'template'
+            isFromTemplate: meal?.source === 'template',
+            bagTime: meal?.bagTime
         });
+        
+        // precise init time
+        if (meal?.bagTime) setSelectedBagTime(meal.bagTime);
+        else setSelectedBagTime(mealType === 'lunch' ? '14:00' : '21:00');
     };
 
     const handleOptionSelect = async (option: string) => {
@@ -239,7 +309,11 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId, cu
         const isChangingFromPrep = (currentOption === 'tupper' || currentOption === 'bag') &&
             (option !== 'tupper' && option !== 'bag');
 
-        if (isChangingFromPrep) {
+        // Only show warning if we are actually past some deadline or already "locked" for this day
+        // We use isLocked(..., option, option) to check if a "standard" change would be blocked
+        const isNormallyLocked = isLocked(date, mealType, option, option);
+
+        if (isChangingFromPrep && isNormallyLocked) {
             setPendingMealChange({ date, mealType, option, isBag, currentOption: currentOption! });
             setShowPrepWarning(true);
             setEditingMeal(null);
@@ -248,9 +322,15 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId, cu
 
         const dateStr = format(date, 'yyyy-MM-dd');
         const finalIsBag = option === 'bag' ? true : (option === 'tupper' ? false : isBag);
+        
+        // Determine if it is today
+        const isToday = format(date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+
+        // Use selectedBagTime ONLY if it's a bag AND it is today
+        const timeToSave = (finalIsBag && option === 'bag' && isToday) ? selectedBagTime : null;
 
         try {
-            await mealService.upsertOrder(userId, dateStr, mealType, option, finalIsBag);
+            await mealService.upsertOrder(userId, dateStr, mealType, option, finalIsBag, timeToSave);
             loadData();
             setEditingMeal(null);
         } catch (error) {
@@ -284,7 +364,7 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId, cu
 
     const getAvailableOptions = (mealType: string) => {
         if (mealType === 'breakfast') {
-            return ['standard', 'early', 'skip']; // Removed 'bag', 'tupper' for breakfast? Usually breakfast is standard/early.
+            return ['standard', 'early', 'bag', 'skip']; 
         } else if (mealType === 'lunch') {
             return ['standard', 'early', 'late', 'tupper', 'bag', 'skip'];
         } else {
@@ -330,6 +410,27 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId, cu
                                                     {format(day, 'd MMM', { locale: es })}
                                                 </span>
 
+                                                {/* Compact Indicators */}
+                                                <div className="flex gap-1 mt-1">
+                                                    {holidays.some(h => h.date === format(day, 'yyyy-MM-dd')) && (
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-fuchsia-500" title="Festivo" />
+                                                    )}
+                                                    {userProfiles.some(u => {
+                                                        if (!u.birthday) return false;
+                                                        const b = new Date(u.birthday);
+                                                        return b.getDate() === day.getDate() && b.getMonth() === day.getMonth();
+                                                    }) && (
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-pink-500" title="Cumpleaños" />
+                                                    )}
+                                                    {familyFeasts.some(ev => {
+                                                        const evDate = format(ev.start, 'yyyy-MM-dd');
+                                                        const isFamilyFeast = ev.metadata?.familyFeast;
+                                                        const validFamily = isFamilyFeast === 'A' || isFamilyFeast === 'B';
+                                                        return evDate === format(day, 'yyyy-MM-dd') && validFamily;
+                                                    }) && (
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500" title="Fiesta Familia" />
+                                                    )}
+                                                </div>
                                             </div>
                                         </td>
                                         {MEALS.map(meal => {
@@ -407,6 +508,48 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId, cu
                             <p className="text-sm text-zinc-600 dark:text-zinc-400 capitalize">
                                 {format(editingMeal.date, "EEEE, d 'de' MMMM", { locale: es })}
                             </p>
+
+                            {/* Detailed Day Info in Modal */}
+                            <div className="mt-2 space-y-1">
+                                {(() => {
+                                    const dateStr = format(editingMeal.date, 'yyyy-MM-dd');
+                                    const holiday = holidays.find(h => h.date === dateStr);
+                                    const birthdayUsers = userProfiles.filter(u => {
+                                        if (!u.birthday) return false;
+                                        const b = new Date(u.birthday);
+                                        return b.getDate() === editingMeal.date.getDate() && b.getMonth() === editingMeal.date.getMonth();
+                                    });
+                                    const dayFeasts = familyFeasts.filter(ev => {
+                                        const evDate = format(ev.start, 'yyyy-MM-dd');
+                                        const isFamilyFeast = ev.metadata?.familyFeast;
+                                        const validFamily = isFamilyFeast === 'A' || isFamilyFeast === 'B';
+                                        return evDate === dateStr && validFamily;
+                                    });
+
+                                    return (
+                                        <>
+                                            {holiday && (
+                                                <div className="flex items-center gap-2 text-xs font-bold text-fuchsia-600 dark:text-fuchsia-400">
+                                                    <CalendarDays size={14} />
+                                                    <span>Festivo: {holiday.name}</span>
+                                                </div>
+                                            )}
+                                            {birthdayUsers.map(u => (
+                                                <div key={u.id} className="flex items-center gap-2 text-xs font-bold text-pink-600 dark:text-pink-400">
+                                                    <Cake size={14} />
+                                                    <span>Cumple de {u.name}</span>
+                                                </div>
+                                            ))}
+                                            {dayFeasts.map(ev => (
+                                                <div key={ev.id} className="flex items-center gap-2 text-xs font-bold text-indigo-600 dark:text-indigo-400">
+                                                    <Rocket size={14} />
+                                                    <span>Fiesta de Familia {ev.metadata?.familyFeast}</span>
+                                                </div>
+                                            ))}
+                                        </>
+                                    );
+                                })()}
+                            </div>
                         </div>
 
                         {/* Options */}
@@ -415,6 +558,85 @@ export const DailyOrderManager: React.FC<DailyOrderManagerProps> = ({ userId, cu
                                 const config = OPTION_CONFIG[opt];
                                 const isSelected = editingMeal.currentOption === opt;
                                 const optionLocked = isLocked(editingMeal.date, editingMeal.mealType, opt, editingMeal.currentOption);
+
+                                // Special UI for Bag Time Selection - ONLY FOR TODAY
+                                if (opt === 'bag' && !optionLocked) {
+                                     const isToday = format(editingMeal.date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd');
+                                     
+                                     // If not today, render standard button (no time selection)
+                                     if (!isToday) {
+                                         return (
+                                            <button
+                                                key={opt}
+                                                onClick={() => handleOptionSelect(opt)}
+                                                className={`
+                                                    w-full flex items-center gap-3 p-4 rounded-xl border-2 transition-all
+                                                    ${isSelected
+                                                        ? 'border-zinc-900 dark:border-white bg-zinc-50 dark:bg-zinc-800'
+                                                        : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
+                                                    }
+                                                    cursor-pointer
+                                                `}
+                                            >
+                                                <div className={`w-3 h-3 rounded-full border-2 ${isSelected
+                                                    ? 'border-zinc-900 dark:border-white bg-zinc-900 dark:bg-white'
+                                                    : 'border-zinc-300 dark:border-zinc-600'
+                                                    }`} />
+                                                <div className={`px-3 py-1 rounded-lg ${config.color} ${config.textColor} font-semibold text-sm min-w-[48px] text-center`}>
+                                                    {config.label}
+                                                </div>
+                                                <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                                                    Bolsa
+                                                </span>
+                                            </button>
+                                         );
+                                     }
+
+                                     // If today, show time picker
+                                     return (
+                                         <div key={opt} className="space-y-2">
+                                             <button
+                                                onClick={() => handleOptionSelect(opt)}
+                                                className={`
+                                                    w-full flex items-center gap-3 p-4 rounded-xl border-2 transition-all
+                                                    ${isSelected
+                                                        ? 'border-zinc-900 dark:border-white bg-zinc-50 dark:bg-zinc-800'
+                                                        : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-300 dark:hover:border-zinc-600'
+                                                    }
+                                                    cursor-pointer
+                                                `}
+                                             >
+                                                <div className={`w-3 h-3 rounded-full border-2 ${isSelected
+                                                    ? 'border-zinc-900 dark:border-white bg-zinc-900 dark:bg-white'
+                                                    : 'border-zinc-300 dark:border-zinc-600'
+                                                    }`} />
+                                                <div className={`px-3 py-1 rounded-lg ${config.color} ${config.textColor} font-semibold text-sm min-w-[48px] text-center`}>
+                                                    {config.label}
+                                                </div>
+                                                <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                                                    Bolsa
+                                                </span>
+                                             </button>
+                                             
+                                             {/* Inline Time Selector if Bag selected or user wants to pick it */}
+                                             <div className="pl-4 pr-1 flex items-center gap-3 animate-in fade-in slide-in-from-top-1">
+                                                 <Clock size={16} className="text-zinc-400" />
+                                                 <input 
+                                                    type="time" 
+                                                    value={selectedBagTime}
+                                                    onChange={(e) => setSelectedBagTime(e.target.value)}
+                                                    className="flex-1 p-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white text-sm"
+                                                 />
+                                                 <button
+                                                    onClick={() => handleOptionSelect('bag')} // Confirm with time
+                                                    className="px-4 py-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-xs font-bold rounded-lg"
+                                                 >
+                                                     CONFIRMAR
+                                                 </button>
+                                             </div>
+                                         </div>
+                                     );
+                                }
 
                                 return (
                                     <button

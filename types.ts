@@ -107,6 +107,7 @@ export interface MealOrder {
   mealType: 'breakfast' | 'lunch' | 'dinner';
   option: string;
   isBag: boolean;
+  bagTime?: string; // Optional: "HH:mm" for pickup
   status: 'pending' | 'confirmed' | 'cancelled' | 'template';
 }
 
@@ -221,4 +222,43 @@ export interface AppGuideSection {
   orderIndex: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface Holiday {
+  id: string;
+  name: string;
+  date: string; // YYYY-MM-DD
+  createdAt: string;
+}
+
+export interface KitchenConfig {
+  id: string;
+  weekly_schedule: Record<string, string>; // Legacy support
+  schedule_weekdays?: string;
+  schedule_saturday?: string;
+  schedule_sunday_holiday?: string;
+  overrides?: Record<string, string>; // YYYY-MM-DD -> HH:mm
+}
+
+
+export interface UserAdminMessage {
+    id: string;
+    user_id: string;
+    sender_id: string;
+    receiver_id?: string | null;
+    content: string;
+    parent_id: string | null;
+    is_read: boolean;
+    is_completed: boolean;
+    is_global?: boolean;
+    created_at: string;
+    updated_at: string;
+    sender?: {
+        full_name: string;
+        avatar_url: string;
+    };
+    receiver?: {
+        full_name: string;
+        avatar_url: string;
+    };
 }

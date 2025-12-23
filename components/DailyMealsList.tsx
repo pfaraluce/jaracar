@@ -4,10 +4,13 @@ import { es } from 'date-fns/locale';
 import { mealService } from '../services/meals';
 import { kitchenService, MealGuest } from '../services/kitchen';
 import { profileService } from '../services/profiles';
-import { ChevronLeft, ChevronRight, Lock, Users, Utensils, X, Check } from 'lucide-react';
-import { MealOrder, User } from '../types';
+import { ChevronLeft, ChevronRight, Lock, Users, Utensils, X, Check, Clock, CalendarDays, Cake, Pencil } from 'lucide-react';
+import { MealOrder, User, Holiday } from '../types';
+import { calendarService } from '../services/calendar';
+import { CalendarEvent } from '../services/icalParser';
 import { KitchenAdminPanel } from './KitchenAdminPanel';
 import { UserAvatar } from './UserAvatar';
+import { EpactaEvent } from './EpactaEvent';
 
 interface DailyMealsListProps {
     user: User;
@@ -50,6 +53,7 @@ interface ResidentEntry {
     originalDate: string;
     mealType: string;
     guestId?: string;
+    bagTime?: string; // Add bagTime
 }
 
 
@@ -61,6 +65,8 @@ export const DailyMealsList: React.FC<DailyMealsListProps> = ({ user, selectedDa
     const [isLocked, setIsLocked] = useState(false);
     const [loading, setLoading] = useState(true);
     const [userProfiles, setUserProfiles] = useState<Map<string, User>>(new Map());
+    const [holidays, setHolidays] = useState<Holiday[]>([]);
+    const [familyFeasts, setFamilyFeasts] = useState<CalendarEvent[]>([]);
 
     // Admin Editing State
     const [editingResident, setEditingResident] = useState<{
@@ -113,19 +119,27 @@ export const DailyMealsList: React.FC<DailyMealsListProps> = ({ user, selectedDa
             }
 
             // 2. Optimized batch fetching
-            const [plansMap, todayGuests, nextGuestsData, locked, profiles] = await Promise.all([
+            const [plansMap, todayGuests, nextGuestsData, locked, profiles, holidaysData, familyFeastsData] = await Promise.all([
                 mealService.getEffectiveDailyPlans([dateStr, nextDateStr]),
                 kitchenService.getGuests(dateStr),
                 kitchenService.getGuests(nextDateStr),
                 kitchenService.getDailyLockStatus(dateStr),
-                profileService.getAllProfiles() // Still needed for avatars/diets metadata
+                profileService.getAllProfiles(),
+                kitchenService.getHolidays(),
+                calendarService.getCalendars().then(async cals => {
+                    const epactaCals = cals.filter(c => c.is_epacta);
+                    if (epactaCals.length === 0) return [];
+                    const events = await calendarService.getCachedEvents(epactaCals.map(c => c.id));
+                    return events.filter(ev => {
+                        const evDate = format(ev.start, 'yyyy-MM-dd');
+                        const isToday = evDate === dateStr;
+                        // Filter family feasts: ONLY show A and B in the banner
+                        const isFamilyFeast = ev.metadata?.familyFeast;
+                        const validFamily = isFamilyFeast === 'A' || isFamilyFeast === 'B';
+                        return isToday && validFamily;
+                    });
+                }) as Promise<CalendarEvent[]>
             ]);
-
-            // Create a map of user profiles for quick lookup
-            const profileMap = new Map<string, User>();
-            profiles.forEach(profile => {
-                profileMap.set(profile.id, profile);
-            });
 
             const todayOrders = plansMap[dateStr] || [];
             const nextOrders = plansMap[nextDateStr] || [];
@@ -135,7 +149,14 @@ export const DailyMealsList: React.FC<DailyMealsListProps> = ({ user, selectedDa
             setGuests(todayGuests);
             setNextGuests(nextGuestsData);
             setIsLocked(locked);
+            
+            const profileMap = new Map<string, User>();
+            profiles.forEach(profile => {
+                profileMap.set(profile.id, profile);
+            });
             setUserProfiles(profileMap);
+            setHolidays(holidaysData);
+            setFamilyFeasts(familyFeastsData);
 
             // 3. Update Cache
             localStorage.setItem(cacheKey, JSON.stringify({
@@ -193,7 +214,8 @@ export const DailyMealsList: React.FC<DailyMealsListProps> = ({ user, selectedDa
                     isGuest: false,
                     initials: userProfile?.initials,
                     originalDate: dateStr,
-                    mealType: mealType
+                    mealType: mealType,
+                    bagTime: o.bagTime // Pass bagTime
                 });
             });
 
@@ -225,6 +247,7 @@ export const DailyMealsList: React.FC<DailyMealsListProps> = ({ user, selectedDa
         const nextDateStr = format(addDays(selectedDate, 1), 'yyyy-MM-dd');
         const prep: Record<string, ResidentEntry[]> = {
             earlyBreakfast: [],
+            breakfastBag: [], // Add breakfastBag
             tupper: [],
             bag: []
         };
@@ -351,6 +374,19 @@ export const DailyMealsList: React.FC<DailyMealsListProps> = ({ user, selectedDa
     const lunchGroups = groupByMealAndOption(orders, guests, 'lunch', dateStr);
     const dinnerGroups = groupByMealAndOption(orders, guests, 'dinner', dateStr);
     const tomorrowPrep = getTomorrowPrep();
+
+    // --- Special Events Logic ---
+    const todayHoliday = holidays.find(h => h.date === dateStr);
+    
+    // Find Birthdays
+    const todayBirthdays = Array.from(userProfiles.values()).filter(u => {
+        if (!u.birthday) return false;
+        // Compare DD-MM
+        const bdate = new Date(u.birthday);
+        const target = selectedDate;
+        return bdate.getDate() === target.getDate() && bdate.getMonth() === target.getMonth();
+    });
+
 
     const handleResidentClick = (resident: ResidentEntry) => {
         // Allow admin edit if conditions met
@@ -531,6 +567,14 @@ export const DailyMealsList: React.FC<DailyMealsListProps> = ({ user, selectedDa
 
                                 </div>
                                 <div className="flex items-center gap-2">
+                                     {/* Bag Time Display */}
+                                     {resident.bagTime && (
+                                         <div className="flex items-center gap-1 text-xs font-mono text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">
+                                             <Clock size={12} />
+                                             {resident.bagTime}
+                                         </div>
+                                     )}
+
                                     {/* Special Status Label for 'NO' group */}
                                     {optionKey === 'no' && (resident.option !== 'skip' && resident.option !== 'no') && (
                                         <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-500 bg-zinc-100 dark:bg-zinc-700 dark:text-zinc-400 px-1.5 py-0.5 rounded">
@@ -595,8 +639,45 @@ export const DailyMealsList: React.FC<DailyMealsListProps> = ({ user, selectedDa
 
             {/* Admin Panel */}
             {user.role === 'ADMIN' && (
-                <KitchenAdminPanel selectedDate={selectedDate} onUpdate={loadOrders} />
+                <KitchenAdminPanel 
+                    selectedDate={selectedDate} 
+                    onUpdate={loadOrders} 
+                    holidays={holidays}
+                />
             )}
+
+            {/* Special Events Banners */}
+            <div className="space-y-2">
+                {todayHoliday && (
+                    <div className="flex items-center gap-2 p-3 bg-fuchsia-50 dark:bg-fuchsia-900/20 border border-fuchsia-200 dark:border-fuchsia-800 rounded-xl">
+                        <CalendarDays size={18} className="text-fuchsia-600 dark:text-fuchsia-400" />
+                        <span className="text-sm font-bold text-fuchsia-800 dark:text-fuchsia-300">
+                             ¡Es Festivo! {todayHoliday.name}
+                        </span>
+                    </div>
+                )}
+                
+                {todayBirthdays.map(birthdayUser => (
+                     <div key={birthdayUser.id} className="flex items-center gap-2 p-3 bg-pink-50 dark:bg-pink-900/20 border border-pink-200 dark:border-pink-800 rounded-xl">
+                        <Cake size={18} className="text-pink-600 dark:text-pink-400" />
+                        <span className="text-sm font-bold text-pink-800 dark:text-pink-300">
+                             ¡Cumpleaños de {user.role === 'KITCHEN' ? (birthdayUser.initials || birthdayUser.name.substring(0,2).toUpperCase()) : birthdayUser.name}!
+                        </span>
+                     </div>
+                ))}
+
+                {familyFeasts.map(ev => {
+                    const isFamilyFeast = ev.metadata?.familyFeast;
+                    return (
+                        <div key={ev.id} className="flex items-center gap-2 p-3 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl">
+                            <CalendarDays size={18} className="text-indigo-600 dark:text-indigo-400" />
+                            <span className="text-sm font-bold text-indigo-800 dark:text-indigo-300">
+                                ¡Fiesta de Familia {isFamilyFeast}!
+                            </span>
+                        </div>
+                    );
+                })}
+            </div>
 
             {loading ? (
                 <div className="p-12 text-center text-zinc-400">
@@ -642,6 +723,7 @@ export const DailyMealsList: React.FC<DailyMealsListProps> = ({ user, selectedDa
 
                     {/* Tomorrow's Prep Section */}
                     {(tomorrowPrep.earlyBreakfast.length > 0 ||
+                        tomorrowPrep.breakfastBag.length > 0 ||
                         tomorrowPrep.tupper.length > 0 ||
                         tomorrowPrep.bag.length > 0) && (
                             <div className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 rounded-xl border border-indigo-200 dark:border-indigo-800 p-4 shadow-sm">
@@ -659,6 +741,12 @@ export const DailyMealsList: React.FC<DailyMealsListProps> = ({ user, selectedDa
                                     title="Desayuno Pronto"
                                     residents={tomorrowPrep.earlyBreakfast}
                                     optionKey="early"
+                                />
+
+                                <SubdivisionSection
+                                    title="Desayuno (Bolsa)"
+                                    residents={tomorrowPrep.breakfastBag}
+                                    optionKey="bag"
                                 />
 
                                 <SubdivisionSection

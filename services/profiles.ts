@@ -316,6 +316,14 @@ export const profileService = {
 
             if (error) throw new Error(error.message);
         }
+    },
+
+    deleteSelf: async (): Promise<void> => {
+        const { error } = await supabase.functions.invoke('delete-account', {
+            body: {}
+        });
+
+        if (error) throw new Error(error.message);
     }
 };
 

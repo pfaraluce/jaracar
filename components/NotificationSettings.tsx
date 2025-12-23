@@ -22,6 +22,7 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({ user
     const [success, setSuccess] = useState(false);
     const [permissionStatus, setPermissionStatus] = useState<NotificationPermission>('default');
     const [preferences, setPreferences] = useState<NotificationPreferences>({
+        global_enabled: true,
         admin_announcements: true,
         meal_orders: false,
         reservations: false,
@@ -150,6 +151,36 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({ user
                 </div>
             )}
 
+            {/* Global Master Switch */}
+            {permissionStatus === 'granted' && (
+                <div className="bg-zinc-50 dark:bg-zinc-800/80 rounded-xl p-4 border border-zinc-200 dark:border-zinc-700/50">
+                    <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-lg ${preferences.global_enabled ? 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-500'}`}>
+                                {preferences.global_enabled ? <Bell size={20} /> : <BellOff size={20} />}
+                            </div>
+                            <div>
+                                <h4 className="font-semibold text-zinc-900 dark:text-white">Todas las notificaciones</h4>
+                                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                                    {preferences.global_enabled ? 'Recibirás las notificaciones seleccionadas abajo' : 'Todas las notificaciones pausadas'}
+                                </p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => handleTogglePreference('global_enabled')}
+                            disabled={saving}
+                            className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${preferences.global_enabled
+                                    ? 'bg-green-500'
+                                    : 'bg-zinc-200 dark:bg-zinc-700'
+                                }`}
+                        >
+                            <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${preferences.global_enabled ? 'translate-x-6' : 'translate-x-1'
+                                }`} />
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {permissionStatus !== 'granted' && (
                 <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-lg border border-zinc-200 dark:border-zinc-700">
                     <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-3">
@@ -181,8 +212,8 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({ user
             )}
 
             {permissionStatus === 'granted' && (
-                <div className="space-y-2">
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-3">
+                <div className={`space-y-2 transition-opacity duration-200 ${!preferences.global_enabled ? 'opacity-50 pointer-events-none grayscale' : ''}`}>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-3 px-1">
                         Selecciona qué notificaciones quieres recibir:
                     </p>
 

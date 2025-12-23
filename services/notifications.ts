@@ -4,6 +4,7 @@ import { supabase } from './supabase';
 const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;
 
 export interface NotificationPreferences {
+    global_enabled?: boolean;
     admin_announcements: boolean;
     meal_orders: boolean;
     reservations: boolean;
@@ -136,6 +137,33 @@ export const getNotificationPreferences = async (): Promise<NotificationPreferen
         .single();
 
     if (error) {
+        // If row doesn't exist (PGRST116), return defaults
+        if (error.code === 'PGRST116') {
+            const defaultPreferences: NotificationPreferences = {
+                global_enabled: true,
+                admin_announcements: true,
+                meal_orders: false,
+                reservations: false,
+                reminders: false,
+                vehicle_inspections: false,
+                maintenance_tickets: false
+            };
+            
+            // Optionally create the row so it exists next time
+            // We catch potential errors here to avoid blocking the UI
+            supabase
+                .from('user_notification_preferences')
+                .insert({
+                    user_id: user.id,
+                    ...defaultPreferences
+                })
+                .then(({ error: insertError }) => {
+                    if (insertError) console.warn('Error creating default preferences:', insertError);
+                });
+
+            return defaultPreferences;
+        }
+
         console.error('Error fetching notification preferences:', error);
         return null;
     }
