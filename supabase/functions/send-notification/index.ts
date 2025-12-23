@@ -28,7 +28,7 @@ serve(async (req) => {
     )
 
     // Get request body
-    const { userId, userIds, title, body, data, notificationType }: NotificationPayload = await req.json()
+    const { userId, userIds, title, body, data, notificationType, role }: NotificationPayload & { role?: string } = await req.json()
 
     // Determine target users
     let targetUserIds: string[] = []
@@ -36,8 +36,17 @@ serve(async (req) => {
       targetUserIds = [userId]
     } else if (userIds && userIds.length > 0) {
       targetUserIds = userIds
+    } else if (role) {
+      // Fetch users with this role
+      const { data: users, error: userError } = await supabaseClient
+        .from('profiles')
+        .select('id')
+        .eq('role', role)
+      
+      if (userError) throw userError
+      targetUserIds = users.map((u: any) => u.id)
     } else {
-      throw new Error('Either userId or userIds must be provided')
+      throw new Error('Either userId, userIds, or role must be provided')
     }
 
     // Check notification preferences if notificationType is provided

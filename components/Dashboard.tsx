@@ -3,7 +3,6 @@ import { User } from '../types';
 import { hasAccess } from '../utils/permissions';
 import { Logo } from './Logo';
 import { UserAvatar } from './UserAvatar';
-import { ProfileModal } from './ProfileModal';
 import { WelcomeModal } from './WelcomeModal';
 import { TutorialOverlay } from './TutorialOverlay';
 import { HomeView } from './HomeView';
@@ -11,6 +10,10 @@ import { VehiclesView } from './VehiclesView';
 import { MealsView } from './MealsView';
 import { MaintenanceView } from './MaintenanceView';
 import { CalendarView } from './CalendarView';
+import { MessagingView } from './MessagingView';
+import { ProfileView } from './ProfileView';
+import { AdminUserList } from './AdminUserList';
+import { RoomsManagementView } from './RoomsManagementView';
 import { initializeNotifications, onMessageListener } from '../services/notifications';
 
 import {
@@ -20,10 +23,16 @@ import {
   UtensilsCrossed,
   Wrench,
   Calendar,
+  Mail,
+  User as UserIcon,
+  Shield,
+  Hotel,
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
-type DashboardView = 'HOME' | 'VEHICLES' | 'MEALS' | 'MAINTENANCE' | 'CALENDAR';
+import { UserRole } from '../types';
+
+type DashboardView = 'HOME' | 'VEHICLES' | 'MEALS' | 'MAINTENANCE' | 'CALENDAR' | 'MESSAGES' | 'PROFILE' | 'ADMIN_USERS' | 'ADMIN_ROOMS';
 
 interface DashboardProps {
   user: User;
@@ -45,7 +54,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
   };
 
   const [currentView, setCurrentView] = useState<DashboardView>(getInitialView);
-  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
 
@@ -188,7 +196,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
           {/* User Profile Footer */}
           <div className="p-4 border-t border-zinc-200 dark:border-zinc-800">
             <div className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
-              <button onClick={() => setIsProfileModalOpen(true)} className="flex items-center gap-3 flex-1 text-left">
+              <button onClick={() => setCurrentView('PROFILE')} className="flex items-center gap-3 flex-1 text-left">
                 <UserAvatar name={user.name} imageUrl={user.avatarUrl} size="sm" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-zinc-900 dark:text-white truncate">{user.name}</p>
@@ -229,6 +237,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
             {currentView === 'MEALS' && <MealsView user={user} />}
             {currentView === 'MAINTENANCE' && <MaintenanceView user={user} />}
             {currentView === 'CALENDAR' && <CalendarView user={user} />}
+            {currentView === 'PROFILE' && (
+              <ProfileView
+                user={user}
+                onUpdate={onUserUpdate}
+                onLogout={onLogout}
+                onRestartTutorial={handleStartTutorial}
+              />
+            )}
           </div>
         </main>
 
@@ -249,11 +265,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
             )}
 
             <button
-              onClick={() => setIsProfileModalOpen(true)}
+              onClick={() => setCurrentView('PROFILE')}
               className="flex items-center justify-center p-2"
               aria-label="Perfil"
             >
-              <div className={`p-0.5 rounded-full border-2 ${isProfileModalOpen ? 'border-zinc-900 dark:border-white' : 'border-transparent'}`}>
+              <div className={`p-0.5 rounded-full border-2 ${currentView === 'PROFILE' ? 'border-zinc-900 dark:border-white' : 'border-transparent'}`}>
                 <UserAvatar name={user.name} imageUrl={user.avatarUrl} size="sm" className="w-5 h-5" />
               </div>
             </button>
@@ -261,15 +277,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
         </nav>
       </div>
 
-      {/* Global Modals */}
-      <ProfileModal
-        user={user}
-        isOpen={isProfileModalOpen}
-        onClose={() => setIsProfileModalOpen(false)}
-        onUpdate={onUserUpdate}
-        onRestartTutorial={handleStartTutorial}
-        onLogout={onLogout}
-      />
+      {/* ProfileModal removed */}
 
       {showWelcome && (
         <WelcomeModal
