@@ -249,8 +249,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, onUserUpda
         </main>
 
         {/* Mobile Bottom Navigation */}
-        <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 pb-safe lg:hidden z-30">
-          <div className="flex items-center justify-around py-2">
+        <nav className="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-lg border-t border-zinc-200 dark:border-zinc-800 pb-[calc(env(safe-area-inset-bottom)+1rem)] lg:hidden z-30">
+          <div className="flex items-center justify-around py-3">
             {hasAccess(user, 'vehicles') && (
               <MobileNavItem view="VEHICLES" icon={Car} label="Coches" isActive={currentView === 'VEHICLES'} />
             )}
