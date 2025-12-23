@@ -5,9 +5,10 @@ interface UserAvatarProps {
     imageUrl?: string;
     size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
     className?: string;
+    border?: boolean;
 }
 
-export const UserAvatar: React.FC<UserAvatarProps> = ({ name, imageUrl, size = 'md', className = '' }) => {
+export const UserAvatar: React.FC<UserAvatarProps> = ({ name, imageUrl, size = 'md', className = '', border = false }) => {
     const [hasError, setHasError] = React.useState(false);
 
     // Reset error state if imageUrl changes
@@ -38,14 +39,14 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({ name, imageUrl, size = '
                 src={imageUrl}
                 alt={name}
                 onError={() => setHasError(true)}
-                className={`${sizeClasses[size]} rounded-full object-cover border border-zinc-200 ${className}`}
+                className={`${sizeClasses[size]} rounded-full object-cover border ${border ? 'border-white dark:border-zinc-900 ring-1 ring-zinc-200 dark:ring-zinc-800' : 'border-zinc-200'} ${className}`}
             />
         );
     }
 
     return (
         <div
-            className={`${sizeClasses[size]} rounded-full bg-zinc-100 border border-zinc-200 flex items-center justify-center font-medium text-zinc-600 ${className}`}
+            className={`${sizeClasses[size]} rounded-full bg-zinc-100 border ${border ? 'border-white dark:border-zinc-900 ring-1 ring-zinc-200 dark:ring-zinc-800' : 'border-zinc-200'} flex items-center justify-center font-medium text-zinc-600 ${className}`}
             title={name}
         >
             {getInitials(name)}
