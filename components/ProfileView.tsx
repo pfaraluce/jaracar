@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { User, UserRole, DietFile, UserAbsence } from '../types';
-import { Camera, Shield, Mail, Loader2, Moon, Sun, Monitor, Edit2, Check, Calendar, Hash, Utensils, Upload, FileText, Trash2, LogOut, Hotel, ChevronDown, ChevronUp, Plus, User as UserIcon } from 'lucide-react';
+import { Camera, Shield, Mail, Loader2, Moon, Sun, Monitor, Edit2, Check, Calendar, Hash, Utensils, Upload, FileText, Trash2, LogOut, Hotel, ChevronDown, ChevronUp, Plus, User as UserIcon, Users } from 'lucide-react';
 import { UserAvatar } from './UserAvatar';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../services/supabase';
@@ -297,41 +297,45 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onUpdate, onRest
             <div className="flex items-center gap-1 p-1 bg-zinc-100 dark:bg-zinc-800/50 rounded-2xl w-fit border border-zinc-200 dark:border-zinc-800">
                 <button
                     onClick={() => setActiveTab('PROFILE')}
-                    className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'PROFILE'
+                    className={`px-4 py-2 rounded-xl text-sm transition-all flex items-center gap-2 ${activeTab === 'PROFILE'
                         ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 shadow-sm'
                         : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
                         }`}
                 >
-                    Mi Perfil
+                    <UserIcon size={18} />
+                    <span className="hidden md:block">Mi Perfil</span>
                 </button>
                 <button
                     onClick={() => setActiveTab('MESSAGES')}
-                    className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'MESSAGES'
+                    className={`px-4 py-2 rounded-xl text-sm transition-all flex items-center gap-2 ${activeTab === 'MESSAGES'
                         ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 shadow-sm'
                         : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
                         }`}
                 >
-                    Mensajería
+                    <Mail size={18} />
+                    <span className="hidden md:block">Mensajería</span>
                 </button>
                 {user.role === UserRole.ADMIN && (
                     <>
                         <button
                             onClick={() => setActiveTab('ADMIN_USERS')}
-                            className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'ADMIN_USERS'
+                            className={`px-4 py-2 rounded-xl text-sm transition-all flex items-center gap-2 ${activeTab === 'ADMIN_USERS'
                                 ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 shadow-sm'
                                 : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
-                                }`}
+                               }`}
                         >
-                            Usuarios
+                            <Users size={18} />
+                            <span className="hidden md:block">Usuarios</span>
                         </button>
                         <button
                             onClick={() => setActiveTab('ADMIN_ROOMS')}
-                            className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${activeTab === 'ADMIN_ROOMS'
+                            className={`px-4 py-2 rounded-xl text-sm transition-all flex items-center gap-2 ${activeTab === 'ADMIN_ROOMS'
                                 ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 shadow-sm'
                                 : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white'
                                 }`}
                         >
-                            Habitaciones
+                            <Hotel size={18} />
+                            <span className="hidden md:block">Habitaciones</span>
                         </button>
                     </>
                 )}
@@ -412,7 +416,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onUpdate, onRest
                                 </button>
                             </div>
                         )}
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700">
                             {user.role === UserRole.ADMIN && <Shield size={14} className="text-amber-500" />}
                             {user.role}
                         </span>
@@ -445,7 +449,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onUpdate, onRest
                     <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-4">
                         <div className="flex items-center gap-2">
                             <Moon className="text-zinc-400" size={20} />
-                            <h3 className="text-base font-semibold text-zinc-900 dark:text-white">Apariencia</h3>
+                            <h3 className="text-base font-medium text-zinc-900 dark:text-white">Apariencia</h3>
                         </div>
                         <div className="grid grid-cols-3 gap-4">
                             <button onClick={() => setTheme('light')} className={getThemeButtonClass('light')}>
@@ -473,7 +477,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onUpdate, onRest
                         <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-4">¿Necesitas ayuda para recordar cómo funciona todo?</p>
                         <button
                             onClick={onRestartTutorial}
-                            className="px-6 py-2.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl text-sm font-semibold hover:opacity-90 transition-all active:scale-95 shadow-sm"
+                            className="px-6 py-2.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl text-sm font-medium hover:opacity-90 transition-all active:scale-95 shadow-sm"
                         >
                             Volver a ver el tutorial
                         </button>
@@ -486,12 +490,12 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onUpdate, onRest
                     <div className="bg-white dark:bg-zinc-900 p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm space-y-6">
                         <div className="flex items-center gap-2">
                             <UserIcon className="text-zinc-400" size={20} />
-                            <h3 className="text-base font-semibold text-zinc-900 dark:text-white">Información y Estancia</h3>
+                            <h3 className="text-base font-medium text-zinc-900 dark:text-white">Información y Estancia</h3>
                         </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 space-y-1">
-                                <label className="flex items-center gap-2 text-xs font-bold text-zinc-400 uppercase tracking-wider">
+                                <label className="flex items-center gap-2 text-xs font-medium text-zinc-400 uppercase tracking-wider">
                                     <Calendar size={14} /> Cumpleaños
                                 </label>
                                 <input
@@ -503,7 +507,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onUpdate, onRest
                             </div>
 
                             <div className="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 space-y-1">
-                                <label className="flex items-center gap-2 text-xs font-bold text-zinc-400 uppercase tracking-wider">
+                                <label className="flex items-center gap-2 text-xs font-medium text-zinc-400 uppercase tracking-wider">
                                     <Hash size={14} /> Siglas (máx. 3)
                                 </label>
                                 <input
@@ -519,10 +523,10 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onUpdate, onRest
 
                         <div className="p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
                             <div className="space-y-1">
-                                <label className="flex items-center gap-2 text-xs font-bold text-zinc-400 uppercase tracking-wider">
+                                <label className="flex items-center gap-2 text-xs font-medium text-zinc-400 uppercase tracking-wider">
                                     <Hotel size={14} /> Habitación Asignada
                                 </label>
-                                <p className="text-sm font-semibold text-zinc-900 dark:text-white">
+                                <p className="text-sm font-medium text-zinc-900 dark:text-white">
                                     {user.roomName && user.bedNumber
                                         ? user.roomTotalBeds && user.roomTotalBeds > 1
                                             ? `${user.roomName} - Cama ${user.bedNumber}`
@@ -534,7 +538,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onUpdate, onRest
                             {user.roomId && (
                                 <button
                                     onClick={() => setShowAbsences(!showAbsences)}
-                                    className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg text-xs font-bold transition-all active:scale-95"
+                                    className="flex items-center gap-2 px-3 py-1.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-lg text-xs font-medium transition-all active:scale-95"
                                 >
                                     Ausencias
                                     {showAbsences ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
@@ -561,7 +565,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onUpdate, onRest
 
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-1">
-                                                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider px-1">Inicio</label>
+                                                <label className="text-[10px] font-medium text-zinc-400 uppercase tracking-wider px-1">Inicio</label>
                                                 <input
                                                     type="date"
                                                     value={newAbsenceStart}
@@ -573,7 +577,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onUpdate, onRest
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider px-1">Fin</label>
+                                                <label className="text-[10px] font-medium text-zinc-400 uppercase tracking-wider px-1">Fin</label>
                                                 <input
                                                     type="date"
                                                     value={newAbsenceEnd}
@@ -586,7 +590,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onUpdate, onRest
                                             </div>
                                         </div>
                                         <div className="space-y-1">
-                                            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider px-1">Notas (opcional)</label>
+                                            <label className="text-[10px] font-medium text-zinc-400 uppercase tracking-wider px-1">Notas (opcional)</label>
                                             <input
                                                 type="text"
                                                 value={newAbsenceNotes}
@@ -599,7 +603,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onUpdate, onRest
                                         <button
                                             type="submit"
                                             disabled={creatingAbsence}
-                                            className="w-full py-2.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl text-sm font-bold hover:opacity-90 active:scale-95 transition-all disabled:opacity-50 shadow-sm"
+                                            className="w-full py-2.5 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl text-sm font-medium hover:opacity-90 active:scale-95 transition-all disabled:opacity-50 shadow-sm"
                                         >
                                             {creatingAbsence ? 'Guardando...' : 'Registrar Ausencia'}
                                         </button>
@@ -607,7 +611,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onUpdate, onRest
 
                                     {/* List */}
                                     <div className="space-y-3">
-                                        <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider px-1">Historial de ausencias</h4>
+                                        <h4 className="text-xs font-medium text-zinc-400 uppercase tracking-wider px-1">Historial de ausencias</h4>
                                         {loadingAbsences ? (
                                             <div className="flex justify-center py-4"><Loader2 size={24} className="animate-spin text-zinc-300" /></div>
                                         ) : absences.length === 0 ? (
@@ -621,7 +625,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onUpdate, onRest
                                                             <div className="flex items-start gap-3">
                                                                 <Calendar size={16} className="mt-0.5 text-zinc-400" />
                                                                 <div>
-                                                                    <p className="text-sm font-bold text-zinc-900 dark:text-white">{formatDate(abs.startDate)} - {formatDate(abs.endDate)}</p>
+                                                                    <p className="text-sm font-medium text-zinc-900 dark:text-white">{formatDate(abs.startDate)} - {formatDate(abs.endDate)}</p>
                                                                     {abs.notes && <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">{abs.notes}</p>}
                                                                 </div>
                                                             </div>
@@ -646,7 +650,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onUpdate, onRest
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <Utensils className="text-zinc-400" size={20} />
-                                <h3 className="text-base font-semibold text-zinc-900 dark:text-white">Alimentación y Dieta</h3>
+                                <h3 className="text-base font-medium text-zinc-900 dark:text-white">Alimentación y Dieta</h3>
                             </div>
                             <button
                                 onClick={() => setHasDiet(!hasDiet)}
@@ -661,13 +665,13 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onUpdate, onRest
                                 {user.dietNumber && (
                                     <div className="p-4 rounded-xl bg-green-50 dark:bg-green-900/10 border border-green-100 dark:border-green-900/30 flex items-center justify-between">
                                         <span className="text-sm font-medium text-green-700 dark:text-green-400">Tu número de dieta asignado:</span>
-                                        <span className="text-xl font-black text-green-600 dark:text-green-300"># {user.dietNumber}</span>
+                                        <span className="text-xl font-bold text-green-600 dark:text-green-300"># {user.dietNumber}</span>
                                     </div>
                                 )}
 
                                 <div className="space-y-4">
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider px-1">Nombre de la dieta</label>
+                                        <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider px-1">Nombre de la dieta</label>
                                         <input
                                             type="text"
                                             value={dietName}
@@ -678,7 +682,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onUpdate, onRest
                                     </div>
 
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider px-1">Notas y detalles</label>
+                                        <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider px-1">Notas y detalles</label>
                                         <textarea
                                             value={dietNotes}
                                             onChange={(e) => setDietNotes(e.target.value)}
@@ -690,11 +694,11 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onUpdate, onRest
 
                                     <div className="space-y-3">
                                         <div className="flex items-center justify-between px-1">
-                                            <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Documentación (Informes, etc.)</label>
+                                            <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider">Documentación (Informes, etc.)</label>
                                             <button
                                                 onClick={() => dietFileInputRef.current?.click()}
                                                 disabled={uploadingDietFile}
-                                                className="flex items-center gap-2 px-3 py-1.5 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg text-xs font-bold transition-all disabled:opacity-50"
+                                                className="flex items-center gap-2 px-3 py-1.5 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg text-xs font-medium transition-all disabled:opacity-50"
                                             >
                                                 {uploadingDietFile ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
                                                 Subir
@@ -733,7 +737,7 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ user, onUpdate, onRest
                     <button
                         onClick={handleSaveProfile}
                         disabled={savingProfile}
-                        className="w-full py-4 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-2xl text-base font-black hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50 shadow-xl flex items-center justify-center gap-3"
+                        className="w-full py-4 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-2xl text-base font-bold hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50 shadow-xl flex items-center justify-center gap-3"
                     >
                         {savingProfile ? (
                             <>

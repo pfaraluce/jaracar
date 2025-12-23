@@ -166,7 +166,7 @@ export const RoomsManagementView: React.FC = () => {
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                     <div>
-                        <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">Gestión de Habitaciones</h2>
+                        <h2 className="text-lg font-medium text-zinc-900 dark:text-white">Gestión de Habitaciones</h2>
                         <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
                             {rooms.length} habitación{rooms.length !== 1 ? 'es' : ''} · {beds.length} cama{beds.length !== 1 ? 's' : ''}
                         </p>
@@ -226,7 +226,7 @@ export const RoomsManagementView: React.FC = () => {
                                 className="overflow-hidden"
                             >
                                 <form onSubmit={handleSubmitRoom} className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                                    <h3 className="text-sm font-semibold text-zinc-900 dark:text-white mb-3">
+                                    <h3 className="text-sm font-medium text-zinc-900 dark:text-white mb-3">
                                         {editingRoomId ? 'Editar Habitación' : 'Nueva Habitación'}
                                     </h3>
                                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -316,7 +316,7 @@ export const RoomsManagementView: React.FC = () => {
                                             <div className="flex-1">
                                                 <div className="flex items-center gap-2">
                                                     <Hotel className="w-5 h-5 text-zinc-400" />
-                                                    <h3 className="font-semibold text-zinc-900 dark:text-white">{room.name}</h3>
+                                                    <h3 className="font-medium text-zinc-900 dark:text-white">{room.name}</h3>
                                                     <span className="text-xs px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400">
                                                         {occupiedBeds}/{room.totalBeds} ocupada{room.totalBeds !== 1 ? 's' : ''}
                                                     </span>

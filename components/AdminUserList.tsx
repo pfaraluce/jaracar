@@ -463,7 +463,7 @@ export const AdminUserList: React.FC = () => {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setPermissionUser(null)} />
                     <div className="relative w-full max-w-lg bg-white dark:bg-zinc-900 rounded-xl shadow-2xl p-6 overflow-hidden border border-zinc-200 dark:border-zinc-800 max-h-[90vh] flex flex-col">
-                        <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-1">Control de Acceso y Roles</h3>
+                        <h3 className="text-lg font-medium text-zinc-900 dark:text-white mb-1">Control de Acceso y Roles</h3>
                         <p className="text-sm text-zinc-500 mb-6">Configura el rol y permisos para <span className="font-medium text-zinc-900 dark:text-white">{permissionUser.name}</span></p>
 
                         <div className="flex-1 overflow-y-auto pr-2 space-y-6">
@@ -591,7 +591,7 @@ export const AdminUserList: React.FC = () => {
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                         <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowInviteModal(false)} />
                         <div className="relative w-full max-w-sm bg-white dark:bg-zinc-900 rounded-xl shadow-2xl p-6 overflow-hidden border border-zinc-200 dark:border-zinc-800">
-                            <h3 className="text-lg font-semibold text-zinc-900 dark:text-white mb-2">Invitar Usuario</h3>
+                            <h3 className="text-lg font-medium text-zinc-900 dark:text-white mb-2">Invitar Usuario</h3>
                             <p className="text-sm text-zinc-600 dark:text-zinc-400 mb-4">
                                 Envía una invitación por correo. El usuario será aprobado automáticamente al registrarse.
                             </p>

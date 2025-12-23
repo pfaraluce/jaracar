@@ -140,7 +140,7 @@ export const MessagingView: React.FC<MessagingViewProps> = ({ user }) => {
                         {/* User View: Input and History */}
                         {!isAdmin && (
                             <div className="bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 p-4 shadow-sm">
-                                <h3 className="text-sm font-semibold text-zinc-900 dark:text-white mb-3 flex items-center gap-2">
+                                <h3 className="text-sm font-medium text-zinc-900 dark:text-white mb-3 flex items-center gap-2">
                                     <MessageSquare size={16} />
                                     Enviar mensaje al administrador
                                 </h3>
@@ -168,7 +168,7 @@ export const MessagingView: React.FC<MessagingViewProps> = ({ user }) => {
 
                         {/* Message History / Admin Inbox */}
                         <div className="space-y-4">
-                            <h3 className="text-sm font-semibold text-zinc-500 dark:text-zinc-400 flex items-center gap-2 px-1">
+                            <h3 className="text-sm font-medium text-zinc-500 dark:text-zinc-400 flex items-center gap-2 px-1">
                                 <History size={16} />
                                 {isAdmin ? 'Mensajes de usuarios' : 'Mis mensajes anteriores'}
                             </h3>
@@ -193,7 +193,7 @@ export const MessagingView: React.FC<MessagingViewProps> = ({ user }) => {
                                                         size="sm"
                                                     />
                                                     <div>
-                                                        <p className="text-sm font-semibold text-zinc-900 dark:text-white">
+                                                        <p className="text-sm font-medium text-zinc-900 dark:text-white">
                                                             {msg.sender?.full_name}
                                                         </p>
                                                         <p className="text-xs text-zinc-500 dark:text-zinc-400">
@@ -250,7 +250,7 @@ export const MessagingView: React.FC<MessagingViewProps> = ({ user }) => {
                                                                 />
                                                                 <div className="flex-1">
                                                                     <div className="flex items-center gap-2 mb-1">
-                                                                        <span className="text-xs font-bold text-zinc-900 dark:text-white">
+                                                                        <span className="text-xs font-medium text-zinc-900 dark:text-white">
                                                                             {reply.sender?.full_name}
                                                                         </span>
                                                                         <span className="text-[10px] text-zinc-400">
